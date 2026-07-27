@@ -421,11 +421,10 @@ def _sanitize_svg_element(element: ET.Element, *, is_root: bool = False) -> ET.E
 
     if element.text:
         if tag_name in SVG_TEXT_CONTENT_ELEMENTS:
-            if element.text.strip():
-                sanitized.text = _validate_svg_text_content(
-                    element.text,
-                    context=f"<{tag_name}> text",
-                )
+            sanitized.text = _validate_svg_text_content(
+                element.text,
+                context=f"<{tag_name}> text",
+            )
         elif element.text.strip():
             raise RegistryDocsError(
                 f"icon SVG element <{tag_name}> contains unsupported text content"
@@ -435,13 +434,10 @@ def _sanitize_svg_element(element: ET.Element, *, is_root: bool = False) -> ET.E
         sanitized_child = _sanitize_svg_element(child)
         if child.tail:
             if tag_name in SVG_TEXT_CONTENT_ELEMENTS:
-                if child.tail.strip():
-                    validated_tail = _validate_svg_text_content(
-                        child.tail,
-                        context=f"<{tag_name}> tail text",
-                    )
-                else:
-                    validated_tail = None
+                validated_tail = _validate_svg_text_content(
+                    child.tail,
+                    context=f"<{tag_name}> tail text",
+                )
             elif child.tail.strip():
                 raise RegistryDocsError(
                     f"icon SVG element <{tag_name}> contains unsupported text content"
