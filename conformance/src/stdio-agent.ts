@@ -1,13 +1,15 @@
-import readline from 'node:readline';
+import readline from "node:readline";
 
-import { ReferenceAgent } from './reference-agent.js';
+import { ReferenceAgent } from "./reference-agent.js";
 
 const faults = [
-  ...(process.env.ACP_REFERENCE_MODE === 'bad' ? ['omit-v1-prompt-stop-reason', 'illegal-v2-fs-read-text-file'] : []),
-  ...((process.env.ACP_REFERENCE_FAULTS ?? '')
-    .split(',')
+  ...(process.env.ACP_REFERENCE_MODE === "bad"
+    ? ["omit-v1-prompt-stop-reason", "illegal-v2-fs-read-text-file"]
+    : []),
+  ...(process.env.ACP_REFERENCE_FAULTS ?? "")
+    .split(",")
     .map((value) => value.trim())
-    .filter((value) => value.length > 0)),
+    .filter((value) => value.length > 0),
 ];
 const agent = new ReferenceAgent(
   faults,
@@ -24,10 +26,10 @@ const rl = readline.createInterface({
   crlfDelay: Infinity,
 });
 
-rl.on('line', async (line) => {
+rl.on("line", async (line) => {
   await agent.receive(line);
 });
 
-rl.on('close', async () => {
+rl.on("close", async () => {
   await agent.close();
 });

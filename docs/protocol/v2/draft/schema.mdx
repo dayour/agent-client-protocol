@@ -3,7 +3,11 @@ title: "Schema"
 description: "Schema definitions for the Agent Client Protocol"
 ---
 
-<Note>This schema file is generated in this repository at [`schema/v2/schema.unstable.json`](https://github.com/agentclientprotocol/agent-client-protocol/blob/main/schema/v2/schema.unstable.json). GitHub releases for this schema are not published yet.</Note>
+<Note>
+  This schema file is generated in this repository at
+  [`schema/v2/schema.unstable.json`](https://github.com/agentclientprotocol/agent-client-protocol/blob/main/schema/v2/schema.unstable.json).
+  GitHub releases for this schema are not published yet.
+</Note>
 
 ## Agent
 
@@ -49,6 +53,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="methodId" type={<a href="#authmethodid">AuthMethodId</a>} required>
   The ID of the authentication method to use.
@@ -69,6 +74,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 
 <a id="auth-logout"></a>
@@ -104,6 +110,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 
 #### <span class="font-mono">LogoutAuthResponse</span>
@@ -120,6 +127,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 
 <a id="document-didchange"></a>
@@ -143,6 +151,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="contentChanges" type={<a href="#textdocumentcontentchangeevent">TextDocumentContentChangeEvent[]</a>} required>
   The content changes.
@@ -154,6 +163,7 @@ See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/d
   The URI of the changed document.
 
     - Format: `uri`
+
 </ResponseField>
 <ResponseField name="version" type={"int64"} required>
   The new version number of the document.
@@ -180,6 +190,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="sessionId" type={<a href="#sessionid">SessionId</a>} required>
   The session ID for this notification.
@@ -188,6 +199,7 @@ See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/d
   The URI of the closed document.
 
     - Format: `uri`
+
 </ResponseField>
 
 <a id="document-didfocus"></a>
@@ -211,6 +223,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="position" type={<a href="#position">Position</a>} required>
   The current cursor position.
@@ -222,6 +235,7 @@ See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/d
   The URI of the focused document.
 
     - Format: `uri`
+
 </ResponseField>
 <ResponseField name="version" type={"int64"} required>
   The version number of the document.
@@ -251,6 +265,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="languageId" type={"string"} required>
   The language identifier of the document (e.g., "rust", "python").
@@ -265,6 +280,7 @@ See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/d
   The URI of the opened document.
 
     - Format: `uri`
+
 </ResponseField>
 <ResponseField name="version" type={"int64"} required>
   The version number of the document.
@@ -291,6 +307,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="sessionId" type={<a href="#sessionid">SessionId</a>} required>
   The session ID for this notification.
@@ -299,6 +316,7 @@ See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/d
   The URI of the saved document.
 
     - Format: `uri`
+
 </ResponseField>
 
 ### <span class="font-mono">initialize</span>
@@ -306,6 +324,7 @@ See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/d
 Establishes the connection with a client and negotiates protocol capabilities.
 
 This method is called once at the beginning of the connection to:
+
 - Negotiate the protocol version to use
 - Exchange capability information between client and agent
 - Determine available authentication methods
@@ -332,11 +351,13 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="capabilities" type={<a href="#clientcapabilities">ClientCapabilities</a>} >
   Capabilities supported by the client.
 
     - Default: `{}`
+
 </ResponseField>
 <ResponseField name="info" type={<a href="#implementation">Implementation</a>} required>
   Information about the implementation sending this initialize request.
@@ -363,6 +384,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="authMethods" type={<a href="#authmethod">AuthMethod[]</a>} >
   Authentication methods supported by the agent.
@@ -370,11 +392,13 @@ See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/d
 Optional. Omitted or empty means the agent does not advertise the
 authentication method surface. Supplying one or more valid methods means
 the agent MUST support both `auth/login` and `auth/logout`.
+
 </ResponseField>
 <ResponseField name="capabilities" type={<a href="#agentcapabilities">AgentCapabilities</a>} >
   Capabilities supported by the agent.
 
     - Default: `{}`
+
 </ResponseField>
 <ResponseField name="info" type={<a href="#implementation">Implementation</a>} required>
   Information about the implementation sending this initialize response.
@@ -384,6 +408,7 @@ the agent MUST support both `auth/login` and `auth/logout`.
 or the latest protocol version supported by the agent.
 
 The client should disconnect, if it doesn't support this version.
+
 </ResponseField>
 
 <a id="agent-mcp-message"></a>
@@ -416,6 +441,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="connectionId" type={<a href="#mcpconnectionid">McpConnectionId</a>} required>
   The MCP-over-ACP connection this message is sent on.
@@ -427,6 +453,7 @@ See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/d
   Optional inner MCP params.
 
 If omitted or set to `null`, the inner MCP message has no params.
+
 </ResponseField>
 
 #### <span class="font-mono">MessageMcpRequest</span>
@@ -447,6 +474,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="connectionId" type={<a href="#mcpconnectionid">McpConnectionId</a>} required>
   The MCP-over-ACP connection this message is sent on.
@@ -458,6 +486,7 @@ See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/d
   Optional inner MCP params.
 
 If omitted or set to `null`, the inner MCP message has no params.
+
 </ResponseField>
 
 #### <span class="font-mono">MessageMcpResponse</span>
@@ -469,7 +498,6 @@ This capability is not part of the spec yet, and may be removed or changed at an
 Response to `mcp/message`.
 
 This is the inner MCP response result payload. Any JSON value is valid.
-
 
 <a id="nes-accept"></a>
 ### <span class="font-mono">nes/accept</span>
@@ -492,6 +520,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="sessionId" type={<a href="#sessionid">SessionId</a>} required>
   The session ID for this notification.
@@ -529,6 +558,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="sessionId" type={<a href="#sessionid">SessionId</a>} required>
   The ID of the NES session to close.
@@ -548,6 +578,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 
 <a id="nes-reject"></a>
@@ -571,6 +602,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="reason" type={<><span><a href="#nesrejectreason">NesRejectReason</a></span><span> | null</span></>} >
   The reason for rejection.
@@ -605,6 +637,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="repository" type={<><span><a href="#nesrepository">NesRepository</a></span><span> | null</span></>} >
   Repository metadata, if the workspace is a git repository.
@@ -616,6 +649,7 @@ See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/d
   The root URI of the workspace.
 
     - Format: `uri`
+
 </ResponseField>
 
 #### <span class="font-mono">StartNesResponse</span>
@@ -632,6 +666,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="sessionId" type={<a href="#sessionid">SessionId</a>} required>
   The session ID for the newly started NES session.
@@ -660,6 +695,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="context" type={<><span><a href="#nessuggestcontext">NesSuggestContext</a></span><span> | null</span></>} >
   Context for the suggestion, included based on agent capabilities.
@@ -680,6 +716,7 @@ See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/d
   The URI of the document to suggest for.
 
     - Format: `uri`
+
 </ResponseField>
 <ResponseField name="version" type={"int64"} required>
   The version number of the document.
@@ -699,6 +736,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="suggestions" type={<a href="#nessuggestion">NesSuggestion[]</a>} required>
   The list of suggestions.
@@ -731,6 +769,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="providerId" type={<a href="#providerid">ProviderId</a>} required>
   Provider ID to disable.
@@ -754,6 +793,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 
 <a id="providers-list"></a>
@@ -783,6 +823,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 
 #### <span class="font-mono">ListProvidersResponse</span>
@@ -803,6 +844,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="providers" type={<a href="#providerinfo">ProviderInfo[]</a>} required>
   Configurable providers with current routing info suitable for UI display.
@@ -837,6 +879,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="apiType" type={<a href="#llmprotocol">LlmProtocol</a>} required>
   Protocol type for this provider.
@@ -845,6 +888,7 @@ See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/d
   Base URL for requests sent through this provider.
 
     - Format: `uri`
+
 </ResponseField>
 <ResponseField name="headers" type={"object"} >
   Full headers map for this provider.
@@ -872,6 +916,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 
 <a id="session-cancel"></a>
@@ -883,6 +928,7 @@ This is a notification sent by the client to cancel active work in a
 session.
 
 Upon receiving this notification, the Agent SHOULD:
+
 - Stop all language model requests as soon as possible
 - Abort all tool call invocations in progress
 - Send any pending `session/update` notifications
@@ -907,6 +953,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="sessionId" type={<a href="#sessionid">SessionId</a>} required>
   The ID of the session to cancel operations for.
@@ -938,6 +985,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="sessionId" type={<a href="#sessionid">SessionId</a>} required>
   The ID of the session to close.
@@ -957,6 +1005,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 
 <a id="session-delete"></a>
@@ -982,6 +1031,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="sessionId" type={<a href="#sessionid">SessionId</a>} required>
   The ID of the session to delete.
@@ -1001,6 +1051,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 
 <a id="session-fork"></a>
@@ -1041,6 +1092,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="additionalDirectories" type={<a href="#absolutepath">AbsolutePath[]</a>} >
   Additional workspace roots to activate for this session. Each path must be absolute.
@@ -1048,6 +1100,7 @@ See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/d
 When omitted or empty, no additional roots are activated. When non-empty,
 this is the complete resulting additional-root list for the forked
 session.
+
 </ResponseField>
 <ResponseField name="cwd" type={<a href="#absolutepath">AbsolutePath</a>} required>
   The working directory for this session. Must be an absolute path.
@@ -1077,6 +1130,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="configOptions" type={<a href="#sessionconfigoption">SessionConfigOption[]</a>} >
   Initial session configuration options.
@@ -1106,6 +1160,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="cursor" type={<><span><a href="#sessionlistcursor">SessionListCursor</a></span><span> | null</span></>} >
   Opaque cursor token from a previous response's nextCursor field for cursor-based pagination
@@ -1128,6 +1183,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="nextCursor" type={<><span><a href="#sessionlistcursor">SessionListCursor</a></span><span> | null</span></>} >
   Opaque cursor token. If present, pass this in the next request's cursor parameter
@@ -1145,6 +1201,7 @@ Creates a new conversation session with the agent.
 Sessions represent independent conversation contexts with their own history and state.
 
 The agent should:
+
 - Create a new session context
 - Connect to any specified MCP servers
 - Return a unique session ID for future requests
@@ -1169,6 +1226,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="additionalDirectories" type={<a href="#absolutepath">AbsolutePath[]</a>} >
   Additional workspace roots for this session. Each path must be absolute.
@@ -1176,6 +1234,7 @@ See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/d
 These expand the session's workspace scope without changing `cwd`, which
 remains the base for relative paths. When omitted or empty, no
 additional roots are activated for the new session.
+
 </ResponseField>
 <ResponseField name="cwd" type={<a href="#absolutepath">AbsolutePath</a>} required>
   The working directory for this session. Must be an absolute path.
@@ -1200,6 +1259,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="configOptions" type={<a href="#sessionconfigoption">SessionConfigOption[]</a>} >
   Initial session configuration options.
@@ -1208,6 +1268,7 @@ See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/d
   Unique identifier for the created session.
 
 Used in all subsequent requests for this conversation.
+
 </ResponseField>
 
 <a id="session-prompt"></a>
@@ -1216,6 +1277,7 @@ Used in all subsequent requests for this conversation.
 Processes a user prompt within a session.
 
 This request accepts the prompt:
+
 - Receives user messages with optional context (files, images, etc.)
 - Returns once the prompt is accepted
 
@@ -1243,6 +1305,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="prompt" type={<a href="#contentblock">ContentBlock[]</a>} required>
   The blocks of content that compose the user's message.
@@ -1258,6 +1321,7 @@ The client MAY include referenced pieces of context as either
 When available, `ContentBlock::Resource` is preferred
 as it avoids extra round-trips and allows the message to include
 pieces of context from sources the agent may not have access to.
+
 </ResponseField>
 <ResponseField name="sessionId" type={<a href="#sessionid">SessionId</a>} required>
   The ID of the session to send this user message to
@@ -1282,6 +1346,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 
 <a id="session-resume"></a>
@@ -1310,6 +1375,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="additionalDirectories" type={<a href="#absolutepath">AbsolutePath[]</a>} >
   Additional workspace roots to activate for this session. Each path must be absolute.
@@ -1318,6 +1384,7 @@ When omitted or empty, no additional roots are activated. When non-empty,
 this is the complete resulting additional-root list for the resumed
 session. It may differ from any previously used or reported list as long as
 the request `cwd` matches the session's `cwd`.
+
 </ResponseField>
 <ResponseField name="cwd" type={<a href="#absolutepath">AbsolutePath</a>} required>
   The working directory for this session. Must be an absolute path.
@@ -1333,6 +1400,7 @@ replaying previous conversation history. Replay cursors are inclusive:
 replay includes the position identified by the cursor. Supplying
 `\{ "type": "start" \}` means the Agent should replay the whole
 conversation before responding.
+
 </ResponseField>
 <ResponseField name="sessionId" type={<a href="#sessionid">SessionId</a>} required>
   The ID of the session to resume.
@@ -1352,6 +1420,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="configOptions" type={<a href="#sessionconfigoption">SessionConfigOption[]</a>} >
   Initial session configuration options.
@@ -1376,6 +1445,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="configId" type={<a href="#sessionconfigid">SessionConfigId</a>} required>
   The ID of the configuration option to set.
@@ -1394,7 +1464,11 @@ A `SessionConfigValueId` string value (`type: "id"`).
 <ResponseField name="type" type={"string"} required>
   The discriminator value. Must be `"id"`.
 </ResponseField>
-<ResponseField name="value" type={<a href="#sessionconfigvalueid">SessionConfigValueId</a>} required>
+<ResponseField
+  name="value"
+  type={<a href="#sessionconfigvalueid">SessionConfigValueId</a>}
+  required
+>
   The value ID.
 </ResponseField>
 
@@ -1431,6 +1505,7 @@ future ACP variants.
 Values beginning with `_` are reserved for implementation-specific
 extensions. Unknown values that do not begin with `_` are reserved for
 future ACP variants.
+
 </ResponseField>
 <ResponseField name="value" type={"object"} required>
   Raw value payload for the custom or future value type.
@@ -1438,8 +1513,6 @@ future ACP variants.
 
 </Expandable>
 </ResponseField>
-
-
 
 #### <span class="font-mono">SetSessionConfigOptionResponse</span>
 
@@ -1455,6 +1528,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="configOptions" type={<a href="#sessionconfigoption">SessionConfigOption[]</a>} required>
   The full set of configuration options and their current values.
@@ -1467,6 +1541,7 @@ Defines the interface that ACP-compliant clients must implement.
 Clients are typically code editors (IDEs, text editors) that provide the interface
 between users and AI agents. They manage the environment, handle user interactions,
 and control access to resources.
+
 <a id="elicitation-complete"></a>
 ### <span class="font-mono">elicitation/complete</span>
 
@@ -1490,6 +1565,7 @@ these keys.
 Optional. Omitted and `null` are equivalent and mean no metadata.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="elicitationId" type={<a href="#elicitationid">ElicitationId</a>} required>
   The ID of the elicitation that completed.
@@ -1522,6 +1598,7 @@ these keys.
 Optional. Omitted and `null` are equivalent and mean no metadata.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="message" type={"string"} required>
   A human-readable message describing what input is needed.
@@ -1537,7 +1614,11 @@ Form-based elicitation where the client renders a form from the provided schema.
 <ResponseField name="mode" type={"string"} required>
   The discriminator value. Must be `"form"`.
 </ResponseField>
-<ResponseField name="requestedSchema" type={<a href="#elicitationschema">ElicitationSchema</a>} required>
+<ResponseField
+  name="requestedSchema"
+  type={<a href="#elicitationschema">ElicitationSchema</a>}
+  required
+>
   A JSON Schema describing the form fields to present to the user.
 </ResponseField>
 
@@ -1559,6 +1640,7 @@ URL-based elicitation where the client directs the user to a URL.
   The URL to direct the user to.
 
     - Format: `uri`
+
 </ResponseField>
 
 </Expandable>
@@ -1583,12 +1665,11 @@ They MUST NOT render it as a known elicitation mode.
 Values beginning with `_` are reserved for implementation-specific
 extensions. Unknown values that do not begin with `_` are reserved for
 future ACP variants.
+
 </ResponseField>
 
 </Expandable>
 </ResponseField>
-
-
 
 #### <span class="font-mono">CreateElicitationResponse</span>
 
@@ -1606,6 +1687,7 @@ these keys.
 Optional. Omitted and `null` are equivalent and mean no metadata.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 
 **Variants:**
@@ -1618,7 +1700,7 @@ The user accepted and provided content.
 <ResponseField name="action" type={"string"} required>
   The discriminator value. Must be `"accept"`.
 </ResponseField>
-<ResponseField name="content" type={"object | null"} >
+<ResponseField name="content" type={"object | null"}>
   The user-provided content, if any, as an object matching the requested schema.
 </ResponseField>
 
@@ -1668,12 +1750,11 @@ responses. They MUST NOT treat it as a known elicitation action.
 Values beginning with `_` are reserved for implementation-specific
 extensions. Unknown values that do not begin with `_` are reserved for
 future ACP variants.
+
 </ResponseField>
 
 </Expandable>
 </ResponseField>
-
-
 
 <a id="mcp-connect"></a>
 ### <span class="font-mono">mcp/connect</span>
@@ -1702,6 +1783,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="serverId" type={<a href="#mcpserveracpid">McpServerAcpId</a>} required>
   The ACP MCP server ID that was provided by the component declaring the MCP server.
@@ -1725,6 +1807,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="connectionId" type={<a href="#mcpconnectionid">McpConnectionId</a>} required>
   The unique identifier for this MCP-over-ACP connection.
@@ -1757,6 +1840,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="connectionId" type={<a href="#mcpconnectionid">McpConnectionId</a>} required>
   The MCP-over-ACP connection to close.
@@ -1780,6 +1864,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 
 <a id="client-mcp-message"></a>
@@ -1812,6 +1897,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="connectionId" type={<a href="#mcpconnectionid">McpConnectionId</a>} required>
   The MCP-over-ACP connection this message is sent on.
@@ -1823,6 +1909,7 @@ See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/d
   Optional inner MCP params.
 
 If omitted or set to `null`, the inner MCP message has no params.
+
 </ResponseField>
 
 #### <span class="font-mono">MessageMcpRequest</span>
@@ -1843,6 +1930,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="connectionId" type={<a href="#mcpconnectionid">McpConnectionId</a>} required>
   The MCP-over-ACP connection this message is sent on.
@@ -1854,6 +1942,7 @@ See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/d
   Optional inner MCP params.
 
 If omitted or set to `null`, the inner MCP message has no params.
+
 </ResponseField>
 
 #### <span class="font-mono">MessageMcpResponse</span>
@@ -1865,7 +1954,6 @@ This capability is not part of the spec yet, and may be removed or changed at an
 Response to `mcp/message`.
 
 This is the inner MCP response result payload. Any JSON value is valid.
-
 
 <a id="session-request_permission"></a>
 ### <span class="font-mono">session/request_permission</span>
@@ -1899,6 +1987,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="description" type={"string | null"} >
   Optional human-readable explanation of why permission is needed.
@@ -1906,6 +1995,7 @@ See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/d
 This text is specific to the permission prompt and does not update any
 subject's displayed content. Omitted or `null` both mean no separate
 permission description was provided.
+
 </ResponseField>
 <ResponseField name="options" type={<a href="#permissionoption">PermissionOption[]</a>} required>
   Available permission options for the user to choose from.
@@ -1918,12 +2008,14 @@ Must contain at least one option.
   Optional structured context about the operation requiring permission.
 
 Omitted or `null` both mean no structured subject was provided.
+
 </ResponseField>
 <ResponseField name="title" type={"string"} required>
   Human-readable title for the permission prompt.
 
 This title is specific to the permission prompt and does not update any
 subject's displayed title.
+
 </ResponseField>
 
 #### <span class="font-mono">RequestPermissionResponse</span>
@@ -1940,6 +2032,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="outcome" type={<a href="#requestpermissionoutcome">RequestPermissionOutcome</a>} required>
   The user's decision on the permission request.
@@ -1979,6 +2072,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="sessionId" type={<a href="#sessionid">SessionId</a>} required>
   The ID of the session this update pertains to.
@@ -1997,6 +2091,7 @@ agents. For example if the implementation uses a single threaded synchronous
 programming language then there is little it can do to react to a
 `$/cancel_request` notification. If an agent or client receives notifications
 starting with '$/' it is free to ignore the notification.
+
 <a id="$-cancel_request"></a>
 ### <span class="font-mono">$/cancel_request</span>
 
@@ -2009,8 +2104,9 @@ Upon receiving this notification, the receiver:
 1. MAY cancel the corresponding request activity and all nested activities
 2. MAY send any pending notifications.
 3. MUST send one of these responses for the original request:
-  - Valid response with appropriate data (partial results or cancellation marker)
-  - Error response with code `-32800` (Cancelled)
+
+- Valid response with appropriate data (partial results or cancellation marker)
+- Error response with code `-32800` (Cancelled)
 
 See protocol docs: [Cancellation](https://agentclientprotocol.com/protocol/v2/draft/cancellation)
 
@@ -2030,6 +2126,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="requestId" type={<a href="#requestid">RequestId</a>} required>
   The ID of the request to cancel.
@@ -2059,6 +2156,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 
 ## <span class="font-mono">AgentCapabilities</span>
@@ -2080,6 +2178,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="auth" type={<><span><a href="#agentauthcapabilities">AgentAuthCapabilities</a></span><span> | null</span></>} >
   Authentication-related extension capabilities supported by the agent.
@@ -2088,6 +2187,7 @@ Optional. Omitted or `null` both mean the agent does not advertise any
 authentication-related extensions. This field does not advertise support
 for `auth/login` or `auth/logout`; those methods are advertised by a
 non-empty `authMethods` list in the `initialize` response.
+
 </ResponseField>
 <ResponseField name="nes" type={<><span><a href="#nescapabilities">NesCapabilities</a></span><span> | null</span></>} >
   **UNSTABLE**
@@ -2098,6 +2198,7 @@ NES (Next Edit Suggestions) capabilities supported by the agent.
 
 Optional. Omitted or `null` both mean the agent does not advertise support
 for NES methods.
+
 </ResponseField>
 <ResponseField name="positionEncoding" type={<><span><a href="#positionencodingkind">PositionEncodingKind</a></span><span> | null</span></>} >
   **UNSTABLE**
@@ -2105,6 +2206,7 @@ for NES methods.
 This capability is not part of the spec yet, and may be removed or changed at any point.
 
 The position encoding selected by the agent from the client's supported encodings.
+
 </ResponseField>
 <ResponseField name="providers" type={<><span><a href="#providerscapabilities">ProvidersCapabilities</a></span><span> | null</span></>} >
   **UNSTABLE**
@@ -2115,6 +2217,7 @@ Provider configuration capabilities supported by the agent.
 
 Optional. Omitted or `null` both mean the agent does not advertise support.
 Supplying `\{\}` means the agent supports provider configuration methods.
+
 </ResponseField>
 <ResponseField name="session" type={<><span><a href="#sessioncapabilities">SessionCapabilities</a></span><span> | null</span></>} >
   Session capabilities supported by the agent.
@@ -2123,6 +2226,7 @@ Optional. Omitted or `null` both mean the agent does not support the
 `session/*` method surface. Supplying `\{\}` means the agent supports the
 baseline session methods: `session/new`, `session/prompt`,
 `session/cancel`, and `session/update`.
+
 </ResponseField>
 
 ## <span class="font-mono">AgentMessage</span>
@@ -2153,6 +2257,7 @@ Malformed extension metadata remains lenient by design because `_meta`
 is advisory, not authoritative message state.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="content" type={<><span><a href="#contentblock">ContentBlock[]</a></span><span> | null</span></>} >
   Complete replacement content for this message.
@@ -2190,6 +2295,7 @@ Malformed extension metadata remains lenient by design because `_meta`
 is advisory, not authoritative message state.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="content" type={<><span><a href="#contentblock">ContentBlock[]</a></span><span> | null</span></>} >
   Complete replacement content for this thought message.
@@ -2213,6 +2319,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="audience" type={<><span><a href="#role">Role[]</a></span><span> | null</span></>} >
   Intended recipients for this content, such as the user or assistant.
@@ -2223,6 +2330,7 @@ See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/d
 Must be an RFC 3339 formatted string (e.g., "2025-01-12T15:00:58Z").
 
     - Format: `date-time`
+
 </ResponseField>
 <ResponseField name="priority" type={"number | null"} >
   Relative importance of this content when clients choose what to surface.
@@ -2231,6 +2339,7 @@ Must be an RFC 3339 formatted string (e.g., "2025-01-12T15:00:58Z").
     | ---------- | ----- |
     | Minimum | `0` |
     | Maximum | `1` |
+
 </ResponseField>
 
 ## <span class="font-mono">AudioContent</span>
@@ -2247,6 +2356,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="annotations" type={<><span><a href="#annotations">Annotations</a></span><span> | null</span></>} >
   Optional annotations that help clients decide how to display or route this content.
@@ -2255,6 +2365,7 @@ See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/d
   Base64-encoded media payload.
 
     - Content encoding: `base64`
+
 </ResponseField>
 <ResponseField name="mimeType" type={<a href="#mediatype">MediaType</a>} required>
   MIME type describing the encoded media payload.
@@ -2282,12 +2393,14 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="terminal" type={<><span><a href="#terminalauthcapabilities">TerminalAuthCapabilities</a></span><span> | null</span></>} >
   Whether the client supports `terminal` authentication methods.
 
 Optional. Omitted or `null` both mean the client does not advertise support.
 Supplying `\{\}` means the agent may include `terminal` entries in its authentication methods.
+
 </ResponseField>
 
 ## <span class="font-mono">AuthEnvVar</span>
@@ -2308,6 +2421,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="label" type={"string | null"} >
   Human-readable label for this variable, displayed in client UI.
@@ -2321,6 +2435,7 @@ See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/d
 Defaults to `false`.
 
     - Default: `false`
+
 </ResponseField>
 <ResponseField name="secret" type={"boolean"} >
   Whether this value is a secret (e.g. API key, token).
@@ -2329,6 +2444,7 @@ Clients should use a password-style input for secret vars.
 Defaults to `true`.
 
     - Default: `true`
+
 </ResponseField>
 
 ## <span class="font-mono">AuthMethod</span>
@@ -2354,6 +2470,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="description" type={"string | null"} >
   Optional description providing more details about this authentication method.
@@ -2362,6 +2479,7 @@ See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/d
   Optional link to a page where the user can obtain their credentials.
 
     - Format: `uri`
+
 </ResponseField>
 <ResponseField name="methodId" type={<a href="#authmethodid">AuthMethodId</a>} required>
   Unique identifier for this authentication method.
@@ -2394,6 +2512,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="args" type={<><span>"string"</span><span>[]</span></>} >
   Additional arguments to pass when running the agent binary for terminal auth.
@@ -2430,6 +2549,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="description" type={"string | null"} >
   Optional description providing more details about this authentication method.
@@ -2466,6 +2586,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="description" type={"string | null"} >
   Optional description providing more details about this authentication method.
@@ -2482,12 +2603,11 @@ See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/d
 Values beginning with `_` are reserved for implementation-specific
 extensions. Unknown values that do not begin with `_` are reserved for
 future ACP variants.
+
 </ResponseField>
 
 </Expandable>
 </ResponseField>
-
-
 
 ## <span class="font-mono">AuthMethodAgent</span>
 
@@ -2505,6 +2625,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="description" type={"string | null"} >
   Optional description providing more details about this authentication method.
@@ -2536,6 +2657,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="description" type={"string | null"} >
   Optional description providing more details about this authentication method.
@@ -2544,6 +2666,7 @@ See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/d
   Optional link to a page where the user can obtain their credentials.
 
     - Format: `uri`
+
 </ResponseField>
 <ResponseField name="methodId" type={<a href="#authmethodid">AuthMethodId</a>} required>
   Unique identifier for this authentication method.
@@ -2581,6 +2704,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="args" type={<><span>"string"</span><span>[]</span></>} >
   Additional arguments to pass when running the agent binary for terminal auth.
@@ -2612,6 +2736,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="description" type={"string"} required>
   Human-readable description of what the command does.
@@ -2640,6 +2765,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="hint" type={"string"} required>
   A hint to display when the input hasn't been provided yet
@@ -2671,12 +2797,11 @@ command without structured input.
 Values beginning with `_` are reserved for implementation-specific
 extensions. Unknown values that do not begin with `_` are reserved for
 future ACP variants.
+
 </ResponseField>
 
 </Expandable>
 </ResponseField>
-
-
 
 ## <span class="font-mono">AvailableCommandsUpdate</span>
 
@@ -2692,6 +2817,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="availableCommands" type={<a href="#availablecommand">AvailableCommand[]</a>} required>
   Commands the agent can execute.
@@ -2711,11 +2837,13 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="blob" type={"string"} required>
   Base64-encoded bytes for a binary resource payload.
 
     - Content encoding: `base64`
+
 </ResponseField>
 <ResponseField name="mimeType" type={<><span><a href="#mediatype">MediaType</a></span><span> | null</span></>} >
   MIME type describing the encoded media payload.
@@ -2724,6 +2852,7 @@ See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/d
   URI associated with this resource or media payload.
 
     - Format: `uri`
+
 </ResponseField>
 
 ## <span class="font-mono">BooleanPropertySchema</span>
@@ -2742,21 +2871,25 @@ these keys.
 Optional. Omitted and `null` are equivalent and mean no metadata.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="default" type={"boolean | null"} >
   Default value.
 
 Optional. Omitted and `null` are equivalent and mean no default value is provided.
+
 </ResponseField>
 <ResponseField name="description" type={"string | null"} >
   Human-readable description.
 
 Optional. Omitted and `null` are equivalent and mean no description is provided.
+
 </ResponseField>
 <ResponseField name="title" type={"string | null"} >
   Optional title for the property.
 
 Optional. Omitted and `null` are equivalent and mean no title is provided.
+
 </ResponseField>
 
 ## <span class="font-mono">ClientCapabilities</span>
@@ -2778,6 +2911,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="auth" type={<><span><a href="#authcapabilities">AuthCapabilities</a></span><span> | null</span></>} >
   **UNSTABLE**
@@ -2790,6 +2924,7 @@ in its `InitializeResponse`.
 
 Optional. Omitted or `null` both mean the client does not advertise any
 authentication-method extensions.
+
 </ResponseField>
 <ResponseField name="elicitation" type={<><span><a href="#elicitationcapabilities">ElicitationCapabilities</a></span><span> | null</span></>} >
   Elicitation capabilities supported by the client.
@@ -2797,6 +2932,7 @@ Determines which elicitation modes the agent may use.
 
 Optional. Omitted or `null` both mean the client does not advertise
 elicitation support.
+
 </ResponseField>
 <ResponseField name="nes" type={<><span><a href="#clientnescapabilities">ClientNesCapabilities</a></span><span> | null</span></>} >
   **UNSTABLE**
@@ -2807,6 +2943,7 @@ NES (Next Edit Suggestions) capabilities supported by the client.
 
 Optional. Omitted or `null` both mean the client does not advertise any
 NES suggestion-kind extensions.
+
 </ResponseField>
 <ResponseField name="positionEncodings" type={<a href="#positionencodingkind">PositionEncodingKind[]</a>} >
   **UNSTABLE**
@@ -2814,6 +2951,7 @@ NES suggestion-kind extensions.
 This capability is not part of the spec yet, and may be removed or changed at any point.
 
 The position encodings supported by the client, in order of preference.
+
 </ResponseField>
 
 ## <span class="font-mono">ClientNesCapabilities</span>
@@ -2830,6 +2968,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="jump" type={<><span><a href="#nesjumpcapabilities">NesJumpCapabilities</a></span><span> | null</span></>} >
   Whether the client supports the `jump` suggestion kind.
@@ -2855,6 +2994,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys. Omitted and `null` are equivalent and mean no subject metadata was provided.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="command" type={"string"} required>
   The command that would be run if permission is granted.
@@ -2883,6 +3023,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="configOptions" type={<a href="#sessionconfigoption">SessionConfigOption[]</a>} required>
   The full set of configuration options and their current values.
@@ -2902,6 +3043,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="content" type={<a href="#contentblock">ContentBlock</a>} required>
   The actual content block.
@@ -2915,6 +3057,7 @@ They provide a structured way to handle various types of user-facing content—w
 it's text from language models, images for analysis, or embedded resources for context.
 
 Content blocks appear in:
+
 - User prompts sent via `session/prompt`
 - Language model output reported through `session/update` notifications as
   message updates or streamed chunks
@@ -2941,6 +3084,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="annotations" type={<><span><a href="#annotations">Annotations</a></span><span> | null</span></>} >
   Optional annotations that help clients decide how to display or route this content.
@@ -2968,6 +3112,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="annotations" type={<><span><a href="#annotations">Annotations</a></span><span> | null</span></>} >
   Optional annotations that help clients decide how to display or route this content.
@@ -2976,6 +3121,7 @@ See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/d
   Base64-encoded media payload.
 
     - Content encoding: `base64`
+
 </ResponseField>
 <ResponseField name="mimeType" type={<a href="#mediatype">MediaType</a>} required>
   MIME type describing the encoded media payload.
@@ -2987,6 +3133,7 @@ See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/d
   URI associated with this resource or media payload.
 
     - Format: `uri`
+
 </ResponseField>
 
 </Expandable>
@@ -3005,6 +3152,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="annotations" type={<><span><a href="#annotations">Annotations</a></span><span> | null</span></>} >
   Optional annotations that help clients decide how to display or route this content.
@@ -3013,6 +3161,7 @@ See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/d
   Base64-encoded media payload.
 
     - Content encoding: `base64`
+
 </ResponseField>
 <ResponseField name="mimeType" type={<a href="#mediatype">MediaType</a>} required>
   MIME type describing the encoded media payload.
@@ -3037,6 +3186,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="annotations" type={<><span><a href="#annotations">Annotations</a></span><span> | null</span></>} >
   Optional annotations that help clients decide how to display or route this content.
@@ -3066,6 +3216,7 @@ See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/d
   URI associated with this resource or media payload.
 
     - Format: `uri`
+
 </ResponseField>
 
 </Expandable>
@@ -3086,6 +3237,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="annotations" type={<><span><a href="#annotations">Annotations</a></span><span> | null</span></>} >
   Optional annotations that help clients decide how to display or route this content.
@@ -3119,12 +3271,11 @@ and otherwise ignore it or display it generically.
 Values beginning with `_` are reserved for implementation-specific
 extensions. Unknown values that do not begin with `_` are reserved for
 future ACP variants.
+
 </ResponseField>
 
 </Expandable>
 </ResponseField>
-
-
 
 ## <span class="font-mono">ContentChunk</span>
 
@@ -3140,6 +3291,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys. This field is chunk-scoped.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="content" type={<a href="#contentblock">ContentBlock</a>} required>
   A single item of content
@@ -3149,6 +3301,7 @@ See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/d
 
 All chunks belonging to the same message share the same `messageId`.
 A change in `messageId` indicates a new message has started.
+
 </ResponseField>
 
 ## <span class="font-mono">Cost</span>
@@ -3165,6 +3318,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="amount" type={"number"} required>
   Total cumulative cost for session.
@@ -3173,6 +3327,7 @@ See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/d
   ISO 4217 currency code (e.g., "USD", "EUR").
 
     - Pattern: `"^[A-Z]{3}$"`
+
 </ResponseField>
 
 ## <span class="font-mono">Diff</span>
@@ -3196,17 +3351,20 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="changes" type={<a href="#diffchange">DiffChange[]</a>} required>
   Structured file changes described by this diff.
 
 Clients can use this field without parsing patch text to determine affected paths.
+
 </ResponseField>
 <ResponseField name="patch" type={<><span><a href="#diffpatch">DiffPatch</a></span><span> | null</span></>} >
   Renderable patch text for some or all of the structured changes.
 
 Agents SHOULD provide patch text whenever feasible. Omitted or `null`
 means no renderable patch text was provided.
+
 </ResponseField>
 
 ## <span class="font-mono">DiffChange</span>
@@ -3226,16 +3384,19 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="fileType" type={<><span><a href="#difffiletype">DiffFileType</a></span><span> | null</span></>} >
   File content kind.
 
 Omitted or `null` means the content kind is unknown.
+
 </ResponseField>
 <ResponseField name="mimeType" type={<><span><a href="#mediatype">MediaType</a></span><span> | null</span></>} >
   MIME type of the file contents.
 
 Omitted or `null` means the MIME type is unknown.
+
 </ResponseField>
 
 **Variants:**
@@ -3248,7 +3409,11 @@ A file was added.
 <ResponseField name="operation" type={"string"} required>
   The discriminator value. Must be `"add"`.
 </ResponseField>
-<ResponseField name="path" type={<a href="#absolutepath">AbsolutePath</a>} required>
+<ResponseField
+  name="path"
+  type={<a href="#absolutepath">AbsolutePath</a>}
+  required
+>
   Absolute path for the operation.
 </ResponseField>
 
@@ -3263,7 +3428,11 @@ A file was deleted.
 <ResponseField name="operation" type={"string"} required>
   The discriminator value. Must be `"delete"`.
 </ResponseField>
-<ResponseField name="path" type={<a href="#absolutepath">AbsolutePath</a>} required>
+<ResponseField
+  name="path"
+  type={<a href="#absolutepath">AbsolutePath</a>}
+  required
+>
   Absolute path for the operation.
 </ResponseField>
 
@@ -3278,7 +3447,11 @@ A file was modified in place.
 <ResponseField name="operation" type={"string"} required>
   The discriminator value. Must be `"modify"`.
 </ResponseField>
-<ResponseField name="path" type={<a href="#absolutepath">AbsolutePath</a>} required>
+<ResponseField
+  name="path"
+  type={<a href="#absolutepath">AbsolutePath</a>}
+  required
+>
   Absolute path for the operation.
 </ResponseField>
 
@@ -3290,13 +3463,21 @@ A file was moved or renamed.
 
 <Expandable title="Properties">
 
-<ResponseField name="oldPath" type={<a href="#absolutepath">AbsolutePath</a>} required>
+<ResponseField
+  name="oldPath"
+  type={<a href="#absolutepath">AbsolutePath</a>}
+  required
+>
   Absolute path before the operation.
 </ResponseField>
 <ResponseField name="operation" type={"string"} required>
   The discriminator value. Must be `"move"`.
 </ResponseField>
-<ResponseField name="path" type={<a href="#absolutepath">AbsolutePath</a>} required>
+<ResponseField
+  name="path"
+  type={<a href="#absolutepath">AbsolutePath</a>}
+  required
+>
   Absolute path after the operation.
 </ResponseField>
 
@@ -3308,13 +3489,21 @@ A file was copied.
 
 <Expandable title="Properties">
 
-<ResponseField name="oldPath" type={<a href="#absolutepath">AbsolutePath</a>} required>
+<ResponseField
+  name="oldPath"
+  type={<a href="#absolutepath">AbsolutePath</a>}
+  required
+>
   Absolute path before the operation.
 </ResponseField>
 <ResponseField name="operation" type={"string"} required>
   The discriminator value. Must be `"copy"`.
 </ResponseField>
-<ResponseField name="path" type={<a href="#absolutepath">AbsolutePath</a>} required>
+<ResponseField
+  name="path"
+  type={<a href="#absolutepath">AbsolutePath</a>}
+  required
+>
   Absolute path after the operation.
 </ResponseField>
 
@@ -3336,12 +3525,11 @@ future ACP variants.
 Values beginning with `_` are reserved for implementation-specific
 extensions. Unknown values that do not begin with `_` are reserved for
 future ACP variants.
+
 </ResponseField>
 
 </Expandable>
 </ResponseField>
-
-
 
 ## <span class="font-mono">DiffFileType</span>
 
@@ -3350,19 +3538,19 @@ Kind of file content represented by a diff change.
 **Type:** Union
 
 <ResponseField name="text" type="string">
-Text content.
+  Text content.
 </ResponseField>
 
 <ResponseField name="binary" type="string">
-Binary or otherwise non-text content.
+  Binary or otherwise non-text content.
 </ResponseField>
 
 <ResponseField name="directory" type="string">
-Directory entry.
+  Directory entry.
 </ResponseField>
 
 <ResponseField name="symlink" type="string">
-Symbolic link.
+  Symbolic link.
 </ResponseField>
 
 <ResponseField name="other" type="string">
@@ -3371,9 +3559,8 @@ Custom or future file type.
 Values beginning with `_` are reserved for implementation-specific
 extensions. Unknown values that do not begin with `_` are reserved for
 future ACP variants.
+
 </ResponseField>
-
-
 
 ## <span class="font-mono">DiffPatch</span>
 
@@ -3383,7 +3570,11 @@ Renderable patch text and its format.
 
 **Properties:**
 
-<ResponseField name="format" type={<a href="#diffpatchformat">DiffPatchFormat</a>} required>
+<ResponseField
+  name="format"
+  type={<a href="#diffpatchformat">DiffPatchFormat</a>}
+  required
+>
   Patch format. The only ACP-defined value is `git_patch`.
 </ResponseField>
 <ResponseField name="text" type={"string"} required>
@@ -3401,6 +3592,7 @@ One or more `diff --git` sections in Git's `--patch` (`-p`) text format.
 
 Paths MUST be absolute. Surrounding commit metadata and email envelopes
 MUST NOT be included.
+
 </ResponseField>
 
 <ResponseField name="other" type="string">
@@ -3409,9 +3601,8 @@ Custom or future patch format.
 Values beginning with `_` are reserved for implementation-specific
 extensions. Unknown values that do not begin with `_` are reserved for
 future ACP variants.
+
 </ResponseField>
-
-
 
 ## <span class="font-mono">DiffPathChange</span>
 
@@ -3421,7 +3612,11 @@ Operation metadata for add, delete, and modify changes.
 
 **Properties:**
 
-<ResponseField name="path" type={<a href="#absolutepath">AbsolutePath</a>} required>
+<ResponseField
+  name="path"
+  type={<a href="#absolutepath">AbsolutePath</a>}
+  required
+>
   Absolute path for the operation.
 </ResponseField>
 
@@ -3433,10 +3628,18 @@ Operation metadata for move and copy changes.
 
 **Properties:**
 
-<ResponseField name="oldPath" type={<a href="#absolutepath">AbsolutePath</a>} required>
+<ResponseField
+  name="oldPath"
+  type={<a href="#absolutepath">AbsolutePath</a>}
+  required
+>
   Absolute path before the operation.
 </ResponseField>
-<ResponseField name="path" type={<a href="#absolutepath">AbsolutePath</a>} required>
+<ResponseField
+  name="path"
+  type={<a href="#absolutepath">AbsolutePath</a>}
+  required
+>
   Absolute path after the operation.
 </ResponseField>
 
@@ -3448,7 +3651,7 @@ The user accepted the elicitation and provided content.
 
 **Properties:**
 
-<ResponseField name="content" type={"object | null"} >
+<ResponseField name="content" type={"object | null"}>
   The user-provided content, if any, as an object matching the requested schema.
 </ResponseField>
 
@@ -3468,18 +3671,21 @@ these keys.
 Optional. Omitted and `null` are equivalent and mean no metadata.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="form" type={<><span><a href="#elicitationformcapabilities">ElicitationFormCapabilities</a></span><span> | null</span></>} >
   Whether the client supports form-based elicitation.
 
 Optional. Omitted and `null` are equivalent and mean form support is not advertised.
 Supplying `\{\}` explicitly advertises form support.
+
 </ResponseField>
 <ResponseField name="url" type={<><span><a href="#elicitationurlcapabilities">ElicitationUrlCapabilities</a></span><span> | null</span></>} >
   Whether the client supports URL-based elicitation.
 
 Optional. Omitted or `null` both mean the client does not advertise support.
 Supplying `\{\}` means the client supports URL-based elicitation.
+
 </ResponseField>
 
 ## <span class="font-mono">ElicitationContentValue</span>
@@ -3489,26 +3695,24 @@ Allowed wire representations for `ElicitationContentValue`.
 **Type:** Union
 
 <ResponseField name="String" type="string">
-String value accepted in elicitation response content.
+  String value accepted in elicitation response content.
 </ResponseField>
 
 <ResponseField name="Integer" type="int64">
-Integer value accepted in elicitation response content.
+  Integer value accepted in elicitation response content.
 </ResponseField>
 
 <ResponseField name="Number" type="double">
-Number value accepted in elicitation response content.
+  Number value accepted in elicitation response content.
 </ResponseField>
 
 <ResponseField name="Boolean" type="boolean">
-Boolean value accepted in elicitation response content.
+  Boolean value accepted in elicitation response content.
 </ResponseField>
 
 <ResponseField name="StringArray" type="array">
-String array value accepted in elicitation response content.
+  String array value accepted in elicitation response content.
 </ResponseField>
-
-
 
 ## <span class="font-mono">ElicitationFormCapabilities</span>
 
@@ -3528,6 +3732,7 @@ these keys.
 Optional. Omitted and `null` are equivalent and mean no metadata.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 
 ## <span class="font-mono">ElicitationFormMode</span>
@@ -3538,7 +3743,11 @@ Form-based elicitation mode where the client renders a form from the provided sc
 
 **Shared properties:**
 
-<ResponseField name="requestedSchema" type={<a href="#elicitationschema">ElicitationSchema</a>} required>
+<ResponseField
+  name="requestedSchema"
+  type={<a href="#elicitationschema">ElicitationSchema</a>}
+  required
+>
   A JSON Schema describing the form fields to present to the user.
 </ResponseField>
 
@@ -3557,6 +3766,7 @@ Tied to a session, optionally to a specific tool call within that session.
 
 Optional. Omitted and `null` are equivalent and mean the elicitation is scoped to the
 session without a specific tool call.
+
 </ResponseField>
 
 </Expandable>
@@ -3568,14 +3778,16 @@ Tied to a specific JSON-RPC request outside of a session
 
 <Expandable title="Properties">
 
-<ResponseField name="requestId" type={<a href="#requestid">RequestId</a>} required>
+<ResponseField
+  name="requestId"
+  type={<a href="#requestid">RequestId</a>}
+  required
+>
   The request this elicitation is tied to.
 </ResponseField>
 
 </Expandable>
 </ResponseField>
-
-
 
 ## <span class="font-mono">ElicitationId</span>
 
@@ -3606,16 +3818,19 @@ these keys.
 Optional. Omitted and `null` are equivalent and mean no metadata.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="default" type={"string | null"} >
   Default value.
 
 Optional. Omitted and `null` are equivalent and mean no default value is provided.
+
 </ResponseField>
 <ResponseField name="description" type={"string | null"} >
   Human-readable description.
 
 Optional. Omitted and `null` are equivalent and mean no description is provided.
+
 </ResponseField>
 <ResponseField name="enum" type={<><span><><span>"string"</span><span>[]</span></></span><span> | null</span></>} >
   Enum values for untitled single-select enums.
@@ -3627,6 +3842,7 @@ declared by `enum`.
   String format.
 
 Optional. Omitted and `null` are equivalent and mean there is no format constraint.
+
 </ResponseField>
 <ResponseField name="maxLength" type={"integer | null"} >
   Maximum string length.
@@ -3634,6 +3850,7 @@ Optional. Omitted and `null` are equivalent and mean there is no format constrai
 Optional. Omitted and `null` are equivalent and mean there is no maximum length constraint.
 
     - Minimum: `0`
+
 </ResponseField>
 <ResponseField name="minLength" type={"integer | null"} >
   Minimum string length.
@@ -3641,6 +3858,7 @@ Optional. Omitted and `null` are equivalent and mean there is no maximum length 
 Optional. Omitted and `null` are equivalent and mean there is no minimum length constraint.
 
     - Minimum: `0`
+
 </ResponseField>
 <ResponseField name="oneOf" type={<><span><a href="#enumoption">EnumOption[]</a></span><span> | null</span></>} >
   Titled enum options for titled single-select enums.
@@ -3654,11 +3872,13 @@ declared by `oneOf`.
 Optional. Omitted and `null` are equivalent and mean there is no pattern constraint.
 
     - Format: `regex`
+
 </ResponseField>
 <ResponseField name="title" type={"string | null"} >
   Optional title for the property.
 
 Optional. Omitted and `null` are equivalent and mean no title is provided.
+
 </ResponseField>
 <ResponseField name="type" type={"string"} required>
   The discriminator value. Must be `"string"`.
@@ -3680,31 +3900,37 @@ these keys.
 Optional. Omitted and `null` are equivalent and mean no metadata.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="default" type={"number | null"} >
   Default value.
 
 Optional. Omitted and `null` are equivalent and mean no default value is provided.
+
 </ResponseField>
 <ResponseField name="description" type={"string | null"} >
   Human-readable description.
 
 Optional. Omitted and `null` are equivalent and mean no description is provided.
+
 </ResponseField>
 <ResponseField name="maximum" type={"number | null"} >
   Maximum value (inclusive).
 
 Optional. Omitted and `null` are equivalent and mean there is no inclusive upper bound.
+
 </ResponseField>
 <ResponseField name="minimum" type={"number | null"} >
   Minimum value (inclusive).
 
 Optional. Omitted and `null` are equivalent and mean there is no inclusive lower bound.
+
 </ResponseField>
 <ResponseField name="title" type={"string | null"} >
   Optional title for the property.
 
 Optional. Omitted and `null` are equivalent and mean no title is provided.
+
 </ResponseField>
 <ResponseField name="type" type={"string"} required>
   The discriminator value. Must be `"number"`.
@@ -3726,31 +3952,37 @@ these keys.
 Optional. Omitted and `null` are equivalent and mean no metadata.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="default" type={"integer | null"} >
   Default value.
 
 Optional. Omitted and `null` are equivalent and mean no default value is provided.
+
 </ResponseField>
 <ResponseField name="description" type={"string | null"} >
   Human-readable description.
 
 Optional. Omitted and `null` are equivalent and mean no description is provided.
+
 </ResponseField>
 <ResponseField name="maximum" type={"integer | null"} >
   Maximum value (inclusive).
 
 Optional. Omitted and `null` are equivalent and mean there is no inclusive upper bound.
+
 </ResponseField>
 <ResponseField name="minimum" type={"integer | null"} >
   Minimum value (inclusive).
 
 Optional. Omitted and `null` are equivalent and mean there is no inclusive lower bound.
+
 </ResponseField>
 <ResponseField name="title" type={"string | null"} >
   Optional title for the property.
 
 Optional. Omitted and `null` are equivalent and mean no title is provided.
+
 </ResponseField>
 <ResponseField name="type" type={"string"} required>
   The discriminator value. Must be `"integer"`.
@@ -3772,21 +4004,25 @@ these keys.
 Optional. Omitted and `null` are equivalent and mean no metadata.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="default" type={"boolean | null"} >
   Default value.
 
 Optional. Omitted and `null` are equivalent and mean no default value is provided.
+
 </ResponseField>
 <ResponseField name="description" type={"string | null"} >
   Human-readable description.
 
 Optional. Omitted and `null` are equivalent and mean no description is provided.
+
 </ResponseField>
 <ResponseField name="title" type={"string | null"} >
   Optional title for the property.
 
 Optional. Omitted and `null` are equivalent and mean no title is provided.
+
 </ResponseField>
 <ResponseField name="type" type={"string"} required>
   The discriminator value. Must be `"boolean"`.
@@ -3808,16 +4044,19 @@ these keys.
 Optional. Omitted and `null` are equivalent and mean no metadata.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="default" type={<><span><><span>"string"</span><span>[]</span></></span><span> | null</span></>} >
   Default selected values.
 
 Optional. Omitted and `null` are equivalent and mean no default selections are provided.
+
 </ResponseField>
 <ResponseField name="description" type={"string | null"} >
   Human-readable description.
 
 Optional. Omitted and `null` are equivalent and mean no description is provided.
+
 </ResponseField>
 <ResponseField name="items" type={<a href="#multiselectitems">MultiSelectItems</a>} required>
   The items definition describing allowed values.
@@ -3828,6 +4067,7 @@ Optional. Omitted and `null` are equivalent and mean no description is provided.
 Optional. Omitted and `null` are equivalent and mean there is no maximum selection count.
 
     - Minimum: `0`
+
 </ResponseField>
 <ResponseField name="minItems" type={"integer | null"} >
   Minimum number of items to select.
@@ -3835,11 +4075,13 @@ Optional. Omitted and `null` are equivalent and mean there is no maximum selecti
 Optional. Omitted and `null` are equivalent and mean there is no minimum selection count.
 
     - Minimum: `0`
+
 </ResponseField>
 <ResponseField name="title" type={"string | null"} >
   Optional title for the property.
 
 Optional. Omitted and `null` are equivalent and mean no title is provided.
+
 </ResponseField>
 <ResponseField name="type" type={"string"} required>
   The discriminator value. Must be `"array"`.
@@ -3867,12 +4109,11 @@ elicitation requests. They MUST NOT render it as a known input control.
 Values beginning with `_` are reserved for implementation-specific
 extensions. Unknown values that do not begin with `_` are reserved for
 future ACP variants.
+
 </ResponseField>
 
 </Expandable>
 </ResponseField>
-
-
 
 ## <span class="font-mono">ElicitationRequestScope</span>
 
@@ -3883,7 +4124,11 @@ Request-scoped elicitation, tied to a specific JSON-RPC request outside of a ses
 
 **Properties:**
 
-<ResponseField name="requestId" type={<a href="#requestid">RequestId</a>} required>
+<ResponseField
+  name="requestId"
+  type={<a href="#requestid">RequestId</a>}
+  required
+>
   The request this elicitation is tied to.
 </ResponseField>
 
@@ -3906,31 +4151,37 @@ these keys.
 Optional. Omitted and `null` are equivalent and mean no metadata.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="description" type={"string | null"} >
   Optional description of what this schema represents.
 
 Optional. Omitted and `null` are equivalent and mean no schema description is provided.
+
 </ResponseField>
 <ResponseField name="properties" type={"object"} >
   Property definitions (must be primitive types).
 
     - Default: `{}`
+
 </ResponseField>
 <ResponseField name="required" type={<><span><><span>"string"</span><span>[]</span></></span><span> | null</span></>} >
   List of required property names.
 
 Optional. Omitted and `null` are equivalent and mean no property names are required.
+
 </ResponseField>
 <ResponseField name="title" type={"string | null"} >
   Optional title for the schema.
 
 Optional. Omitted and `null` are equivalent and mean no title is provided.
+
 </ResponseField>
 <ResponseField name="type" type={<a href="#elicitationschematype">ElicitationSchemaType</a>} >
   Type discriminator. Always `"object"`.
 
     - Default: `"object"`
+
 </ResponseField>
 
 ## <span class="font-mono">ElicitationSchemaType</span>
@@ -3940,10 +4191,8 @@ Type discriminator for elicitation schemas.
 **Type:** Union
 
 <ResponseField name="object" type="string">
-Object schema type.
+  Object schema type.
 </ResponseField>
-
-
 
 ## <span class="font-mono">ElicitationSessionScope</span>
 
@@ -3965,6 +4214,7 @@ during a tool call and needs to redirect it to the user.
 
 Optional. Omitted and `null` are equivalent and mean the elicitation is scoped to the
 session without a specific tool call.
+
 </ResponseField>
 
 ## <span class="font-mono">ElicitationUrlCapabilities</span>
@@ -3985,6 +4235,7 @@ these keys.
 Optional. Omitted and `null` are equivalent and mean no metadata.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 
 ## <span class="font-mono">ElicitationUrlMode</span>
@@ -4002,6 +4253,7 @@ URL-based elicitation mode where the client directs the user to a URL.
   The URL to direct the user to.
 
     - Format: `uri`
+
 </ResponseField>
 
 **Variants:**
@@ -4019,6 +4271,7 @@ Tied to a session, optionally to a specific tool call within that session.
 
 Optional. Omitted and `null` are equivalent and mean the elicitation is scoped to the
 session without a specific tool call.
+
 </ResponseField>
 
 </Expandable>
@@ -4030,14 +4283,16 @@ Tied to a specific JSON-RPC request outside of a session
 
 <Expandable title="Properties">
 
-<ResponseField name="requestId" type={<a href="#requestid">RequestId</a>} required>
+<ResponseField
+  name="requestId"
+  type={<a href="#requestid">RequestId</a>}
+  required
+>
   The request this elicitation is tied to.
 </ResponseField>
 
 </Expandable>
 </ResponseField>
-
-
 
 ## <span class="font-mono">EmbeddedResource</span>
 
@@ -4053,6 +4308,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="annotations" type={<><span><a href="#annotations">Annotations</a></span><span> | null</span></>} >
   Optional annotations that help clients decide how to display or route this content.
@@ -4078,6 +4334,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="mimeType" type={<><span><a href="#mediatype">MediaType</a></span><span> | null</span></>} >
   MIME type describing the encoded media payload.
@@ -4089,6 +4346,7 @@ See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/d
   URI associated with this resource or media payload.
 
     - Format: `uri`
+
 </ResponseField>
 
 </Expandable>
@@ -4105,11 +4363,13 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="blob" type={"string"} required>
   Base64-encoded bytes for a binary resource payload.
 
     - Content encoding: `base64`
+
 </ResponseField>
 <ResponseField name="mimeType" type={<><span><a href="#mediatype">MediaType</a></span><span> | null</span></>} >
   MIME type describing the encoded media payload.
@@ -4118,12 +4378,11 @@ See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/d
   URI associated with this resource or media payload.
 
     - Format: `uri`
+
 </ResponseField>
 
 </Expandable>
 </ResponseField>
-
-
 
 ## <span class="font-mono">EnumOption</span>
 
@@ -4141,6 +4400,7 @@ these keys.
 Optional. Omitted and `null` are equivalent and mean no metadata.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="const" type={"string"} required>
   The constant value for this option.
@@ -4149,6 +4409,7 @@ See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/d
   Human-readable description.
 
 Optional. Omitted and `null` are equivalent and mean no description is provided.
+
 </ResponseField>
 <ResponseField name="title" type={"string"} required>
   Human-readable title for this option.
@@ -4168,6 +4429,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="name" type={"string"} required>
   The name of the environment variable.
@@ -4190,16 +4452,17 @@ See protocol docs: [JSON-RPC Error Object](https://www.jsonrpc.org/specification
 **Properties:**
 
 <ResponseField name="code" type={<a href="#errorcode">ErrorCode</a>} required>
-  A number indicating the error type that occurred.
-This must be an integer as defined in the JSON-RPC specification.
+  A number indicating the error type that occurred. This must be an integer as
+  defined in the JSON-RPC specification.
 </ResponseField>
-<ResponseField name="data" type={"object"} >
-  Optional primitive or structured value that contains additional information about the error.
-This may include debugging information or context-specific details.
+<ResponseField name="data" type={"object"}>
+  Optional primitive or structured value that contains additional information
+  about the error. This may include debugging information or context-specific
+  details.
 </ResponseField>
 <ResponseField name="message" type={"string"} required>
-  A string providing a short description of the error.
-The message should be limited to a concise single sentence.
+  A string providing a short description of the error. The message should be
+  limited to a concise single sentence.
 </ResponseField>
 
 ## <span class="font-mono">ErrorCode</span>
@@ -4212,45 +4475,45 @@ and use the reserved range (-32000 to -32099) for protocol-specific errors.
 **Type:** Union
 
 <ResponseField name="-32700" type="int32">
-**Parse error**: Invalid JSON was received by the server.
-An error occurred on the server while parsing the JSON text.
+  **Parse error**: Invalid JSON was received by the server. An error occurred on
+  the server while parsing the JSON text.
 </ResponseField>
 
 <ResponseField name="-32600" type="int32">
-**Invalid request**: The JSON sent is not a valid Request object.
+  **Invalid request**: The JSON sent is not a valid Request object.
 </ResponseField>
 
 <ResponseField name="-32601" type="int32">
-**Method not found**: The method does not exist or is not available.
+  **Method not found**: The method does not exist or is not available.
 </ResponseField>
 
 <ResponseField name="-32602" type="int32">
-**Invalid params**: Invalid method parameter(s).
+  **Invalid params**: Invalid method parameter(s).
 </ResponseField>
 
 <ResponseField name="-32603" type="int32">
-**Internal error**: Internal JSON-RPC error.
-Reserved for implementation-defined server errors.
+  **Internal error**: Internal JSON-RPC error. Reserved for
+  implementation-defined server errors.
 </ResponseField>
 
 <ResponseField name="-32800" type="int32">
-**Request cancelled**: Execution of the method was aborted either due to a cancellation request from the caller or
-because of resource constraints or shutdown.
+  **Request cancelled**: Execution of the method was aborted either due to a
+  cancellation request from the caller or because of resource constraints or
+  shutdown.
 </ResponseField>
 
 <ResponseField name="-32000" type="int32">
-**Authentication required**: Authentication is required before this operation can be performed.
+  **Authentication required**: Authentication is required before this operation
+  can be performed.
 </ResponseField>
 
 <ResponseField name="-32002" type="int32">
-**Resource not found**: A given resource, such as a file, was not found.
+  **Resource not found**: A given resource, such as a file, was not found.
 </ResponseField>
 
 <ResponseField name="Other" type="int32">
-Other undefined error code.
+  Other undefined error code.
 </ResponseField>
-
-
 
 ## <span class="font-mono">ExtNotification</span>
 
@@ -4260,7 +4523,6 @@ while maintaining protocol compatibility.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
 
-
 ## <span class="font-mono">ExtRequest</span>
 
 Allows for sending an arbitrary request that is not part of the ACP spec.
@@ -4269,7 +4531,6 @@ protocol compatibility.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
 
-
 ## <span class="font-mono">ExtResponse</span>
 
 Allows for sending an arbitrary response to an `ExtRequest` that is not part of the ACP spec.
@@ -4277,7 +4538,6 @@ Extension methods provide a way to add custom functionality while maintaining
 protocol compatibility.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
-
 
 ## <span class="font-mono">HttpHeader</span>
 
@@ -4293,6 +4553,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="name" type={"string"} required>
   The name of the HTTP header.
@@ -4318,11 +4579,13 @@ Each string should be in `WxH` format (e.g., `"48x48"`, `"96x96"`) or
 `"any"` for scalable formats like SVG.
 
 If not provided, the client should assume that the icon can be used at any size.
+
 </ResponseField>
 <ResponseField name="src" type={"string"} required>
   A standard URI pointing to an icon resource.
 
     - Format: `uri`
+
 </ResponseField>
 <ResponseField name="theme" type={<><span><a href="#icontheme">IconTheme</a></span><span> | null</span></>} >
   Optional theme this icon is designed for.
@@ -4335,11 +4598,11 @@ Theme an icon is designed for.
 **Type:** Union
 
 <ResponseField name="light" type="string">
-Icon designed for light backgrounds.
+  Icon designed for light backgrounds.
 </ResponseField>
 
 <ResponseField name="dark" type="string">
-Icon designed for dark backgrounds.
+  Icon designed for dark backgrounds.
 </ResponseField>
 
 <ResponseField name="other" type="string">
@@ -4348,9 +4611,8 @@ Custom or future icon theme.
 Values beginning with `_` are reserved for implementation-specific
 extensions. Unknown values that do not begin with `_` are reserved for
 future ACP variants.
+
 </ResponseField>
-
-
 
 ## <span class="font-mono">IdleStateUpdate</span>
 
@@ -4366,12 +4628,14 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="stopReason" type={<><span><a href="#stopreason">StopReason</a></span><span> | null</span></>} >
   Indicates why foreground work stopped.
 
 Optional. Omitted or `null` both mean the agent is not reporting a stop reason.
 Agents SHOULD include this when the idle transition ends foreground work.
+
 </ResponseField>
 <ResponseField name="usage" type={<><span><a href="#usage">Usage</a></span><span> | null</span></>} >
   **UNSTABLE**
@@ -4382,6 +4646,7 @@ Token usage for completed foreground work.
 
 Optional. Omitted or `null` both mean the agent is not reporting token
 usage for this state update.
+
 </ResponseField>
 
 ## <span class="font-mono">ImageContent</span>
@@ -4398,6 +4663,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="annotations" type={<><span><a href="#annotations">Annotations</a></span><span> | null</span></>} >
   Optional annotations that help clients decide how to display or route this content.
@@ -4406,6 +4672,7 @@ See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/d
   Base64-encoded media payload.
 
     - Content encoding: `base64`
+
 </ResponseField>
 <ResponseField name="mimeType" type={<a href="#mediatype">MediaType</a>} required>
   MIME type describing the encoded media payload.
@@ -4414,6 +4681,7 @@ See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/d
   URI associated with this resource or media payload.
 
     - Format: `uri`
+
 </ResponseField>
 
 ## <span class="font-mono">Implementation</span>
@@ -4432,6 +4700,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="name" type={"string"} required>
   Intended for programmatic or logical use, but can be used as a display
@@ -4442,6 +4711,7 @@ name fallback if title isn’t present.
 and easily understood.
 
 If not provided, the name should be used for display.
+
 </ResponseField>
 <ResponseField name="version" type={"string"} required>
   Version of the implementation. Can be displayed to the user or used
@@ -4464,31 +4734,37 @@ these keys.
 Optional. Omitted and `null` are equivalent and mean no metadata.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="default" type={"integer | null"} >
   Default value.
 
 Optional. Omitted and `null` are equivalent and mean no default value is provided.
+
 </ResponseField>
 <ResponseField name="description" type={"string | null"} >
   Human-readable description.
 
 Optional. Omitted and `null` are equivalent and mean no description is provided.
+
 </ResponseField>
 <ResponseField name="maximum" type={"integer | null"} >
   Maximum value (inclusive).
 
 Optional. Omitted and `null` are equivalent and mean there is no inclusive upper bound.
+
 </ResponseField>
 <ResponseField name="minimum" type={"integer | null"} >
   Minimum value (inclusive).
 
 Optional. Omitted and `null` are equivalent and mean there is no inclusive lower bound.
+
 </ResponseField>
 <ResponseField name="title" type={"string | null"} >
   Optional title for the property.
 
 Optional. Omitted and `null` are equivalent and mean no title is provided.
+
 </ResponseField>
 
 ## <span class="font-mono">LlmProtocol</span>
@@ -4507,23 +4783,23 @@ Protocol names that do not begin with `_` are reserved for the ACP spec.
 **Type:** Union
 
 <ResponseField name="anthropic" type="string">
-Anthropic API protocol.
+  Anthropic API protocol.
 </ResponseField>
 
 <ResponseField name="openai" type="string">
-OpenAI API protocol.
+  OpenAI API protocol.
 </ResponseField>
 
 <ResponseField name="azure" type="string">
-Azure OpenAI API protocol.
+  Azure OpenAI API protocol.
 </ResponseField>
 
 <ResponseField name="vertex" type="string">
-Google Vertex AI API protocol.
+  Google Vertex AI API protocol.
 </ResponseField>
 
 <ResponseField name="bedrock" type="string">
-AWS Bedrock API protocol.
+  AWS Bedrock API protocol.
 </ResponseField>
 
 <ResponseField name="other" type="string">
@@ -4532,9 +4808,8 @@ Custom or future protocol.
 Values beginning with `_` are reserved for implementation-specific
 extensions. Unknown values that do not begin with `_` are reserved for
 future ACP variants.
+
 </ResponseField>
-
-
 
 ## <span class="font-mono">McpAcpCapabilities</span>
 
@@ -4556,6 +4831,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 
 ## <span class="font-mono">McpCapabilities</span>
@@ -4572,6 +4848,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="acp" type={<><span><a href="#mcpacpcapabilities">McpAcpCapabilities</a></span><span> | null</span></>} >
   **UNSTABLE**
@@ -4582,18 +4859,21 @@ Agent supports `McpServer::Acp`.
 
 Optional. Omitted or `null` both mean the agent does not advertise support.
 Supplying `\{\}` means the agent supports ACP MCP server transports.
+
 </ResponseField>
 <ResponseField name="http" type={<><span><a href="#mcphttpcapabilities">McpHttpCapabilities</a></span><span> | null</span></>} >
   Agent supports `McpServer::Http`.
 
 Optional. Omitted or `null` both mean the agent does not advertise support.
 Supplying `\{\}` means the agent supports HTTP MCP server transports.
+
 </ResponseField>
 <ResponseField name="stdio" type={<><span><a href="#mcpstdiocapabilities">McpStdioCapabilities</a></span><span> | null</span></>} >
   Agent supports `McpServer::Stdio`.
 
 Optional. Omitted or `null` both mean the agent does not advertise support.
 Supplying `\{\}` means the agent supports stdio MCP server transports.
+
 </ResponseField>
 
 ## <span class="font-mono">McpConnectionId</span>
@@ -4622,6 +4902,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 
 ## <span class="font-mono">McpServer</span>
@@ -4648,6 +4929,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="headers" type={<a href="#httpheader">HttpHeader[]</a>} >
   HTTP headers to set when making requests to the MCP server.
@@ -4662,6 +4944,7 @@ See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/d
   URL to the MCP server.
 
     - Format: `uri`
+
 </ResponseField>
 
 </Expandable>
@@ -4685,6 +4968,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="name" type={"string"} required>
   Human-readable name identifying this MCP server.
@@ -4694,6 +4978,7 @@ See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/d
 
 Providers MUST NOT reuse an ID for multiple ACP-transport MCP servers that are visible
 on the same ACP connection.
+
 </ResponseField>
 <ResponseField name="type" type={"string"} required>
   The discriminator value. Must be `"acp"`.
@@ -4715,6 +5000,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="args" type={<><span>"string"</span><span>[]</span></>} >
   Command-line arguments to pass to the MCP server.
@@ -4754,12 +5040,11 @@ data, and otherwise ignore it or reject the server configuration.
 Values beginning with `_` are reserved for implementation-specific
 extensions. Unknown values that do not begin with `_` are reserved for
 future ACP variants.
+
 </ResponseField>
 
 </Expandable>
 </ResponseField>
-
-
 
 ## <span class="font-mono">McpServerAcp</span>
 
@@ -4782,6 +5067,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="name" type={"string"} required>
   Human-readable name identifying this MCP server.
@@ -4791,6 +5077,7 @@ See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/d
 
 Providers MUST NOT reuse an ID for multiple ACP-transport MCP servers that are visible
 on the same ACP connection.
+
 </ResponseField>
 
 ## <span class="font-mono">McpServerAcpId</span>
@@ -4821,6 +5108,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="headers" type={<a href="#httpheader">HttpHeader[]</a>} >
   HTTP headers to set when making requests to the MCP server.
@@ -4832,6 +5120,7 @@ See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/d
   URL to the MCP server.
 
     - Format: `uri`
+
 </ResponseField>
 
 ## <span class="font-mono">McpServerStdio</span>
@@ -4848,6 +5137,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="args" type={<><span>"string"</span><span>[]</span></>} >
   Command-line arguments to pass to the MCP server.
@@ -4878,6 +5168,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 
 ## <span class="font-mono">MediaType</span>
@@ -4911,6 +5202,7 @@ these keys.
 Optional. Omitted and `null` are equivalent and mean no metadata.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="enum" type={<><span>"string"</span><span>[]</span></>} required>
   Allowed enum values. Must contain at least one value.
@@ -4933,6 +5225,7 @@ Custom or future typed multi-select items.
 Values beginning with `_` are reserved for implementation-specific
 extensions. Unknown values that do not begin with `_` are reserved for
 future ACP variants.
+
 </ResponseField>
 
 </Expandable>
@@ -4951,6 +5244,7 @@ these keys.
 Optional. Omitted and `null` are equivalent and mean no metadata.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="anyOf" type={<a href="#enumoption">EnumOption[]</a>} required>
   Titled enum options. Must contain at least one option.
@@ -4958,8 +5252,6 @@ See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/d
 
 </Expandable>
 </ResponseField>
-
-
 
 ## <span class="font-mono">MultiSelectPropertySchema</span>
 
@@ -4977,16 +5269,19 @@ these keys.
 Optional. Omitted and `null` are equivalent and mean no metadata.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="default" type={<><span><><span>"string"</span><span>[]</span></></span><span> | null</span></>} >
   Default selected values.
 
 Optional. Omitted and `null` are equivalent and mean no default selections are provided.
+
 </ResponseField>
 <ResponseField name="description" type={"string | null"} >
   Human-readable description.
 
 Optional. Omitted and `null` are equivalent and mean no description is provided.
+
 </ResponseField>
 <ResponseField name="items" type={<a href="#multiselectitems">MultiSelectItems</a>} required>
   The items definition describing allowed values.
@@ -4997,6 +5292,7 @@ Optional. Omitted and `null` are equivalent and mean no description is provided.
 Optional. Omitted and `null` are equivalent and mean there is no maximum selection count.
 
     - Minimum: `0`
+
 </ResponseField>
 <ResponseField name="minItems" type={"integer | null"} >
   Minimum number of items to select.
@@ -5004,11 +5300,13 @@ Optional. Omitted and `null` are equivalent and mean there is no maximum selecti
 Optional. Omitted and `null` are equivalent and mean there is no minimum selection count.
 
     - Minimum: `0`
+
 </ResponseField>
 <ResponseField name="title" type={"string | null"} >
   Optional title for the property.
 
 Optional. Omitted and `null` are equivalent and mean no title is provided.
+
 </ResponseField>
 
 ## <span class="font-mono">NesCapabilities</span>
@@ -5028,6 +5326,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="context" type={<><span><a href="#nescontextcapabilities">NesContextCapabilities</a></span><span> | null</span></>} >
   Context the agent wants attached to each suggestion request.
@@ -5050,6 +5349,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="diagnostics" type={<><span><a href="#nesdiagnosticscapabilities">NesDiagnosticsCapabilities</a></span><span> | null</span></>} >
   Whether the agent wants diagnostics context.
@@ -5084,6 +5384,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="message" type={"string"} required>
   The diagnostic message.
@@ -5098,6 +5399,7 @@ See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/d
   The URI of the file containing the diagnostic.
 
     - Format: `uri`
+
 </ResponseField>
 
 ## <span class="font-mono">NesDiagnosticSeverity</span>
@@ -5107,19 +5409,19 @@ Severity of a diagnostic.
 **Type:** Union
 
 <ResponseField name="error" type="string">
-An error.
+  An error.
 </ResponseField>
 
 <ResponseField name="warning" type="string">
-A warning.
+  A warning.
 </ResponseField>
 
 <ResponseField name="information" type="string">
-An informational message.
+  An informational message.
 </ResponseField>
 
 <ResponseField name="hint" type="string">
-A hint.
+  A hint.
 </ResponseField>
 
 <ResponseField name="Other" type="string">
@@ -5128,9 +5430,8 @@ Custom or future diagnostic severity.
 Values beginning with `_` are reserved for implementation-specific
 extensions. Unknown values that do not begin with `_` are reserved for
 future ACP variants.
+
 </ResponseField>
-
-
 
 ## <span class="font-mono">NesDiagnosticsCapabilities</span>
 
@@ -5146,6 +5447,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 
 ## <span class="font-mono">NesDocumentDidChangeCapabilities</span>
@@ -5162,6 +5464,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="syncKind" type={<a href="#textdocumentsynckind">TextDocumentSyncKind</a>} required>
   The sync kind the agent wants: `"full"` or `"incremental"`.
@@ -5181,6 +5484,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 
 ## <span class="font-mono">NesDocumentDidFocusCapabilities</span>
@@ -5197,6 +5501,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 
 ## <span class="font-mono">NesDocumentDidOpenCapabilities</span>
@@ -5213,6 +5518,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 
 ## <span class="font-mono">NesDocumentDidSaveCapabilities</span>
@@ -5229,6 +5535,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 
 ## <span class="font-mono">NesDocumentEventCapabilities</span>
@@ -5245,6 +5552,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="didChange" type={<><span><a href="#nesdocumentdidchangecapabilities">NesDocumentDidChangeCapabilities</a></span><span> | null</span></>} >
   Whether the agent wants `document/didChange` events, and the sync kind.
@@ -5276,11 +5584,13 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="maxCount" type={"integer | null"} >
   Maximum number of edit history entries the agent can use.
 
     - Minimum: `0`
+
 </ResponseField>
 
 ## <span class="font-mono">NesEditHistoryEntry</span>
@@ -5297,6 +5607,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="diff" type={"string"} required>
   A diff representing the edit.
@@ -5305,6 +5616,7 @@ See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/d
   The URI of the edited file.
 
     - Format: `uri`
+
 </ResponseField>
 
 ## <span class="font-mono">NesEditSuggestion</span>
@@ -5321,6 +5633,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="cursorPosition" type={<><span><a href="#position">Position</a></span><span> | null</span></>} >
   Optional suggested cursor position after applying edits.
@@ -5335,6 +5648,7 @@ See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/d
   The URI of the file to edit.
 
     - Format: `uri`
+
 </ResponseField>
 
 ## <span class="font-mono">NesEventCapabilities</span>
@@ -5351,6 +5665,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="document" type={<><span><a href="#nesdocumenteventcapabilities">NesDocumentEventCapabilities</a></span><span> | null</span></>} >
   Document event capabilities.
@@ -5370,16 +5685,19 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="endLine" type={"uint32"} required>
   The end line of the excerpt (zero-based).
 
     - Minimum: `0`
+
 </ResponseField>
 <ResponseField name="startLine" type={"uint32"} required>
   The start line of the excerpt (zero-based).
 
     - Minimum: `0`
+
 </ResponseField>
 <ResponseField name="text" type={"string"} required>
   The text content of the excerpt.
@@ -5399,6 +5717,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 
 ## <span class="font-mono">NesJumpSuggestion</span>
@@ -5415,6 +5734,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="position" type={<a href="#position">Position</a>} required>
   The target position within the file.
@@ -5426,6 +5746,7 @@ See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/d
   The file to navigate to.
 
     - Format: `uri`
+
 </ResponseField>
 
 ## <span class="font-mono">NesOpenFile</span>
@@ -5442,6 +5763,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="languageId" type={"string"} required>
   The language identifier.
@@ -5450,11 +5772,13 @@ See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/d
   Timestamp in milliseconds since epoch of when the file was last focused.
 
     - Minimum: `0`
+
 </ResponseField>
 <ResponseField name="uri" type={"string"} required>
   The URI of the file.
 
     - Format: `uri`
+
 </ResponseField>
 <ResponseField name="visibleRange" type={<><span><a href="#range">Range</a></span><span> | null</span></>} >
   The visible range in the editor, if any.
@@ -5474,6 +5798,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 
 ## <span class="font-mono">NesRecentFile</span>
@@ -5490,6 +5815,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="languageId" type={"string"} required>
   The language identifier.
@@ -5501,6 +5827,7 @@ See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/d
   The URI of the file.
 
     - Format: `uri`
+
 </ResponseField>
 
 ## <span class="font-mono">NesRecentFilesCapabilities</span>
@@ -5517,11 +5844,13 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="maxCount" type={"integer | null"} >
   Maximum number of recent files the agent can use.
 
     - Minimum: `0`
+
 </ResponseField>
 
 ## <span class="font-mono">NesRejectReason</span>
@@ -5531,19 +5860,19 @@ The reason a suggestion was rejected.
 **Type:** Union
 
 <ResponseField name="rejected" type="string">
-The user explicitly dismissed the suggestion.
+  The user explicitly dismissed the suggestion.
 </ResponseField>
 
 <ResponseField name="ignored" type="string">
-The suggestion was shown but the user continued editing without interacting.
+  The suggestion was shown but the user continued editing without interacting.
 </ResponseField>
 
 <ResponseField name="replaced" type="string">
-The suggestion was superseded by a newer suggestion.
+  The suggestion was superseded by a newer suggestion.
 </ResponseField>
 
 <ResponseField name="cancelled" type="string">
-The request was cancelled before the agent returned a response.
+  The request was cancelled before the agent returned a response.
 </ResponseField>
 
 <ResponseField name="Other" type="string">
@@ -5552,9 +5881,8 @@ Custom or future rejection reason.
 Values beginning with `_` are reserved for implementation-specific
 extensions. Unknown values that do not begin with `_` are reserved for
 future ACP variants.
+
 </ResponseField>
-
-
 
 ## <span class="font-mono">NesRelatedSnippet</span>
 
@@ -5570,6 +5898,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="excerpts" type={<a href="#nesexcerpt">NesExcerpt[]</a>} required>
   The code excerpts.
@@ -5578,6 +5907,7 @@ See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/d
   The URI of the file containing the snippets.
 
     - Format: `uri`
+
 </ResponseField>
 
 ## <span class="font-mono">NesRelatedSnippetsCapabilities</span>
@@ -5594,6 +5924,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 
 ## <span class="font-mono">NesRenameCapabilities</span>
@@ -5610,6 +5941,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 
 ## <span class="font-mono">NesRenameSuggestion</span>
@@ -5626,6 +5958,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="newName" type={"string"} required>
   The new name for the symbol.
@@ -5640,6 +5973,7 @@ See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/d
   The file URI containing the symbol.
 
     - Format: `uri`
+
 </ResponseField>
 
 ## <span class="font-mono">NesRepository</span>
@@ -5656,6 +5990,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="name" type={"string"} required>
   The repository name.
@@ -5681,6 +6016,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 
 ## <span class="font-mono">NesSearchAndReplaceSuggestion</span>
@@ -5697,6 +6033,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="isRegex" type={"boolean | null"} >
   Whether `search` is a regular expression. Defaults to `false`.
@@ -5714,6 +6051,7 @@ See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/d
   The file URI to search within.
 
     - Format: `uri`
+
 </ResponseField>
 
 ## <span class="font-mono">NesSuggestContext</span>
@@ -5730,6 +6068,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="diagnostics" type={<><span><a href="#nesdiagnostic">NesDiagnostic[]</a></span><span> | null</span></>} >
   Current diagnostics (errors, warnings).
@@ -5767,6 +6106,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="cursorPosition" type={<><span><a href="#position">Position</a></span><span> | null</span></>} >
   Optional suggested cursor position after applying edits.
@@ -5784,6 +6124,7 @@ See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/d
   The URI of the file to edit.
 
     - Format: `uri`
+
 </ResponseField>
 
 </Expandable>
@@ -5800,6 +6141,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="kind" type={"string"} required>
   The discriminator value. Must be `"jump"`.
@@ -5814,6 +6156,7 @@ See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/d
   The file to navigate to.
 
     - Format: `uri`
+
 </ResponseField>
 
 </Expandable>
@@ -5830,6 +6173,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="kind" type={"string"} required>
   The discriminator value. Must be `"rename"`.
@@ -5847,6 +6191,7 @@ See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/d
   The file URI containing the symbol.
 
     - Format: `uri`
+
 </ResponseField>
 
 </Expandable>
@@ -5863,6 +6208,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="isRegex" type={"boolean | null"} >
   Whether `search` is a regular expression. Defaults to `false`.
@@ -5883,6 +6229,7 @@ See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/d
   The file URI to search within.
 
     - Format: `uri`
+
 </ResponseField>
 
 </Expandable>
@@ -5907,6 +6254,7 @@ suggestions, and otherwise ignore it or display it generically.
 Values beginning with `_` are reserved for implementation-specific
 extensions. Unknown values that do not begin with `_` are reserved for
 future ACP variants.
+
 </ResponseField>
 <ResponseField name="suggestionId" type={<a href="#nessuggestionid">NesSuggestionId</a>} required>
   Unique identifier for accept/reject tracking.
@@ -5914,8 +6262,6 @@ future ACP variants.
 
 </Expandable>
 </ResponseField>
-
-
 
 ## <span class="font-mono">NesSuggestionId</span>
 
@@ -5941,6 +6287,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="newText" type={"string"} required>
   The replacement text.
@@ -5956,15 +6303,15 @@ What triggered the suggestion request.
 **Type:** Union
 
 <ResponseField name="automatic" type="string">
-Triggered by user typing or cursor movement.
+  Triggered by user typing or cursor movement.
 </ResponseField>
 
 <ResponseField name="diagnostic" type="string">
-Triggered by a diagnostic appearing at or near the cursor.
+  Triggered by a diagnostic appearing at or near the cursor.
 </ResponseField>
 
 <ResponseField name="manual" type="string">
-Triggered by an explicit user action (keyboard shortcut).
+  Triggered by an explicit user action (keyboard shortcut).
 </ResponseField>
 
 <ResponseField name="Other" type="string">
@@ -5973,9 +6320,8 @@ Custom or future suggestion trigger kind.
 Values beginning with `_` are reserved for implementation-specific
 extensions. Unknown values that do not begin with `_` are reserved for
 future ACP variants.
+
 </ResponseField>
-
-
 
 ## <span class="font-mono">NesUserAction</span>
 
@@ -5991,6 +6337,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="action" type={"string"} required>
   The kind of action (e.g., "insertChar", "cursorMovement").
@@ -6002,11 +6349,13 @@ See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/d
   Timestamp in milliseconds since epoch.
 
     - Minimum: `0`
+
 </ResponseField>
 <ResponseField name="uri" type={"string"} required>
   The URI of the file where the action occurred.
 
     - Format: `uri`
+
 </ResponseField>
 
 ## <span class="font-mono">NesUserActionsCapabilities</span>
@@ -6023,11 +6372,13 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="maxCount" type={"integer | null"} >
   Maximum number of user actions the agent can use.
 
     - Minimum: `0`
+
 </ResponseField>
 
 ## <span class="font-mono">NumberPropertySchema</span>
@@ -6046,31 +6397,37 @@ these keys.
 Optional. Omitted and `null` are equivalent and mean no metadata.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="default" type={"number | null"} >
   Default value.
 
 Optional. Omitted and `null` are equivalent and mean no default value is provided.
+
 </ResponseField>
 <ResponseField name="description" type={"string | null"} >
   Human-readable description.
 
 Optional. Omitted and `null` are equivalent and mean no description is provided.
+
 </ResponseField>
 <ResponseField name="maximum" type={"number | null"} >
   Maximum value (inclusive).
 
 Optional. Omitted and `null` are equivalent and mean there is no inclusive upper bound.
+
 </ResponseField>
 <ResponseField name="minimum" type={"number | null"} >
   Minimum value (inclusive).
 
 Optional. Omitted and `null` are equivalent and mean there is no inclusive lower bound.
+
 </ResponseField>
 <ResponseField name="title" type={"string | null"} >
   Optional title for the property.
 
 Optional. Omitted and `null` are equivalent and mean no title is provided.
+
 </ResponseField>
 
 ## <span class="font-mono">PermissionOption</span>
@@ -6087,6 +6444,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="kind" type={<a href="#permissionoptionkind">PermissionOptionKind</a>} required>
   Hint about the nature of this permission option.
@@ -6113,19 +6471,19 @@ Helps clients choose appropriate icons and UI treatment.
 **Type:** Union
 
 <ResponseField name="allow_once" type="string">
-Allow this operation only this time.
+  Allow this operation only this time.
 </ResponseField>
 
 <ResponseField name="allow_always" type="string">
-Allow this operation and remember the choice.
+  Allow this operation and remember the choice.
 </ResponseField>
 
 <ResponseField name="reject_once" type="string">
-Reject this operation only this time.
+  Reject this operation only this time.
 </ResponseField>
 
 <ResponseField name="reject_always" type="string">
-Reject this operation and remember the choice.
+  Reject this operation and remember the choice.
 </ResponseField>
 
 <ResponseField name="other" type="string">
@@ -6134,9 +6492,8 @@ Custom or future permission option kind.
 Values beginning with `_` are reserved for implementation-specific
 extensions. Unknown values that do not begin with `_` are reserved for
 future ACP variants.
+
 </ResponseField>
-
-
 
 ## <span class="font-mono">PlanEntry</span>
 
@@ -6156,6 +6513,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="content" type={"string"} required>
   Human-readable description of what this task aims to accomplish.
@@ -6179,15 +6537,15 @@ See protocol docs: [Plan Entries](https://agentclientprotocol.com/protocol/v2/dr
 **Type:** Union
 
 <ResponseField name="high" type="string">
-High priority task - critical to the overall goal.
+  High priority task - critical to the overall goal.
 </ResponseField>
 
 <ResponseField name="medium" type="string">
-Medium priority task - important but not critical.
+  Medium priority task - important but not critical.
 </ResponseField>
 
 <ResponseField name="low" type="string">
-Low priority task - nice to have but not essential.
+  Low priority task - nice to have but not essential.
 </ResponseField>
 
 <ResponseField name="other" type="string">
@@ -6196,9 +6554,8 @@ Custom or future plan entry priority.
 Values beginning with `_` are reserved for implementation-specific
 extensions. Unknown values that do not begin with `_` are reserved for
 future ACP variants.
+
 </ResponseField>
-
-
 
 ## <span class="font-mono">PlanEntryStatus</span>
 
@@ -6210,19 +6567,19 @@ See protocol docs: [Plan Entries](https://agentclientprotocol.com/protocol/v2/dr
 **Type:** Union
 
 <ResponseField name="pending" type="string">
-The task has not started yet.
+  The task has not started yet.
 </ResponseField>
 
 <ResponseField name="in_progress" type="string">
-The task is currently being worked on.
+  The task is currently being worked on.
 </ResponseField>
 
 <ResponseField name="completed" type="string">
-The task has been successfully completed.
+  The task has been successfully completed.
 </ResponseField>
 
 <ResponseField name="cancelled" type="string">
-The task was cancelled before it completed.
+  The task was cancelled before it completed.
 </ResponseField>
 
 <ResponseField name="other" type="string">
@@ -6231,9 +6588,8 @@ Custom or future plan entry status.
 Values beginning with `_` are reserved for implementation-specific
 extensions. Unknown values that do not begin with `_` are reserved for
 future ACP variants.
+
 </ResponseField>
-
-
 
 ## <span class="font-mono">PlanFile</span>
 
@@ -6253,6 +6609,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="planId" type={<a href="#planid">PlanId</a>} required>
   The plan ID to update.
@@ -6261,6 +6618,7 @@ See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/d
   The URI of the file containing the plan.
 
     - Format: `uri`
+
 </ResponseField>
 
 ## <span class="font-mono">PlanId</span>
@@ -6283,12 +6641,14 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="entries" type={<a href="#planentry">PlanEntry[]</a>} required>
   The list of tasks to be accomplished.
 
 When updating an item-based plan, the agent must send a complete list of all entries
 with their current status. The client replaces that plan with each update.
+
 </ResponseField>
 <ResponseField name="planId" type={<a href="#planid">PlanId</a>} required>
   The plan ID to update.
@@ -6312,6 +6672,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="content" type={"string"} required>
   Markdown content for the plan.
@@ -6338,6 +6699,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="planId" type={<a href="#planid">PlanId</a>} required>
   The plan ID to remove.
@@ -6357,6 +6719,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="plan" type={<a href="#planupdatecontent">PlanUpdateContent</a>} required>
   The updated plan content.
@@ -6379,12 +6742,14 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="entries" type={<a href="#planentry">PlanEntry[]</a>} required>
   The list of tasks to be accomplished.
 
 When updating an item-based plan, the agent must send a complete list of all entries
 with their current status. The client replaces that plan with each update.
+
 </ResponseField>
 <ResponseField name="planId" type={<a href="#planid">PlanId</a>} required>
   The plan ID to update.
@@ -6411,6 +6776,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="planId" type={<a href="#planid">PlanId</a>} required>
   The plan ID to update.
@@ -6422,6 +6788,7 @@ See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/d
   The URI of the file containing the plan.
 
     - Format: `uri`
+
 </ResponseField>
 
 </Expandable>
@@ -6442,6 +6809,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="content" type={"string"} required>
   Markdown content for the plan.
@@ -6478,12 +6846,11 @@ otherwise ignore it or display it generically.
 Values beginning with `_` are reserved for implementation-specific
 extensions. Unknown values that do not begin with `_` are reserved for
 future ACP variants.
+
 </ResponseField>
 
 </Expandable>
 </ResponseField>
-
-
 
 ## <span class="font-mono">Position</span>
 
@@ -6501,16 +6868,19 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="character" type={"uint32"} required>
   Zero-based character offset (encoding-dependent).
 
     - Minimum: `0`
+
 </ResponseField>
 <ResponseField name="line" type={"uint32"} required>
   Zero-based line number.
 
     - Minimum: `0`
+
 </ResponseField>
 
 ## <span class="font-mono">PositionEncodingKind</span>
@@ -6522,18 +6892,16 @@ Follows the same conventions as LSP 3.17. The default is UTF-16.
 **Type:** Union
 
 <ResponseField name="utf-16" type="string">
-Character offsets count UTF-16 code units. This is the default.
+  Character offsets count UTF-16 code units. This is the default.
 </ResponseField>
 
 <ResponseField name="utf-32" type="string">
-Character offsets count Unicode code points.
+  Character offsets count Unicode code points.
 </ResponseField>
 
 <ResponseField name="utf-8" type="string">
-Character offsets count UTF-8 code units (bytes).
+  Character offsets count UTF-8 code units (bytes).
 </ResponseField>
-
-
 
 ## <span class="font-mono">PromptAudioCapabilities</span>
 
@@ -6551,6 +6919,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 
 ## <span class="font-mono">PromptCapabilities</span>
@@ -6578,12 +6947,14 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="audio" type={<><span><a href="#promptaudiocapabilities">PromptAudioCapabilities</a></span><span> | null</span></>} >
   Agent supports `ContentBlock::Audio`.
 
 Optional. Omitted or `null` both mean the agent does not advertise support.
 Supplying `\{\}` means the agent supports audio content in prompts.
+
 </ResponseField>
 <ResponseField name="embeddedContext" type={<><span><a href="#promptembeddedcontextcapabilities">PromptEmbeddedContextCapabilities</a></span><span> | null</span></>} >
   Agent supports embedded context in `session/prompt` requests.
@@ -6593,12 +6964,14 @@ in prompt requests for pieces of context that are referenced in the message.
 
 Optional. Omitted or `null` both mean the agent does not advertise support.
 Supplying `\{\}` means the agent supports embedded context in prompts.
+
 </ResponseField>
 <ResponseField name="image" type={<><span><a href="#promptimagecapabilities">PromptImageCapabilities</a></span><span> | null</span></>} >
   Agent supports `ContentBlock::Image`.
 
 Optional. Omitted or `null` both mean the agent does not advertise support.
 Supplying `\{\}` means the agent supports image content in prompts.
+
 </ResponseField>
 
 ## <span class="font-mono">PromptEmbeddedContextCapabilities</span>
@@ -6617,6 +6990,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 
 ## <span class="font-mono">PromptImageCapabilities</span>
@@ -6635,6 +7009,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 
 ## <span class="font-mono">ProtocolVersion</span>
@@ -6646,10 +7021,10 @@ Non-breaking changes should be introduced via capabilities.
 
 **Type:** `integer (uint16)`
 
-| Constraint | Value |
-| ---------- | ----- |
-| Minimum | `0` |
-| Maximum | `65535` |
+| Constraint | Value   |
+| ---------- | ------- |
+| Minimum    | `0`     |
+| Maximum    | `65535` |
 
 ## <span class="font-mono">ProviderCurrentConfig</span>
 
@@ -6669,6 +7044,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="apiType" type={<a href="#llmprotocol">LlmProtocol</a>} required>
   Protocol currently used by this provider.
@@ -6677,6 +7053,7 @@ See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/d
   Base URL currently used by this provider.
 
     - Format: `uri`
+
 </ResponseField>
 
 ## <span class="font-mono">ProviderId</span>
@@ -6707,6 +7084,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="current" type={<><span><a href="#providercurrentconfig">ProviderCurrentConfig</a></span><span> | null</span></>} >
   Current effective non-secret routing config.
@@ -6743,6 +7121,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 
 ## <span class="font-mono">Range</span>
@@ -6759,6 +7138,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="end" type={<a href="#position">Position</a>} required>
   The end position (exclusive).
@@ -6786,6 +7166,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="type" type={"string"} required>
   The discriminator value. Must be `"start"`.
@@ -6813,6 +7194,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="type" type={"string"} required>
   Custom or future replay cursor type.
@@ -6820,12 +7202,11 @@ See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/d
 Values beginning with `_` are reserved for implementation-specific
 extensions. Unknown values that do not begin with `_` are reserved for
 future ACP variants.
+
 </ResponseField>
 
 </Expandable>
 </ResponseField>
-
-
 
 ## <span class="font-mono">ReplayFromStart</span>
 
@@ -6841,6 +7222,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 
 ## <span class="font-mono">RequestId</span>
@@ -6858,18 +7240,16 @@ The Server MUST reply with the same value in the Response object if included. Th
 **Type:** Union
 
 <ResponseField name="null" type="null">
-The JSON-RPC `null` request id.
+  The JSON-RPC `null` request id.
 </ResponseField>
 
 <ResponseField name="Number" type="int64">
-A numeric JSON-RPC request id.
+  A numeric JSON-RPC request id.
 </ResponseField>
 
 <ResponseField name="Str" type="string">
-A string JSON-RPC request id.
+  A string JSON-RPC request id.
 </ResponseField>
-
-
 
 ## <span class="font-mono">RequestPermissionOutcome</span>
 
@@ -6906,6 +7286,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="optionId" type={<a href="#permissionoptionid">PermissionOptionId</a>} required>
   The ID of the option the user selected.
@@ -6937,12 +7318,11 @@ permission request according to policy.
 Values beginning with `_` are reserved for implementation-specific
 extensions. Unknown values that do not begin with `_` are reserved for
 future ACP variants.
+
 </ResponseField>
 
 </Expandable>
 </ResponseField>
-
-
 
 ## <span class="font-mono">RequestPermissionSubject</span>
 
@@ -6955,7 +7335,11 @@ Permission is requested before executing a tool call.
 
 <Expandable title="Properties">
 
-<ResponseField name="toolCall" type={<a href="#toolcallupdate">ToolCallUpdate</a>} required>
+<ResponseField
+  name="toolCall"
+  type={<a href="#toolcallupdate">ToolCallUpdate</a>}
+  required
+>
   Details about the tool call requiring permission.
 </ResponseField>
 <ResponseField name="type" type={"string"} required>
@@ -6976,6 +7360,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys. Omitted and `null` are equivalent and mean no subject metadata was provided.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="command" type={"string"} required>
   The command that would be run if permission is granted.
@@ -7016,12 +7401,11 @@ according to policy.
 Values beginning with `_` are reserved for implementation-specific
 extensions. Unknown values that do not begin with `_` are reserved for
 future ACP variants.
+
 </ResponseField>
 
 </Expandable>
 </ResponseField>
-
-
 
 ## <span class="font-mono">RequiresActionStateUpdate</span>
 
@@ -7037,6 +7421,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 
 ## <span class="font-mono">ResourceLink</span>
@@ -7053,6 +7438,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="annotations" type={<><span><a href="#annotations">Annotations</a></span><span> | null</span></>} >
   Optional annotations that help clients decide how to display or route this content.
@@ -7079,6 +7465,7 @@ See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/d
   URI associated with this resource or media payload.
 
     - Format: `uri`
+
 </ResponseField>
 
 ## <span class="font-mono">Role</span>
@@ -7088,11 +7475,11 @@ The sender or recipient of messages and data in a conversation.
 **Type:** Union
 
 <ResponseField name="assistant" type="string">
-The assistant side of a conversation.
+  The assistant side of a conversation.
 </ResponseField>
 
 <ResponseField name="user" type="string">
-The user side of a conversation.
+  The user side of a conversation.
 </ResponseField>
 
 <ResponseField name="other" type="string">
@@ -7101,9 +7488,8 @@ Custom or future role.
 Values beginning with `_` are reserved for implementation-specific
 extensions. Unknown values that do not begin with `_` are reserved for
 future ACP variants.
+
 </ResponseField>
-
-
 
 ## <span class="font-mono">RunningStateUpdate</span>
 
@@ -7119,6 +7505,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 
 ## <span class="font-mono">SelectedPermissionOutcome</span>
@@ -7135,6 +7522,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="optionId" type={<a href="#permissionoptionid">PermissionOptionId</a>} required>
   The ID of the option the user selected.
@@ -7159,6 +7547,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 
 ## <span class="font-mono">SessionCapabilities</span>
@@ -7185,6 +7574,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="additionalDirectories" type={<><span><a href="#sessionadditionaldirectoriescapabilities">SessionAdditionalDirectoriesCapabilities</a></span><span> | null</span></>} >
   Whether the agent supports `additionalDirectories` on supported session lifecycle requests.
@@ -7195,12 +7585,14 @@ supported session lifecycle requests.
 
 Agents may return `SessionInfo.additionalDirectories` to report the
 complete ordered additional-root list associated with a listed session.
+
 </ResponseField>
 <ResponseField name="delete" type={<><span><a href="#sessiondeletecapabilities">SessionDeleteCapabilities</a></span><span> | null</span></>} >
   Whether the agent supports `session/delete`.
 
 Optional. Omitted or `null` both mean the agent does not advertise support.
 Supplying `\{\}` means the agent supports deleting sessions from `session/list`.
+
 </ResponseField>
 <ResponseField name="fork" type={<><span><a href="#sessionforkcapabilities">SessionForkCapabilities</a></span><span> | null</span></>} >
   **UNSTABLE**
@@ -7211,12 +7603,14 @@ Whether the agent supports `session/fork`.
 
 Optional. Omitted or `null` both mean the agent does not advertise support.
 Supplying `\{\}` means the agent supports forking sessions.
+
 </ResponseField>
 <ResponseField name="mcp" type={<><span><a href="#mcpcapabilities">McpCapabilities</a></span><span> | null</span></>} >
   MCP capabilities supported by the agent for session lifecycle requests.
 
 Optional. Omitted or `null` both mean the agent does not advertise MCP
 server transport support for sessions.
+
 </ResponseField>
 <ResponseField name="prompt" type={<><span><a href="#promptcapabilities">PromptCapabilities</a></span><span> | null</span></>} >
   Prompt capabilities supported by the agent in `session/prompt` requests.
@@ -7224,6 +7618,7 @@ server transport support for sessions.
 Optional. Omitted or `null` both mean the agent does not advertise any
 prompt extensions beyond the baseline text and resource-link content
 required by `session/prompt`.
+
 </ResponseField>
 
 ## <span class="font-mono">SessionConfigBoolean</span>
@@ -7264,6 +7659,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="category" type={<><span><a href="#sessionconfigoptioncategory">SessionConfigOptionCategory</a></span><span> | null</span></>} >
   Optional semantic category for this option (UX only).
@@ -7285,10 +7681,18 @@ Single-value selector (dropdown).
 
 <Expandable title="Properties">
 
-<ResponseField name="currentValue" type={<a href="#sessionconfigvalueid">SessionConfigValueId</a>} required>
+<ResponseField
+  name="currentValue"
+  type={<a href="#sessionconfigvalueid">SessionConfigValueId</a>}
+  required
+>
   The currently selected value.
 </ResponseField>
-<ResponseField name="options" type={<a href="#sessionconfigselectoptions">SessionConfigSelectOptions</a>} required>
+<ResponseField
+  name="options"
+  type={<a href="#sessionconfigselectoptions">SessionConfigSelectOptions</a>}
+  required
+>
   The set of selectable options.
 </ResponseField>
 <ResponseField name="type" type={"string"} required>
@@ -7332,12 +7736,11 @@ data, and otherwise ignore the option or display it generically.
 Values beginning with `_` are reserved for implementation-specific
 extensions. Unknown values that do not begin with `_` are reserved for
 future ACP variants.
+
 </ResponseField>
 
 </Expandable>
 </ResponseField>
-
-
 
 ## <span class="font-mono">SessionConfigOptionCategory</span>
 
@@ -7354,19 +7757,19 @@ Category names that do not begin with `_` are reserved for the ACP spec.
 **Type:** Union
 
 <ResponseField name="mode" type="string">
-Session mode selector.
+  Session mode selector.
 </ResponseField>
 
 <ResponseField name="model" type="string">
-Model selector.
+  Model selector.
 </ResponseField>
 
 <ResponseField name="model_config" type="string">
-Model-related configuration parameter.
+  Model-related configuration parameter.
 </ResponseField>
 
 <ResponseField name="thought_level" type="string">
-Thought/reasoning level selector.
+  Thought/reasoning level selector.
 </ResponseField>
 
 <ResponseField name="other" type="string">
@@ -7375,9 +7778,8 @@ Custom or future category.
 Values beginning with `_` are reserved for implementation-specific
 extensions. Unknown values that do not begin with `_` are reserved for
 future ACP variants.
+
 </ResponseField>
-
-
 
 ## <span class="font-mono">SessionConfigSelect</span>
 
@@ -7387,10 +7789,18 @@ A single-value selector (dropdown) session configuration option payload.
 
 **Properties:**
 
-<ResponseField name="currentValue" type={<a href="#sessionconfigvalueid">SessionConfigValueId</a>} required>
+<ResponseField
+  name="currentValue"
+  type={<a href="#sessionconfigvalueid">SessionConfigValueId</a>}
+  required
+>
   The currently selected value.
 </ResponseField>
-<ResponseField name="options" type={<a href="#sessionconfigselectoptions">SessionConfigSelectOptions</a>} required>
+<ResponseField
+  name="options"
+  type={<a href="#sessionconfigselectoptions">SessionConfigSelectOptions</a>}
+  required
+>
   The set of selectable options.
 </ResponseField>
 
@@ -7408,6 +7818,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="groupId" type={<a href="#sessionconfiggroupid">SessionConfigGroupId</a>} required>
   Unique identifier for this group.
@@ -7433,6 +7844,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="description" type={"string | null"} >
   Optional description for this option value.
@@ -7451,14 +7863,12 @@ Possible values for a session configuration option.
 **Type:** Union
 
 <ResponseField name="Ungrouped" type="array">
-A flat list of options with no grouping.
+  A flat list of options with no grouping.
 </ResponseField>
 
 <ResponseField name="Grouped" type="array">
-A list of options grouped under headers.
+  A list of options grouped under headers.
 </ResponseField>
-
-
 
 ## <span class="font-mono">SessionConfigValueId</span>
 
@@ -7482,6 +7892,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 
 ## <span class="font-mono">SessionForkCapabilities</span>
@@ -7504,6 +7915,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 
 ## <span class="font-mono">SessionId</span>
@@ -7531,6 +7943,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="additionalDirectories" type={<a href="#absolutepath">AbsolutePath[]</a>} >
   Additional workspace roots reported for this session. Each path must be absolute.
@@ -7538,6 +7951,7 @@ See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/d
 When present, this is the complete ordered additional-root list reported
 by the Agent. Omitted and empty values are equivalent: the response
 reports no additional roots.
+
 </ResponseField>
 <ResponseField name="cwd" type={<a href="#absolutepath">AbsolutePath</a>} required>
   The working directory for this session. Must be an absolute path.
@@ -7552,6 +7966,7 @@ reports no additional roots.
   RFC 3339 timestamp of last activity.
 
     - Format: `date-time`
+
 </ResponseField>
 
 ## <span class="font-mono">SessionInfoUpdate</span>
@@ -7576,6 +7991,7 @@ Malformed extension metadata remains lenient by design because `_meta`
 is advisory, not authoritative session state.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="title" type={"string | null"} >
   Human-readable title for the session. Set to null to clear.
@@ -7584,6 +8000,7 @@ See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/d
   RFC 3339 timestamp of last activity. Set to null to clear.
 
     - Format: `date-time`
+
 </ResponseField>
 
 ## <span class="font-mono">SessionListCursor</span>
@@ -7613,6 +8030,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys. This field is chunk-scoped.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="content" type={<a href="#contentblock">ContentBlock</a>} required>
   A single item of content
@@ -7622,6 +8040,7 @@ See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/d
 
 All chunks belonging to the same message share the same `messageId`.
 A change in `messageId` indicates a new message has started.
+
 </ResponseField>
 <ResponseField name="sessionUpdate" type={"string"} required>
   The discriminator value. Must be `"user_message_chunk"`.
@@ -7647,6 +8066,7 @@ Malformed extension metadata remains lenient by design because `_meta`
 is advisory, not authoritative message state.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="content" type={<><span><a href="#contentblock">ContentBlock[]</a></span><span> | null</span></>} >
   Complete replacement content for this message.
@@ -7673,6 +8093,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys. This field is chunk-scoped.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="content" type={<a href="#contentblock">ContentBlock</a>} required>
   A single item of content
@@ -7682,6 +8103,7 @@ See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/d
 
 All chunks belonging to the same message share the same `messageId`.
 A change in `messageId` indicates a new message has started.
+
 </ResponseField>
 <ResponseField name="sessionUpdate" type={"string"} required>
   The discriminator value. Must be `"agent_message_chunk"`.
@@ -7707,6 +8129,7 @@ Malformed extension metadata remains lenient by design because `_meta`
 is advisory, not authoritative message state.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="content" type={<><span><a href="#contentblock">ContentBlock[]</a></span><span> | null</span></>} >
   Complete replacement content for this message.
@@ -7733,6 +8156,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys. This field is chunk-scoped.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="content" type={<a href="#contentblock">ContentBlock</a>} required>
   A single item of content
@@ -7742,6 +8166,7 @@ See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/d
 
 All chunks belonging to the same message share the same `messageId`.
 A change in `messageId` indicates a new message has started.
+
 </ResponseField>
 <ResponseField name="sessionUpdate" type={"string"} required>
   The discriminator value. Must be `"agent_thought_chunk"`.
@@ -7767,6 +8192,7 @@ Malformed extension metadata remains lenient by design because `_meta`
 is advisory, not authoritative message state.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="content" type={<><span><a href="#contentblock">ContentBlock[]</a></span><span> | null</span></>} >
   Complete replacement content for this thought message.
@@ -7805,6 +8231,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys. This field is chunk-scoped.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="content" type={<a href="#toolcallcontent">ToolCallContent</a>} required>
   A single item of content produced by the tool call.
@@ -7832,6 +8259,7 @@ Malformed extension metadata remains lenient by design because `_meta`
 is advisory and does not define the canonical tool-call state.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="content" type={<><span><a href="#toolcallcontent">ToolCallContent[]</a></span><span> | null</span></>} >
   Content produced by the tool call.
@@ -7856,6 +8284,7 @@ This field is optional and has patch semantics. Omission means no
 change, `null` clears the name, and a string replaces it. For a tool
 call ID the client has not seen before, omission or `null` means that no
 tool name is available.
+
 </ResponseField>
 <ResponseField name="rawInput" type={"object"} >
   Raw input parameters sent to the tool.
@@ -7890,6 +8319,7 @@ metadata to their interactions. Omitted means no metadata update; `null` is an
 explicit clear signal. Implementations MUST NOT make assumptions about values at these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="command" type={"string | null"} >
   The command being run.
@@ -7925,11 +8355,13 @@ these keys. This field is chunk-scoped. Omitted and `null` are
 equivalent and mean no chunk metadata was provided.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="data" type={"string"} required>
   Independently base64-encoded terminal output bytes.
 
     - Content encoding: `base64`
+
 </ResponseField>
 <ResponseField name="sessionUpdate" type={"string"} required>
   The discriminator value. Must be `"terminal_output_chunk"`.
@@ -7953,6 +8385,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="plan" type={<a href="#planupdatecontent">PlanUpdateContent</a>} required>
   The updated plan content.
@@ -7979,6 +8412,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="planId" type={<a href="#planid">PlanId</a>} required>
   The plan ID to remove.
@@ -8001,6 +8435,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="availableCommands" type={<a href="#availablecommand">AvailableCommand[]</a>} required>
   Commands the agent can execute.
@@ -8023,6 +8458,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="configOptions" type={<a href="#sessionconfigoption">SessionConfigOption[]</a>} required>
   The full set of configuration options and their current values.
@@ -8047,6 +8483,7 @@ Malformed extension metadata remains lenient by design because `_meta`
 is advisory, not authoritative session state.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="sessionUpdate" type={"string"} required>
   The discriminator value. Must be `"session_info_update"`.
@@ -8058,6 +8495,7 @@ See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/d
   RFC 3339 timestamp of last activity. Set to null to clear.
 
     - Format: `date-time`
+
 </ResponseField>
 
 </Expandable>
@@ -8074,6 +8512,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="cost" type={<><span><a href="#cost">Cost</a></span><span> | null</span></>} >
   Cumulative session cost (optional).
@@ -8085,11 +8524,13 @@ See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/d
   Total context window size in tokens.
 
     - Minimum: `0`
+
 </ResponseField>
 <ResponseField name="used" type={"uint64"} required>
   Tokens currently in context.
 
     - Minimum: `0`
+
 </ResponseField>
 
 </Expandable>
@@ -8114,12 +8555,11 @@ history, and otherwise ignore it or display it generically.
 Values beginning with `_` are reserved for implementation-specific
 extensions. Unknown values that do not begin with `_` are reserved for
 future ACP variants.
+
 </ResponseField>
 
 </Expandable>
 </ResponseField>
-
-
 
 ## <span class="font-mono">StateUpdate</span>
 
@@ -8141,6 +8581,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="state" type={"string"} required>
   The discriminator value. Must be `"running"`.
@@ -8160,6 +8601,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="state" type={"string"} required>
   The discriminator value. Must be `"idle"`.
@@ -8169,6 +8611,7 @@ See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/d
 
 Optional. Omitted or `null` both mean the agent is not reporting a stop reason.
 Agents SHOULD include this when the idle transition ends foreground work.
+
 </ResponseField>
 <ResponseField name="usage" type={<><span><a href="#usage">Usage</a></span><span> | null</span></>} >
   **UNSTABLE**
@@ -8179,6 +8622,7 @@ Token usage for completed foreground work.
 
 Optional. Omitted or `null` both mean the agent is not reporting token
 usage for this state update.
+
 </ResponseField>
 
 </Expandable>
@@ -8195,6 +8639,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="state" type={"string"} required>
   The discriminator value. Must be `"requires_action"`.
@@ -8218,12 +8663,11 @@ future ACP variants.
 Values beginning with `_` are reserved for implementation-specific
 extensions. Unknown values that do not begin with `_` are reserved for
 future ACP variants.
+
 </ResponseField>
 
 </Expandable>
 </ResponseField>
-
-
 
 ## <span class="font-mono">StopReason</span>
 
@@ -8234,22 +8678,22 @@ See protocol docs: [Stop Reasons](https://agentclientprotocol.com/protocol/v2/dr
 **Type:** Union
 
 <ResponseField name="end_turn" type="string">
-The active work ended successfully.
+  The active work ended successfully.
 </ResponseField>
 
 <ResponseField name="max_tokens" type="string">
-The active work ended because the agent reached the maximum number of tokens.
+  The active work ended because the agent reached the maximum number of tokens.
 </ResponseField>
 
 <ResponseField name="max_turn_requests" type="string">
-The active work ended because the agent reached the maximum number of
-allowed agent requests before returning idle.
+  The active work ended because the agent reached the maximum number of allowed
+  agent requests before returning idle.
 </ResponseField>
 
 <ResponseField name="refusal" type="string">
-The active work ended because the agent refused to continue. The user
-prompt and everything that comes after it won't be included in the next
-prompt, so this should be reflected in the UI.
+  The active work ended because the agent refused to continue. The user prompt
+  and everything that comes after it won't be included in the next prompt, so
+  this should be reflected in the UI.
 </ResponseField>
 
 <ResponseField name="cancelled" type="string">
@@ -8258,6 +8702,7 @@ Active session work was cancelled by the client via `session/cancel`.
 Agents should report this stop reason on an idle `state_update` session update
 when cancellation succeeds, even if cancellation causes exceptions in
 underlying operations.
+
 </ResponseField>
 
 <ResponseField name="other" type="string">
@@ -8266,9 +8711,8 @@ Custom or future stop reason.
 Values beginning with `_` are reserved for implementation-specific
 extensions. Unknown values that do not begin with `_` are reserved for
 future ACP variants.
+
 </ResponseField>
-
-
 
 ## <span class="font-mono">StringFormat</span>
 
@@ -8277,19 +8721,19 @@ String format types for string properties in elicitation schemas.
 **Type:** Union
 
 <ResponseField name="email" type="string">
-Email address format.
+  Email address format.
 </ResponseField>
 
 <ResponseField name="uri" type="string">
-URI format.
+  URI format.
 </ResponseField>
 
 <ResponseField name="date" type="string">
-Date format (YYYY-MM-DD).
+  Date format (YYYY-MM-DD).
 </ResponseField>
 
 <ResponseField name="date-time" type="string">
-Date-time format (RFC 3339).
+  Date-time format (RFC 3339).
 </ResponseField>
 
 <ResponseField name="other" type="string">
@@ -8297,9 +8741,8 @@ Custom or future string format.
 
 Unknown formats are preserved. Implementations that do not understand a
 format should treat it as an annotation rather than rejecting the schema.
+
 </ResponseField>
-
-
 
 ## <span class="font-mono">StringMultiSelectItems</span>
 
@@ -8317,6 +8760,7 @@ these keys.
 Optional. Omitted and `null` are equivalent and mean no metadata.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="enum" type={<><span>"string"</span><span>[]</span></>} required>
   Allowed enum values. Must contain at least one value.
@@ -8341,16 +8785,19 @@ these keys.
 Optional. Omitted and `null` are equivalent and mean no metadata.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="default" type={"string | null"} >
   Default value.
 
 Optional. Omitted and `null` are equivalent and mean no default value is provided.
+
 </ResponseField>
 <ResponseField name="description" type={"string | null"} >
   Human-readable description.
 
 Optional. Omitted and `null` are equivalent and mean no description is provided.
+
 </ResponseField>
 <ResponseField name="enum" type={<><span><><span>"string"</span><span>[]</span></></span><span> | null</span></>} >
   Enum values for untitled single-select enums.
@@ -8362,6 +8809,7 @@ declared by `enum`.
   String format.
 
 Optional. Omitted and `null` are equivalent and mean there is no format constraint.
+
 </ResponseField>
 <ResponseField name="maxLength" type={"integer | null"} >
   Maximum string length.
@@ -8369,6 +8817,7 @@ Optional. Omitted and `null` are equivalent and mean there is no format constrai
 Optional. Omitted and `null` are equivalent and mean there is no maximum length constraint.
 
     - Minimum: `0`
+
 </ResponseField>
 <ResponseField name="minLength" type={"integer | null"} >
   Minimum string length.
@@ -8376,6 +8825,7 @@ Optional. Omitted and `null` are equivalent and mean there is no maximum length 
 Optional. Omitted and `null` are equivalent and mean there is no minimum length constraint.
 
     - Minimum: `0`
+
 </ResponseField>
 <ResponseField name="oneOf" type={<><span><a href="#enumoption">EnumOption[]</a></span><span> | null</span></>} >
   Titled enum options for titled single-select enums.
@@ -8389,11 +8839,13 @@ declared by `oneOf`.
 Optional. Omitted and `null` are equivalent and mean there is no pattern constraint.
 
     - Format: `regex`
+
 </ResponseField>
 <ResponseField name="title" type={"string | null"} >
   Optional title for the property.
 
 Optional. Omitted and `null` are equivalent and mean no title is provided.
+
 </ResponseField>
 
 ## <span class="font-mono">Terminal</span>
@@ -8414,6 +8866,7 @@ these keys. This metadata is scoped to the content reference. Omitted
 and `null` are equivalent and mean no item metadata was provided.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="terminalId" type={<a href="#terminalid">TerminalId</a>} required>
   The ID of the terminal to display.
@@ -8439,6 +8892,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 
 ## <span class="font-mono">TerminalExitStatus</span>
@@ -8459,11 +8913,13 @@ these keys. This metadata is scoped to the exit information. Omitted
 and `null` are equivalent and mean no exit metadata was provided.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="exitCode" type={"integer | null"} >
   Process exit code, when known. Omitted and `null` are equivalent.
 
     - Minimum: `0`
+
 </ResponseField>
 <ResponseField name="signal" type={"string | null"} >
   Signal that terminated the process, when known.
@@ -8471,6 +8927,7 @@ See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/d
 Agents should use the conventional platform signal name. POSIX examples
 include `SIGTERM`, `SIGKILL`, and `SIGINT`. Other platforms may use a
 platform-specific name. Omitted and `null` are equivalent.
+
 </ResponseField>
 
 ## <span class="font-mono">TerminalId</span>
@@ -8494,11 +8951,13 @@ these keys. This metadata is scoped to the replacement snapshot. Omitted
 and `null` are equivalent and mean no snapshot metadata was provided.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="data" type={"string"} required>
   Base64-encoded replacement terminal output bytes.
 
     - Content encoding: `base64`
+
 </ResponseField>
 
 ## <span class="font-mono">TerminalOutputChunk</span>
@@ -8516,11 +8975,13 @@ these keys. This field is chunk-scoped. Omitted and `null` are
 equivalent and mean no chunk metadata was provided.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="data" type={"string"} required>
   Independently base64-encoded terminal output bytes.
 
     - Content encoding: `base64`
+
 </ResponseField>
 <ResponseField name="terminalId" type={<a href="#terminalid">TerminalId</a>} required>
   The terminal receiving these bytes.
@@ -8545,6 +9006,7 @@ metadata to their interactions. Omitted means no metadata update; `null` is an
 explicit clear signal. Implementations MUST NOT make assumptions about values at these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="command" type={"string | null"} >
   The command being run.
@@ -8576,6 +9038,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="hint" type={"string"} required>
   A hint to display when the input hasn't been provided yet
@@ -8595,6 +9058,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="annotations" type={<><span><a href="#annotations">Annotations</a></span><span> | null</span></>} >
   Optional annotations that help clients decide how to display or route this content.
@@ -8620,6 +9084,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="range" type={<><span><a href="#range">Range</a></span><span> | null</span></>} >
   The range of the document that changed. If `None`, the entire content is replaced.
@@ -8635,14 +9100,12 @@ How the agent wants document changes delivered.
 **Type:** Union
 
 <ResponseField name="full" type="string">
-Client sends the entire file content on each change.
+  Client sends the entire file content on each change.
 </ResponseField>
 
 <ResponseField name="incremental" type="string">
-Client sends only the changed ranges.
+  Client sends only the changed ranges.
 </ResponseField>
-
-
 
 ## <span class="font-mono">TextResourceContents</span>
 
@@ -8658,6 +9121,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="mimeType" type={<><span><a href="#mediatype">MediaType</a></span><span> | null</span></>} >
   MIME type describing the encoded media payload.
@@ -8669,6 +9133,7 @@ See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/d
   URI associated with this resource or media payload.
 
     - Format: `uri`
+
 </ResponseField>
 
 ## <span class="font-mono">TitledMultiSelectItems</span>
@@ -8687,6 +9152,7 @@ these keys.
 Optional. Omitted and `null` are equivalent and mean no metadata.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="anyOf" type={<a href="#enumoption">EnumOption[]</a>} required>
   Titled enum options. Must contain at least one option.
@@ -8714,6 +9180,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="content" type={<a href="#contentblock">ContentBlock</a>} required>
   The actual content block.
@@ -8736,17 +9203,20 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="changes" type={<a href="#diffchange">DiffChange[]</a>} required>
   Structured file changes described by this diff.
 
 Clients can use this field without parsing patch text to determine affected paths.
+
 </ResponseField>
 <ResponseField name="patch" type={<><span><a href="#diffpatch">DiffPatch</a></span><span> | null</span></>} >
   Renderable patch text for some or all of the structured changes.
 
 Agents SHOULD provide patch text whenever feasible. Omitted or `null`
 means no renderable patch text was provided.
+
 </ResponseField>
 <ResponseField name="type" type={"string"} required>
   The discriminator value. Must be `"diff"`.
@@ -8767,6 +9237,7 @@ these keys. This metadata is scoped to the content reference. Omitted
 and `null` are equivalent and mean no item metadata was provided.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="terminalId" type={<a href="#terminalid">TerminalId</a>} required>
   The ID of the terminal to display.
@@ -8797,12 +9268,11 @@ output, and otherwise ignore it or display it generically.
 Values beginning with `_` are reserved for implementation-specific
 extensions. Unknown values that do not begin with `_` are reserved for
 future ACP variants.
+
 </ResponseField>
 
 </Expandable>
 </ResponseField>
-
-
 
 ## <span class="font-mono">ToolCallContentChunk</span>
 
@@ -8823,6 +9293,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys. This field is chunk-scoped.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="content" type={<a href="#toolcallcontent">ToolCallContent</a>} required>
   A single item of content produced by the tool call.
@@ -8856,11 +9327,13 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="line" type={"integer | null"} >
   Optional line number within the file.
 
     - Minimum: `0`
+
 </ResponseField>
 <ResponseField name="path" type={<a href="#absolutepath">AbsolutePath</a>} required>
   The absolute file path being accessed or modified.
@@ -8874,7 +9347,11 @@ Permission request details for a tool call.
 
 **Properties:**
 
-<ResponseField name="toolCall" type={<a href="#toolcallupdate">ToolCallUpdate</a>} required>
+<ResponseField
+  name="toolCall"
+  type={<a href="#toolcallupdate">ToolCallUpdate</a>}
+  required
+>
   Details about the tool call requiring permission.
 </ResponseField>
 
@@ -8892,24 +9369,24 @@ See protocol docs: [Status](https://agentclientprotocol.com/protocol/v2/draft/to
 **Type:** Union
 
 <ResponseField name="pending" type="string">
-The tool call hasn't started running yet because the input is either
-streaming or we're awaiting approval.
+  The tool call hasn't started running yet because the input is either streaming
+  or we're awaiting approval.
 </ResponseField>
 
 <ResponseField name="in_progress" type="string">
-The tool call is currently running.
+  The tool call is currently running.
 </ResponseField>
 
 <ResponseField name="completed" type="string">
-The tool call completed successfully.
+  The tool call completed successfully.
 </ResponseField>
 
 <ResponseField name="failed" type="string">
-The tool call failed with an error.
+  The tool call failed with an error.
 </ResponseField>
 
 <ResponseField name="cancelled" type="string">
-The tool call was cancelled before it completed.
+  The tool call was cancelled before it completed.
 </ResponseField>
 
 <ResponseField name="other" type="string">
@@ -8918,9 +9395,8 @@ Custom or future tool call status.
 Values beginning with `_` are reserved for implementation-specific
 extensions. Unknown values that do not begin with `_` are reserved for
 future ACP variants.
+
 </ResponseField>
-
-
 
 ## <span class="font-mono">ToolCallUpdate</span>
 
@@ -8950,6 +9426,7 @@ Malformed extension metadata remains lenient by design because `_meta`
 is advisory and does not define the canonical tool-call state.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="content" type={<><span><a href="#toolcallcontent">ToolCallContent[]</a></span><span> | null</span></>} >
   Content produced by the tool call.
@@ -8974,6 +9451,7 @@ This field is optional and has patch semantics. Omission means no
 change, `null` clears the name, and a string replaces it. For a tool
 call ID the client has not seen before, omission or `null` means that no
 tool name is available.
+
 </ResponseField>
 <ResponseField name="rawInput" type={"object"} >
   Raw input parameters sent to the tool.
@@ -9007,43 +9485,43 @@ See protocol docs: [Creating](https://agentclientprotocol.com/protocol/v2/draft/
 **Type:** Union
 
 <ResponseField name="read" type="string">
-Reading files or data.
+  Reading files or data.
 </ResponseField>
 
 <ResponseField name="edit" type="string">
-Modifying files or content.
+  Modifying files or content.
 </ResponseField>
 
 <ResponseField name="delete" type="string">
-Removing files or data.
+  Removing files or data.
 </ResponseField>
 
 <ResponseField name="move" type="string">
-Moving or renaming files.
+  Moving or renaming files.
 </ResponseField>
 
 <ResponseField name="search" type="string">
-Searching for information.
+  Searching for information.
 </ResponseField>
 
 <ResponseField name="execute" type="string">
-Running commands or code.
+  Running commands or code.
 </ResponseField>
 
 <ResponseField name="think" type="string">
-Internal reasoning or planning.
+  Internal reasoning or planning.
 </ResponseField>
 
 <ResponseField name="fetch" type="string">
-Retrieving external data.
+  Retrieving external data.
 </ResponseField>
 
 <ResponseField name="switch_mode" type="string">
-Switching the current session mode.
+  Switching the current session mode.
 </ResponseField>
 
 <ResponseField name="other" type="string">
-Other tool types (default).
+  Other tool types (default).
 </ResponseField>
 
 <ResponseField name="unknown" type="string">
@@ -9052,9 +9530,8 @@ Custom or future tool kind.
 Values beginning with `_` are reserved for implementation-specific
 extensions. Unknown values that do not begin with `_` are reserved for
 future ACP variants.
+
 </ResponseField>
-
-
 
 ## <span class="font-mono">Usage</span>
 
@@ -9074,36 +9551,43 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="cachedReadTokens" type={"integer | null"} >
   Total cache read tokens.
 
     - Minimum: `0`
+
 </ResponseField>
 <ResponseField name="cachedWriteTokens" type={"integer | null"} >
   Total cache write tokens.
 
     - Minimum: `0`
+
 </ResponseField>
 <ResponseField name="inputTokens" type={"uint64"} required>
   Total input tokens.
 
     - Minimum: `0`
+
 </ResponseField>
 <ResponseField name="outputTokens" type={"uint64"} required>
   Total output tokens.
 
     - Minimum: `0`
+
 </ResponseField>
 <ResponseField name="thoughtTokens" type={"integer | null"} >
   Total thought/reasoning tokens
 
     - Minimum: `0`
+
 </ResponseField>
 <ResponseField name="totalTokens" type={"uint64"} required>
   Sum of all token types across session.
 
     - Minimum: `0`
+
 </ResponseField>
 
 ## <span class="font-mono">UsageUpdate</span>
@@ -9120,6 +9604,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="cost" type={<><span><a href="#cost">Cost</a></span><span> | null</span></>} >
   Cumulative session cost (optional).
@@ -9128,11 +9613,13 @@ See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/d
   Total context window size in tokens.
 
     - Minimum: `0`
+
 </ResponseField>
 <ResponseField name="used" type={"uint64"} required>
   Tokens currently in context.
 
     - Minimum: `0`
+
 </ResponseField>
 
 ## <span class="font-mono">UserMessage</span>
@@ -9163,6 +9650,7 @@ Malformed extension metadata remains lenient by design because `_meta`
 is advisory, not authoritative message state.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="content" type={<><span><a href="#contentblock">ContentBlock[]</a></span><span> | null</span></>} >
   Complete replacement content for this message.
@@ -9186,6 +9674,7 @@ metadata to their interactions. Implementations MUST NOT make assumptions about 
 these keys.
 
 See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/draft/extensibility)
+
 </ResponseField>
 <ResponseField name="name" type={"string"} required>
   The display name of the folder.
@@ -9194,5 +9683,5 @@ See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/v2/d
   The URI of the folder.
 
     - Format: `uri`
-</ResponseField>
 
+</ResponseField>

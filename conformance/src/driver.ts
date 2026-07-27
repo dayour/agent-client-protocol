@@ -1,11 +1,11 @@
-import fs from 'node:fs/promises';
-import path from 'node:path';
-import readline from 'node:readline';
-import { spawn } from 'node:child_process';
+import fs from "node:fs/promises";
+import path from "node:path";
+import readline from "node:readline";
+import { spawn } from "node:child_process";
 
-import fg from 'fast-glob';
+import fg from "fast-glob";
 
-import { SchemaRegistry } from './schema.js';
+import { SchemaRegistry } from "./schema.js";
 import type {
   JsonRpcErrorBody,
   JsonRpcErrorResponse,
@@ -18,14 +18,18 @@ import type {
   TargetSpec,
   TranscriptEntry,
   TransportKind,
-} from './types.js';
-import { isoNow, packageRoot, resolveMaybeRelative, sleep } from './utils.js';
+} from "./types.js";
+import { isoNow, packageRoot, resolveMaybeRelative, sleep } from "./utils.js";
 
-import { createReferenceInProcessTransport } from './reference-agent.js';
+import { createReferenceInProcessTransport } from "./reference-agent.js";
 
 interface Transport {
   readonly kind: TransportKind;
-  start(onStdout: (line: string) => void, onStderr: (line: string) => void, onFatal: (error: Error) => void): Promise<void>;
+  start(
+    onStdout: (line: string) => void,
+    onStderr: (line: string) => void,
+    onFatal: (error: Error) => void,
+  ): Promise<void>;
   sendLine(line: string): Promise<void>;
   close(): Promise<void>;
 }
@@ -45,7 +49,9 @@ interface EventWaiter {
 }
 
 interface ResponseWaiter {
-  predicate: (message: JsonRpcSuccessResponse | JsonRpcErrorResponse) => boolean;
+  predicate: (
+    message: JsonRpcSuccessResponse | JsonRpcErrorResponse,
+  ) => boolean;
   resolve: (message: JsonRpcSuccessResponse | JsonRpcErrorResponse) => void;
   reject: (error: Error) => void;
 }
@@ -59,10 +65,16 @@ const CASE_SETTLE_MS = 150;
 export class HarnessConnection {
   private readonly schema = new SchemaRegistry();
   private readonly transcript: TranscriptEntry[] = [];
-  private readonly pendingResponses = new Map<string | number, PendingResponse>();
-  private readonly queuedEvents: Array<JsonRpcRequest | JsonRpcNotification> = [];
+  private readonly pendingResponses = new Map<
+    string | number,
+    PendingResponse
+  >();
+  private readonly queuedEvents: Array<JsonRpcRequest | JsonRpcNotification> =
+    [];
   private readonly waiters: EventWaiter[] = [];
-  private readonly queuedUnmatchedResponses: Array<JsonRpcSuccessResponse | JsonRpcErrorResponse> = [];
+  private readonly queuedUnmatchedResponses: Array<
+    JsonRpcSuccessResponse | JsonRpcErrorResponse
+  > = [];
   private readonly responseWaiters: ResponseWaiter[] = [];
   private nextId = 1;
   private closed = false;
@@ -81,7 +93,11 @@ export class HarnessConnection {
     await this.transport.start(
       (line) => this.handleStdout(line),
       (line) => {
-        this.transcript.push({ timestamp: isoNow(), direction: 'stderr', raw: line });
+        this.transcript.push({
+          timestamp: isoNow(),
+          direction: "stderr",
+          raw: line,
+        });
       },
       (error) => {
         this.failAll(error);
@@ -103,9 +119,15 @@ export class HarnessConnection {
     this.throwIfFatal();
   }
 
-  request(method: string, params: unknown, options: { raw?: boolean } = {}): Promise<JsonRpcSuccessResponse | JsonRpcErrorResponse> {
+  request(
+    method: string,
+    params: unknown,
+    options: { raw?: boolean } = {},
+  ): Promise<JsonRpcSuccessResponse | JsonRpcErrorResponse> {
     this.throwIfFatal();
-    const response = this.requestWithId(method, params, options).then((pending) => pending.response);
+    const response = this.requestWithId(method, params, options).then(
+      (pending) => pending.response,
+    );
     void response.catch(() => {});
     return response;
   }
@@ -114,26 +136,46 @@ export class HarnessConnection {
     method: string,
     params: unknown,
     options: { raw?: boolean } = {},
-  ): Promise<{ id: string | number; response: Promise<JsonRpcSuccessResponse | JsonRpcErrorResponse> }> {
+  ): Promise<{
+    id: string | number;
+    response: Promise<JsonRpcSuccessResponse | JsonRpcErrorResponse>;
+  }> {
     this.throwIfFatal();
     const id = this.nextId++;
     const message: JsonRpcRequest = {
-      jsonrpc: '2.0',
+      jsonrpc: "2.0",
       id,
       method,
       params: params as never,
     };
     const raw = JSON.stringify(message);
     if (!options.raw) {
-      this.schema.validateOutbound(this.version, 'client', message, raw);
+      this.schema.validateOutbound(this.version, "client", message, raw);
     }
-    this.transcript.push({ timestamp: isoNow(), direction: 'client->agent', raw, parsed: message });
-    const responsePromise = new Promise<JsonRpcSuccessResponse | JsonRpcErrorResponse>((resolve, reject) => {
+    this.transcript.push({
+      timestamp: isoNow(),
+      direction: "client->agent",
+      raw,
+      parsed: message,
+    });
+    const responsePromise = new Promise<
+      JsonRpcSuccessResponse | JsonRpcErrorResponse
+    >((resolve, reject) => {
       const timeout = setTimeout(() => {
         this.pendingResponses.delete(id);
-        reject(new Error(`No response within ${this.requestTimeoutMs}ms for ${method} request id ${String(id)}`));
+        reject(
+          new Error(
+            `No response within ${this.requestTimeoutMs}ms for ${method} request id ${String(id)}`,
+          ),
+        );
       }, this.requestTimeoutMs);
-      this.pendingResponses.set(id, { method, requestId: id, timeout, resolve, reject });
+      this.pendingResponses.set(id, {
+        method,
+        requestId: id,
+        timeout,
+        resolve,
+        reject,
+      });
     });
     void responsePromise.catch(() => {});
     try {
@@ -150,67 +192,113 @@ export class HarnessConnection {
     return { id, response: responsePromise };
   }
 
-  async notify(method: string, params: unknown, options: { raw?: boolean } = {}): Promise<void> {
+  async notify(
+    method: string,
+    params: unknown,
+    options: { raw?: boolean } = {},
+  ): Promise<void> {
     this.throwIfFatal();
     const message: JsonRpcNotification = {
-      jsonrpc: '2.0',
+      jsonrpc: "2.0",
       method,
       params: params as never,
     };
     const raw = JSON.stringify(message);
     if (!options.raw) {
-      this.schema.validateOutbound(this.version, 'client', message, raw);
+      this.schema.validateOutbound(this.version, "client", message, raw);
     }
-    this.transcript.push({ timestamp: isoNow(), direction: 'client->agent', raw, parsed: message });
+    this.transcript.push({
+      timestamp: isoNow(),
+      direction: "client->agent",
+      raw,
+      parsed: message,
+    });
     await this.transport.sendLine(raw);
   }
 
   async sendRawLine(line: string): Promise<void> {
     this.throwIfFatal();
-    this.transcript.push({ timestamp: isoNow(), direction: 'client->agent', raw: line });
+    this.transcript.push({
+      timestamp: isoNow(),
+      direction: "client->agent",
+      raw: line,
+    });
     await this.transport.sendLine(line);
   }
 
-  async respondSuccess(id: string | number | null, method: string, result: unknown): Promise<void> {
+  async respondSuccess(
+    id: string | number | null,
+    method: string,
+    result: unknown,
+  ): Promise<void> {
     this.throwIfFatal();
     const message: JsonRpcSuccessResponse = {
-      jsonrpc: '2.0',
+      jsonrpc: "2.0",
       id,
       result: result as never,
     };
     const raw = JSON.stringify(message);
-    this.schema.validateOutbound(this.version, 'client', message, raw, method);
-    this.transcript.push({ timestamp: isoNow(), direction: 'client->agent', raw, parsed: message });
+    this.schema.validateOutbound(this.version, "client", message, raw, method);
+    this.transcript.push({
+      timestamp: isoNow(),
+      direction: "client->agent",
+      raw,
+      parsed: message,
+    });
     await this.transport.sendLine(raw);
   }
 
-  async respondError(id: string | number | null, error: JsonRpcErrorBody): Promise<void> {
+  async respondError(
+    id: string | number | null,
+    error: JsonRpcErrorBody,
+  ): Promise<void> {
     this.throwIfFatal();
     const message: JsonRpcErrorResponse = {
-      jsonrpc: '2.0',
+      jsonrpc: "2.0",
       id,
       error,
     };
     const raw = JSON.stringify(message);
     this.schema.genericErrorResponse(this.version, message, raw);
-    this.transcript.push({ timestamp: isoNow(), direction: 'client->agent', raw, parsed: message });
+    this.transcript.push({
+      timestamp: isoNow(),
+      direction: "client->agent",
+      raw,
+      parsed: message,
+    });
     await this.transport.sendLine(raw);
   }
 
-  async expectRequest(method: string, options: ExpectOptions = {}): Promise<JsonRpcRequest> {
-    return this.expectEvent((message) => 'id' in message && message.method === method, options) as Promise<JsonRpcRequest>;
+  async expectRequest(
+    method: string,
+    options: ExpectOptions = {},
+  ): Promise<JsonRpcRequest> {
+    return this.expectEvent(
+      (message) => "id" in message && message.method === method,
+      options,
+    ) as Promise<JsonRpcRequest>;
   }
 
-  async expectNotification(method: string, options: ExpectOptions = {}): Promise<JsonRpcNotification> {
-    return this.expectEvent((message) => !('id' in message) && message.method === method, options) as Promise<JsonRpcNotification>;
+  async expectNotification(
+    method: string,
+    options: ExpectOptions = {},
+  ): Promise<JsonRpcNotification> {
+    return this.expectEvent(
+      (message) => !("id" in message) && message.method === method,
+      options,
+    ) as Promise<JsonRpcNotification>;
   }
 
-  async expectAnyEvent(options: ExpectOptions = {}): Promise<JsonRpcRequest | JsonRpcNotification> {
+  async expectAnyEvent(
+    options: ExpectOptions = {},
+  ): Promise<JsonRpcRequest | JsonRpcNotification> {
     return this.expectEvent(() => true, options);
   }
 
   async expectUnmatchedResponse(
-    predicate: (message: JsonRpcSuccessResponse | JsonRpcErrorResponse) => boolean = () => true,
+    predicate: (
+      message: JsonRpcSuccessResponse | JsonRpcErrorResponse,
+    ) => boolean = () => true,
     options: ExpectOptions = {},
   ): Promise<JsonRpcSuccessResponse | JsonRpcErrorResponse> {
     this.throwIfFatal();
@@ -218,28 +306,34 @@ export class HarnessConnection {
     if (existingIndex >= 0) {
       return this.queuedUnmatchedResponses.splice(existingIndex, 1)[0];
     }
-    const pending = new Promise<JsonRpcSuccessResponse | JsonRpcErrorResponse>((resolve, reject) => {
-      const waiter: ResponseWaiter = { predicate, resolve, reject };
-      this.responseWaiters.push(waiter);
-      const timeoutMs = options.timeoutMs ?? 8_000;
-      const timer = setTimeout(() => {
-        const index = this.responseWaiters.indexOf(waiter);
-        if (index >= 0) {
-          this.responseWaiters.splice(index, 1);
-        }
-        reject(new Error(`Timed out waiting for unmatched response after ${timeoutMs}ms`));
-      }, timeoutMs);
-      const originalResolve = waiter.resolve;
-      waiter.resolve = (message) => {
-        clearTimeout(timer);
-        originalResolve(message);
-      };
-      const originalReject = waiter.reject;
-      waiter.reject = (error) => {
-        clearTimeout(timer);
-        originalReject(error);
-      };
-    });
+    const pending = new Promise<JsonRpcSuccessResponse | JsonRpcErrorResponse>(
+      (resolve, reject) => {
+        const waiter: ResponseWaiter = { predicate, resolve, reject };
+        this.responseWaiters.push(waiter);
+        const timeoutMs = options.timeoutMs ?? 8_000;
+        const timer = setTimeout(() => {
+          const index = this.responseWaiters.indexOf(waiter);
+          if (index >= 0) {
+            this.responseWaiters.splice(index, 1);
+          }
+          reject(
+            new Error(
+              `Timed out waiting for unmatched response after ${timeoutMs}ms`,
+            ),
+          );
+        }, timeoutMs);
+        const originalResolve = waiter.resolve;
+        waiter.resolve = (message) => {
+          clearTimeout(timer);
+          originalResolve(message);
+        };
+        const originalReject = waiter.reject;
+        waiter.reject = (error) => {
+          clearTimeout(timer);
+          originalReject(error);
+        };
+      },
+    );
     void pending.catch(() => {});
     return pending;
   }
@@ -253,28 +347,34 @@ export class HarnessConnection {
     if (existingIndex >= 0) {
       return this.queuedEvents.splice(existingIndex, 1)[0];
     }
-    const pending = new Promise<JsonRpcRequest | JsonRpcNotification>((resolve, reject) => {
-      const waiter: EventWaiter = { predicate, resolve, reject };
-      this.waiters.push(waiter);
-      const timeoutMs = options.timeoutMs ?? 8_000;
-      const timer = setTimeout(() => {
-        const index = this.waiters.indexOf(waiter);
-        if (index >= 0) {
-          this.waiters.splice(index, 1);
-        }
-        reject(new Error(`Timed out waiting for transport event after ${timeoutMs}ms`));
-      }, timeoutMs);
-      const originalResolve = waiter.resolve;
-      waiter.resolve = (message) => {
-        clearTimeout(timer);
-        originalResolve(message);
-      };
-      const originalReject = waiter.reject;
-      waiter.reject = (error) => {
-        clearTimeout(timer);
-        originalReject(error);
-      };
-    });
+    const pending = new Promise<JsonRpcRequest | JsonRpcNotification>(
+      (resolve, reject) => {
+        const waiter: EventWaiter = { predicate, resolve, reject };
+        this.waiters.push(waiter);
+        const timeoutMs = options.timeoutMs ?? 8_000;
+        const timer = setTimeout(() => {
+          const index = this.waiters.indexOf(waiter);
+          if (index >= 0) {
+            this.waiters.splice(index, 1);
+          }
+          reject(
+            new Error(
+              `Timed out waiting for transport event after ${timeoutMs}ms`,
+            ),
+          );
+        }, timeoutMs);
+        const originalResolve = waiter.resolve;
+        waiter.resolve = (message) => {
+          clearTimeout(timer);
+          originalResolve(message);
+        };
+        const originalReject = waiter.reject;
+        waiter.reject = (error) => {
+          clearTimeout(timer);
+          originalReject(error);
+        };
+      },
+    );
     void pending.catch(() => {});
     return pending;
   }
@@ -286,20 +386,28 @@ export class HarnessConnection {
     this.closed = true;
     for (const [, pending] of this.pendingResponses) {
       clearTimeout(pending.timeout);
-      pending.reject(new Error('Connection closed before response arrived'));
+      pending.reject(new Error("Connection closed before response arrived"));
     }
     this.pendingResponses.clear();
     for (const waiter of this.waiters.splice(0)) {
-      waiter.reject(new Error('Connection closed before expected event arrived'));
+      waiter.reject(
+        new Error("Connection closed before expected event arrived"),
+      );
     }
     for (const waiter of this.responseWaiters.splice(0)) {
-      waiter.reject(new Error('Connection closed before expected response arrived'));
+      waiter.reject(
+        new Error("Connection closed before expected response arrived"),
+      );
     }
     await this.transport.close();
   }
 
   private handleStdout(line: string): void {
-    this.transcript.push({ timestamp: isoNow(), direction: 'agent->client', raw: line });
+    this.transcript.push({
+      timestamp: isoNow(),
+      direction: "agent->client",
+      raw: line,
+    });
     let parsed: JsonRpcMessage;
     try {
       parsed = JSON.parse(line) as JsonRpcMessage;
@@ -309,14 +417,16 @@ export class HarnessConnection {
     }
     this.transcript[this.transcript.length - 1].parsed = parsed;
 
-    if ('method' in parsed) {
+    if ("method" in parsed) {
       try {
-        this.schema.validateInbound(this.version, 'agent', parsed, line);
+        this.schema.validateInbound(this.version, "agent", parsed, line);
       } catch (error) {
         this.failAll(error as Error);
         return;
       }
-      const waiterIndex = this.waiters.findIndex((waiter) => waiter.predicate(parsed));
+      const waiterIndex = this.waiters.findIndex((waiter) =>
+        waiter.predicate(parsed),
+      );
       if (waiterIndex >= 0) {
         const [waiter] = this.waiters.splice(waiterIndex, 1);
         waiter.resolve(parsed);
@@ -326,20 +436,30 @@ export class HarnessConnection {
       return;
     }
 
-    const id = parsed.id ?? 'null';
+    const id = parsed.id ?? "null";
     const pending = this.pendingResponses.get(id as string | number);
     if (!pending) {
-      const waiterIndex = this.responseWaiters.findIndex((waiter) => waiter.predicate(parsed));
+      const waiterIndex = this.responseWaiters.findIndex((waiter) =>
+        waiter.predicate(parsed),
+      );
       if (waiterIndex >= 0) {
         const [waiter] = this.responseWaiters.splice(waiterIndex, 1);
         waiter.resolve(parsed as JsonRpcSuccessResponse | JsonRpcErrorResponse);
       } else {
-        this.queuedUnmatchedResponses.push(parsed as JsonRpcSuccessResponse | JsonRpcErrorResponse);
+        this.queuedUnmatchedResponses.push(
+          parsed as JsonRpcSuccessResponse | JsonRpcErrorResponse,
+        );
       }
       return;
     }
     try {
-      this.schema.validateInbound(this.version, 'agent', parsed, line, pending.method);
+      this.schema.validateInbound(
+        this.version,
+        "agent",
+        parsed,
+        line,
+        pending.method,
+      );
     } catch (error) {
       this.pendingResponses.delete(id as string | number);
       clearTimeout(pending.timeout);
@@ -374,15 +494,19 @@ export class HarnessConnection {
 }
 
 class StdioTransport implements Transport {
-  readonly kind: TransportKind = 'stdio';
+  readonly kind: TransportKind = "stdio";
 
   private child?: ReturnType<typeof spawn>;
 
   constructor(private readonly target: TargetSpec) {}
 
-  async start(onStdout: (line: string) => void, onStderr: (line: string) => void, onFatal: (error: Error) => void): Promise<void> {
+  async start(
+    onStdout: (line: string) => void,
+    onStderr: (line: string) => void,
+    onFatal: (error: Error) => void,
+  ): Promise<void> {
     if (!this.target.command) {
-      throw new Error('Missing command for stdio transport');
+      throw new Error("Missing command for stdio transport");
     }
     const child = spawn(this.target.command, this.target.args ?? [], {
       cwd: this.target.cwd,
@@ -390,31 +514,37 @@ class StdioTransport implements Transport {
         ...process.env,
         ...this.target.env,
       },
-      stdio: ['pipe', 'pipe', 'pipe'],
+      stdio: ["pipe", "pipe", "pipe"],
       shell: false,
     });
     this.child = child;
 
     const stdoutRl = readline.createInterface({ input: child.stdout! });
-    stdoutRl.on('line', onStdout);
+    stdoutRl.on("line", onStdout);
     const stderrRl = readline.createInterface({ input: child.stderr! });
-    stderrRl.on('line', onStderr);
+    stderrRl.on("line", onStderr);
 
-    child.on('error', (error) => {
+    child.on("error", (error) => {
       onFatal(new Error(`target process error: ${error.message}`));
     });
 
-    child.on('exit', (code, signal) => {
-      onStderr(`target exited with code=${String(code)} signal=${String(signal)}`);
+    child.on("exit", (code, signal) => {
+      onStderr(
+        `target exited with code=${String(code)} signal=${String(signal)}`,
+      );
       if (code !== 0 && code !== null) {
-        onFatal(new Error(`target exited with code=${String(code)} signal=${String(signal)}`));
+        onFatal(
+          new Error(
+            `target exited with code=${String(code)} signal=${String(signal)}`,
+          ),
+        );
       }
     });
   }
 
   async sendLine(line: string): Promise<void> {
     if (!this.child?.stdin) {
-      throw new Error('stdio transport is not started');
+      throw new Error("stdio transport is not started");
     }
     await new Promise<void>((resolve, reject) => {
       this.child!.stdin!.write(`${line}\n`, (error) => {
@@ -439,22 +569,32 @@ class StdioTransport implements Transport {
 }
 
 class InProcessTransport implements Transport {
-  readonly kind: TransportKind = 'in-process';
-  private endpoint?: Awaited<ReturnType<typeof createReferenceInProcessTransport>>;
+  readonly kind: TransportKind = "in-process";
+  private endpoint?: Awaited<
+    ReturnType<typeof createReferenceInProcessTransport>
+  >;
   private stdoutHandler?: (line: string) => void;
   private stderrHandler?: (line: string) => void;
 
   constructor(private readonly target: TargetSpec) {}
 
-  async start(onStdout: (line: string) => void, onStderr: (line: string) => void, _onFatal: (error: Error) => void): Promise<void> {
+  async start(
+    onStdout: (line: string) => void,
+    onStderr: (line: string) => void,
+    _onFatal: (error: Error) => void,
+  ): Promise<void> {
     this.stdoutHandler = onStdout;
     this.stderrHandler = onStderr;
-    this.endpoint = await createReferenceInProcessTransport(this.target.faults ?? [], onStdout, onStderr);
+    this.endpoint = await createReferenceInProcessTransport(
+      this.target.faults ?? [],
+      onStdout,
+      onStderr,
+    );
   }
 
   async sendLine(line: string): Promise<void> {
     if (!this.endpoint) {
-      throw new Error('in-process transport is not started');
+      throw new Error("in-process transport is not started");
     }
     await this.endpoint.receive(line);
   }
@@ -467,17 +607,27 @@ class InProcessTransport implements Transport {
 export async function prepareTarget(target: TargetSpec): Promise<TargetSpec> {
   const prepared: TargetSpec = {
     ...target,
-    cwd: target.cwd ? resolveMaybeRelative(packageRoot, target.cwd) : packageRoot,
+    cwd: target.cwd
+      ? resolveMaybeRelative(packageRoot, target.cwd)
+      : packageRoot,
   };
   if (!prepared.build) {
     return prepared;
   }
 
-  const buildCwd = prepared.build.cwd ? resolveMaybeRelative(packageRoot, prepared.build.cwd) : prepared.cwd!;
+  const buildCwd = prepared.build.cwd
+    ? resolveMaybeRelative(packageRoot, prepared.build.cwd)
+    : prepared.cwd!;
   const output = resolveMaybeRelative(buildCwd, prepared.build.output);
-  const sourceFiles = await fg(prepared.build.sources, { cwd: buildCwd, absolute: true, onlyFiles: true });
+  const sourceFiles = await fg(prepared.build.sources, {
+    cwd: buildCwd,
+    absolute: true,
+    onlyFiles: true,
+  });
   if (sourceFiles.length === 0) {
-    throw new Error(`Build staleness check found no source files for ${prepared.name}`);
+    throw new Error(
+      `Build staleness check found no source files for ${prepared.name}`,
+    );
   }
 
   const isStale = await artifactIsStale(output, sourceFiles);
@@ -495,37 +645,56 @@ export async function prepareTarget(target: TargetSpec): Promise<TargetSpec> {
   return prepared;
 }
 
-async function artifactIsStale(output: string, sources: string[]): Promise<boolean> {
+async function artifactIsStale(
+  output: string,
+  sources: string[],
+): Promise<boolean> {
   let outputStat;
   try {
     outputStat = await fs.stat(output);
   } catch {
     return true;
   }
-  const sourceStats = await Promise.all(sources.map((source) => fs.stat(source)));
+  const sourceStats = await Promise.all(
+    sources.map((source) => fs.stat(source)),
+  );
   return sourceStats.some((stat) => stat.mtimeMs > outputStat.mtimeMs);
 }
 
-async function runShellCommand(command: string, cwd: string, env: Record<string, string>): Promise<void> {
+async function runShellCommand(
+  command: string,
+  cwd: string,
+  env: Record<string, string>,
+): Promise<void> {
   await new Promise<void>((resolve, reject) => {
     const child = spawn(command, {
       cwd,
       env: { ...process.env, ...env },
-      stdio: 'inherit',
+      stdio: "inherit",
       shell: true,
     });
-    child.on('exit', (code) => {
+    child.on("exit", (code) => {
       if (code === 0) {
         resolve();
       } else {
-        reject(new Error(`Build command failed with exit code ${String(code)}: ${command}`));
+        reject(
+          new Error(
+            `Build command failed with exit code ${String(code)}: ${command}`,
+          ),
+        );
       }
     });
   });
 }
 
-export async function openConnection(target: TargetSpec, version: ProtocolVersion): Promise<HarnessConnection> {
-  const transport: Transport = target.driver === 'stdio' ? new StdioTransport(target) : new InProcessTransport(target);
+export async function openConnection(
+  target: TargetSpec,
+  version: ProtocolVersion,
+): Promise<HarnessConnection> {
+  const transport: Transport =
+    target.driver === "stdio"
+      ? new StdioTransport(target)
+      : new InProcessTransport(target);
   const connection = new HarnessConnection(target, version, transport);
   await connection.start();
   return connection;

@@ -1,26 +1,27 @@
 export type ProtocolVersion = 1 | 2;
-export type SenderRole = 'client' | 'agent';
-export type TransportKind = 'stdio' | 'in-process';
-export type CaseStatus = 'passed' | 'failed' | 'skipped';
+export type SenderRole = "client" | "agent";
+export type TransportKind = "stdio" | "in-process";
+export type CaseStatus = "passed" | "failed" | "skipped";
 
 export type JsonPrimitive = null | boolean | number | string;
-export type JsonValue = JsonPrimitive | JsonValue[] | { [key: string]: JsonValue };
+export type JsonValue =
+  JsonPrimitive | JsonValue[] | { [key: string]: JsonValue };
 
 export interface JsonRpcRequest {
-  jsonrpc: '2.0';
+  jsonrpc: "2.0";
   id: string | number;
   method: string;
   params?: JsonValue;
 }
 
 export interface JsonRpcNotification {
-  jsonrpc: '2.0';
+  jsonrpc: "2.0";
   method: string;
   params?: JsonValue;
 }
 
 export interface JsonRpcSuccessResponse {
-  jsonrpc: '2.0';
+  jsonrpc: "2.0";
   id: string | number | null;
   result: JsonValue;
 }
@@ -32,7 +33,7 @@ export interface JsonRpcErrorBody {
 }
 
 export interface JsonRpcErrorResponse {
-  jsonrpc: '2.0';
+  jsonrpc: "2.0";
   id: string | number | null;
   error: JsonRpcErrorBody;
 }
@@ -45,14 +46,14 @@ export type JsonRpcMessage =
 
 export interface TranscriptEntry {
   timestamp: string;
-  direction: 'client->agent' | 'agent->client' | 'stderr';
+  direction: "client->agent" | "agent->client" | "stderr";
   raw: string;
   parsed?: unknown;
 }
 
 export interface ValidationFailure {
   method: string;
-  direction: 'client-to-agent' | 'agent-to-client';
+  direction: "client-to-agent" | "agent-to-client";
   path: string;
   expected: string;
   actual: string;
@@ -106,7 +107,7 @@ export interface TargetSpec {
   cwd?: string;
   env?: Record<string, string>;
   build?: BuildSpec;
-  referenceMode?: 'good' | 'bad';
+  referenceMode?: "good" | "bad";
   faults?: string[];
   requestTimeoutMs?: number;
 }
@@ -132,5 +133,8 @@ export interface ConformanceCase {
   versions: ProtocolVersion[];
   driverSupport?: TransportKind[];
   requiresScenario?: boolean;
-  run(ctx: import('./driver.js').HarnessConnection, meta: ConformanceCaseContext): Promise<void>;
+  run(
+    ctx: import("./driver.js").HarnessConnection,
+    meta: ConformanceCaseContext,
+  ): Promise<void>;
 }

@@ -1,17 +1,25 @@
-import fs from 'node:fs/promises';
-import path from 'node:path';
+import fs from "node:fs/promises";
+import path from "node:path";
 
-import { conformanceCases } from './cases.js';
-import { openConnection, prepareTarget } from './driver.js';
-import type { CaseResult, RunSummary, TargetSpec, TransportKind } from './types.js';
-import { isoNow, packageRoot } from './utils.js';
+import { conformanceCases } from "./cases.js";
+import { openConnection, prepareTarget } from "./driver.js";
+import type {
+  CaseResult,
+  RunSummary,
+  TargetSpec,
+  TransportKind,
+} from "./types.js";
+import { isoNow, packageRoot } from "./utils.js";
 
 export interface RunOptions {
   reportPath?: string;
   expectedFail?: boolean;
 }
 
-export async function runSuite(target: TargetSpec, options: RunOptions = {}): Promise<RunSummary> {
+export async function runSuite(
+  target: TargetSpec,
+  options: RunOptions = {},
+): Promise<RunSummary> {
   const startedAt = isoNow();
   const results: CaseResult[] = [];
   let preparedTarget: TargetSpec | undefined;
@@ -28,22 +36,33 @@ export async function runSuite(target: TargetSpec, options: RunOptions = {}): Pr
     console.log(`ACP Conformance Suite`);
     console.log(`Target: ${preparedTarget.name}`);
     console.log(`Driver: ${preparedTarget.driver}`);
-    console.log(`Requested versions: ${preparedTarget.requestedVersions.join(', ')}`);
-    console.log('');
+    console.log(
+      `Requested versions: ${preparedTarget.requestedVersions.join(", ")}`,
+    );
+    console.log("");
 
     for (const version of preparedTarget.requestedVersions) {
       console.log(`[v${version}] Starting cases`);
-      for (const testCase of conformanceCases.filter((candidate) => candidate.versions.includes(version))) {
-        if (testCase.driverSupport && !testCase.driverSupport.includes(preparedTarget.driver)) {
+      for (const testCase of conformanceCases.filter((candidate) =>
+        candidate.versions.includes(version),
+      )) {
+        if (
+          testCase.driverSupport &&
+          !testCase.driverSupport.includes(preparedTarget.driver)
+        ) {
           results.push({
             id: testCase.id,
             title: testCase.title,
             protocolVersion: version,
-            status: 'skipped',
+            status: "skipped",
             durationMs: 0,
-            notes: [`driver ${preparedTarget.driver} is not supported by this case`],
+            notes: [
+              `driver ${preparedTarget.driver} is not supported by this case`,
+            ],
           });
-          console.log(`SKIP [v${version}] ${testCase.id} - driver ${preparedTarget.driver} not supported`);
+          console.log(
+            `SKIP [v${version}] ${testCase.id} - driver ${preparedTarget.driver} not supported`,
+          );
           continue;
         }
 
@@ -59,7 +78,7 @@ export async function runSuite(target: TargetSpec, options: RunOptions = {}): Pr
             id: testCase.id,
             title: testCase.title,
             protocolVersion: version,
-            status: 'passed',
+            status: "passed",
             durationMs,
             notes: [],
           });
@@ -71,7 +90,7 @@ export async function runSuite(target: TargetSpec, options: RunOptions = {}): Pr
             id: testCase.id,
             title: testCase.title,
             protocolVersion: version,
-            status: 'failed',
+            status: "failed",
             durationMs,
             notes: [],
             failure: {
@@ -85,13 +104,13 @@ export async function runSuite(target: TargetSpec, options: RunOptions = {}): Pr
           await connection?.close();
         }
       }
-      console.log('');
+      console.log("");
     }
   } catch (error) {
     aborted = true;
     const failure = error as Error;
     runFailure = failure.message;
-    console.log('FATAL');
+    console.log("FATAL");
     console.log(`  ${runFailure}`);
   }
 
@@ -103,16 +122,18 @@ export async function runSuite(target: TargetSpec, options: RunOptions = {}): Pr
     actualVersions,
     startedAt,
     finishedAt,
-    passed: results.filter((result) => result.status === 'passed').length,
-    failed: results.filter((result) => result.status === 'failed').length,
-    skipped: results.filter((result) => result.status === 'skipped').length,
+    passed: results.filter((result) => result.status === "passed").length,
+    failed: results.filter((result) => result.status === "failed").length,
+    skipped: results.filter((result) => result.status === "skipped").length,
     aborted,
     runFailure,
     cases: results,
   };
 
   if (options.reportPath) {
-    const resolvedReportPath = path.isAbsolute(options.reportPath) ? options.reportPath : path.resolve(packageRoot, options.reportPath);
+    const resolvedReportPath = path.isAbsolute(options.reportPath)
+      ? options.reportPath
+      : path.resolve(packageRoot, options.reportPath);
     try {
       await fs.mkdir(path.dirname(resolvedReportPath), { recursive: true });
       await fs.writeFile(resolvedReportPath, JSON.stringify(summary, null, 2));
@@ -120,7 +141,9 @@ export async function runSuite(target: TargetSpec, options: RunOptions = {}): Pr
     } catch (error) {
       const failure = error as Error;
       summary.aborted = true;
-      summary.runFailure = summary.runFailure ?? `Failed to write report ${resolvedReportPath}: ${failure.message}`;
+      summary.runFailure =
+        summary.runFailure ??
+        `Failed to write report ${resolvedReportPath}: ${failure.message}`;
     }
   }
   printSummary(summary);
@@ -132,11 +155,11 @@ export async function runSuite(target: TargetSpec, options: RunOptions = {}): Pr
 }
 
 function printSummary(summary: RunSummary): void {
-  console.log('Summary');
+  console.log("Summary");
   console.log(`  Passed: ${summary.passed}`);
   console.log(`  Failed: ${summary.failed}`);
   console.log(`  Skipped: ${summary.skipped}`);
-  console.log(`  Aborted: ${summary.aborted ? 'yes' : 'no'}`);
+  console.log(`  Aborted: ${summary.aborted ? "yes" : "no"}`);
   console.log(`  Started: ${summary.startedAt}`);
   console.log(`  Finished: ${summary.finishedAt}`);
   if (summary.runFailure) {

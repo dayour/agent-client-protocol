@@ -1,13 +1,13 @@
-import { runSuite } from './runner.js';
-import type { BuildSpec, ProtocolVersion, TargetSpec } from './types.js';
-import { packageRoot } from './utils.js';
-import { builtinProfile } from './profiles.js';
+import { runSuite } from "./runner.js";
+import type { BuildSpec, ProtocolVersion, TargetSpec } from "./types.js";
+import { packageRoot } from "./utils.js";
+import { builtinProfile } from "./profiles.js";
 
 interface ParsedArgs {
   targetCommand?: string;
   args: string[];
   profile?: string;
-  driver?: 'stdio' | 'in-process';
+  driver?: "stdio" | "in-process";
   versions: ProtocolVersion[];
   reportPath?: string;
   expectedFail: boolean;
@@ -17,13 +17,14 @@ interface ParsedArgs {
   faults: string[];
 }
 
-process.on('unhandledRejection', (reason) => {
-  const message = reason instanceof Error ? reason.stack ?? reason.message : String(reason);
+process.on("unhandledRejection", (reason) => {
+  const message =
+    reason instanceof Error ? (reason.stack ?? reason.message) : String(reason);
   console.error(`FATAL: unhandledRejection: ${message}`);
   process.exit(1);
 });
 
-process.on('uncaughtException', (error) => {
+process.on("uncaughtException", (error) => {
   console.error(`FATAL: uncaughtException: ${error.stack ?? error.message}`);
   process.exit(1);
 });
@@ -34,8 +35,10 @@ async function main(): Promise<void> {
   try {
     const parsed = parseArgs(process.argv.slice(2));
 
-    if (parsed.subcommand !== 'run') {
-      throw new Error('Usage: tsx src/cli.ts run [--profile reference-stdio|reference-bad-stdio|reference-in-process] [--report path] [--expected-fail] [--fault fault-name]');
+    if (parsed.subcommand !== "run") {
+      throw new Error(
+        "Usage: tsx src/cli.ts run [--profile reference-stdio|reference-bad-stdio|reference-in-process] [--report path] [--expected-fail] [--fault fault-name]",
+      );
     }
 
     const target = buildTarget(parsed);
@@ -66,7 +69,7 @@ async function main(): Promise<void> {
 
 function parseArgs(argv: string[]): ParsedArgs & { subcommand: string } {
   if (argv.length === 0) {
-    throw new Error('Missing command');
+    throw new Error("Missing command");
   }
   const subcommand = argv[0];
   const result: ParsedArgs & { subcommand: string } = {
@@ -81,55 +84,55 @@ function parseArgs(argv: string[]): ParsedArgs & { subcommand: string } {
   for (let index = 1; index < argv.length; index += 1) {
     const token = argv[index];
     switch (token) {
-      case '--profile':
+      case "--profile":
         result.profile = argv[++index];
         break;
-      case '--driver':
-        result.driver = argv[++index] as 'stdio' | 'in-process';
+      case "--driver":
+        result.driver = argv[++index] as "stdio" | "in-process";
         break;
-      case '--target-command':
+      case "--target-command":
         result.targetCommand = argv[++index];
         break;
-      case '--arg':
+      case "--arg":
         result.args.push(argv[++index]);
         break;
-      case '--report':
+      case "--report":
         result.reportPath = argv[++index];
         break;
-      case '--expected-fail':
+      case "--expected-fail":
         result.expectedFail = true;
         break;
-      case '--cwd':
+      case "--cwd":
         result.cwd = argv[++index];
         break;
-      case '--version':
+      case "--version":
         result.versions = [Number(argv[++index]) as ProtocolVersion];
         break;
-      case '--env': {
-        const [name, ...valueParts] = argv[++index].split('=');
-        result.env[name] = valueParts.join('=');
+      case "--env": {
+        const [name, ...valueParts] = argv[++index].split("=");
+        result.env[name] = valueParts.join("=");
         break;
       }
-      case '--fault':
+      case "--fault":
         result.faults.push(argv[++index]);
         break;
-      case '--build-command': {
-        result.build = result.build ?? { output: '', sources: [] };
+      case "--build-command": {
+        result.build = result.build ?? { output: "", sources: [] };
         result.build.command = argv[++index];
         break;
       }
-      case '--build-output': {
-        result.build = result.build ?? { output: '', sources: [] };
+      case "--build-output": {
+        result.build = result.build ?? { output: "", sources: [] };
         result.build.output = argv[++index];
         break;
       }
-      case '--build-source': {
-        result.build = result.build ?? { output: '', sources: [] };
+      case "--build-source": {
+        result.build = result.build ?? { output: "", sources: [] };
         result.build.sources.push(argv[++index]);
         break;
       }
-      case '--build-cwd': {
-        result.build = result.build ?? { output: '', sources: [] };
+      case "--build-cwd": {
+        result.build = result.build ?? { output: "", sources: [] };
         result.build.cwd = argv[++index];
         break;
       }
@@ -145,11 +148,11 @@ function buildTarget(parsed: ParsedArgs): TargetSpec {
   if (parsed.profile) {
     return builtinProfile(parsed.profile, parsed.faults);
   }
-  if (!parsed.driver || (parsed.driver === 'stdio' && !parsed.targetCommand)) {
-    throw new Error('External targets require --driver and --target-command');
+  if (!parsed.driver || (parsed.driver === "stdio" && !parsed.targetCommand)) {
+    throw new Error("External targets require --driver and --target-command");
   }
   return {
-    name: 'external-target',
+    name: "external-target",
     driver: parsed.driver,
     requestedVersions: parsed.versions,
     command: parsed.targetCommand,
