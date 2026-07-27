@@ -65,6 +65,60 @@ class GenerateRegistryDocsTests(unittest.TestCase):
         self.assertNotIn("<use", sanitized)
         self.assertNotIn("https://evil.example", sanitized)
 
+    def test_sanitize_svg_preserves_legitimate_primitives_and_internal_refs(self) -> None:
+        svg = """
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" overflow="visible">
+          <title>Legit Icon</title>
+          <defs>
+            <linearGradient id="grad" gradientUnits="userSpaceOnUse">
+              <stop offset="0" stop-color="currentColor" stop-opacity="0.2" />
+              <stop offset="1" stop-color="currentColor" />
+            </linearGradient>
+            <radialGradient id="rad">
+              <stop offset="0.5" stop-color="currentColor" />
+            </radialGradient>
+            <clipPath id="clip">
+              <rect x="1" y="1" width="14" height="14" rx="2" />
+            </clipPath>
+            <mask id="mask" maskUnits="userSpaceOnUse" mask-content-units="userSpaceOnUse">
+              <circle cx="8" cy="8" r="6" fill="white" />
+            </mask>
+            <path id="shape" d="M2 2H14V14H2Z" />
+          </defs>
+          <g transform="translate(0 0)" clip-path="url(#clip)" mask="url(#mask)" opacity="0.9">
+            <use href="#shape" fill="url(#grad)" />
+            <polygon points="8,2 14,14 2,14" fill="url(#rad)" fill-rule="evenodd" clip-rule="evenodd" />
+            <rect x="2" y="2" width="12" height="12" rx="2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+            <text x="8" y="10.5" text-anchor="middle" font-size="8" font-family="Georgia, serif" font-style="italic" font-weight="700" letter-spacing="-0.2" fill="currentColor">Δ</text>
+          </g>
+        </svg>
+        """
+
+        sanitized = registry_docs._sanitize_svg(svg)
+
+        self.assertIn("<title>Legit Icon</title>", sanitized)
+        self.assertIn("<defs>", sanitized)
+        self.assertIn("<linearGradient", sanitized)
+        self.assertIn("<radialGradient", sanitized)
+        self.assertIn("<clipPath", sanitized)
+        self.assertIn("<mask", sanitized)
+        self.assertIn('<use href="#shape"', sanitized)
+        self.assertIn('mask="url(#mask)"', sanitized)
+        self.assertIn('clipPath="url(#clip)"', sanitized)
+        self.assertIn("fillRule=", sanitized)
+        self.assertIn("clipRule=", sanitized)
+        self.assertIn("strokeWidth=", sanitized)
+        self.assertIn("strokeLinecap=", sanitized)
+        self.assertIn("strokeLinejoin=", sanitized)
+        self.assertIn("gradientUnits=", sanitized)
+        self.assertIn("textAnchor=", sanitized)
+        self.assertIn("fontSize=", sanitized)
+        self.assertIn("fontFamily=", sanitized)
+        self.assertIn("fontStyle=", sanitized)
+        self.assertIn("fontWeight=", sanitized)
+        self.assertIn("letterSpacing=", sanitized)
+        self.assertIn(">Δ</text>", sanitized)
+
     def test_validate_registry_rejects_javascript_urls(self) -> None:
         payload = {
             "agents": [

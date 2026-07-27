@@ -44,15 +44,19 @@ MAX_DESCRIPTION_LENGTH = 2_000
 MAX_VERSION_LENGTH = 64
 MAX_URL_LENGTH = 2_048
 MAX_SVG_BYTES = 100_000
-MAX_SVG_ATTR_LENGTH = 1_024
+MAX_SVG_ATTR_LENGTH = MAX_SVG_BYTES
 CONTROL_CHAR_RE = re.compile(r"[\x00-\x1F\x7F]")
 SAFE_AGENT_ID_RE = re.compile(r"^[a-z0-9](?:[a-z0-9-]{0,127})$")
 SAFE_SVG_ID_RE = re.compile(r"^[-A-Za-z_][-A-Za-z0-9_.:]*$")
 INTERNAL_SVG_URL_RE = re.compile(r"^url\(#[-A-Za-z_][-A-Za-z0-9_.:]*\)$")
+INTERNAL_SVG_HREF_RE = re.compile(r"^#[-A-Za-z_][-A-Za-z0-9_.:]*$")
 
 # Allow only inert vector primitives and defs commonly needed by small icons.
 # This intentionally excludes elements that can execute script, embed HTML, or
-# fetch external resources, such as script, style, foreignObject, image, and use.
+# fetch external resources, such as script, style, foreignObject, iframe,
+# object, embed, and image. Internal fragment reuse via <use href="#..."> is
+# allowed because it stays within the same sanitized document and cannot fetch
+# remote content.
 SVG_ALLOWED_ELEMENTS = {
     "svg",
     "g",
@@ -65,9 +69,13 @@ SVG_ALLOWED_ELEMENTS = {
     "rect",
     "defs",
     "clipPath",
+    "mask",
     "linearGradient",
     "radialGradient",
     "stop",
+    "use",
+    "text",
+    "title",
 }
 
 SVG_ATTR_REPLACEMENTS = {
@@ -88,6 +96,14 @@ SVG_ATTR_REPLACEMENTS = {
     "gradient-units": "gradientUnits",
     "gradient-transform": "gradientTransform",
     "preserve-aspect-ratio": "preserveAspectRatio",
+    "mask-units": "maskUnits",
+    "mask-content-units": "maskContentUnits",
+    "text-anchor": "textAnchor",
+    "font-size": "fontSize",
+    "font-family": "fontFamily",
+    "font-style": "fontStyle",
+    "font-weight": "fontWeight",
+    "letter-spacing": "letterSpacing",
 }
 
 SVG_ALLOWED_ATTRIBUTES = {
@@ -130,17 +146,29 @@ SVG_ALLOWED_ATTRIBUTES = {
     "gradientUnits",
     "gradientTransform",
     "preserveAspectRatio",
+    "mask",
+    "maskUnits",
+    "maskContentUnits",
+    "href",
+    "textAnchor",
+    "fontSize",
+    "fontFamily",
+    "fontStyle",
+    "fontWeight",
+    "letterSpacing",
+    "overflow",
+    "version",
 }
 
 SVG_DROP_ATTRIBUTES = {
     "class",
     "className",
     "style",
-    "href",
-    "xlink:href",
-    "xlinkHref",
     "xmlns:xlink",
 }
+
+SVG_INTERNAL_HREF_ELEMENTS = {"use", "linearGradient", "radialGradient"}
+SVG_TEXT_CONTENT_ELEMENTS = {"text", "title"}
 
 
 class RegistryDocsError(Exception):
@@ -337,23 +365,39 @@ def _is_safe_svg_attribute_value(attribute_name: str, value: str) -> bool:
     return True
 
 
+def _is_safe_internal_svg_href(value: str) -> bool:
+    return bool(INTERNAL_SVG_HREF_RE.fullmatch(value.strip()))
+
+
 def _sanitize_svg_element(element: ET.Element, *, is_root: bool = False) -> ET.Element | None:
     tag_name = _local_name(element.tag)
     if tag_name not in SVG_ALLOWED_ELEMENTS:
         return None
 
     sanitized = ET.Element(tag_name)
+    saw_safe_internal_href = False
 
     for raw_name, raw_value in element.attrib.items():
         local_name = _local_name(raw_name)
         if local_name.startswith("on") or local_name in SVG_DROP_ATTRIBUTES:
             continue
         normalized_name = _normalize_svg_attribute_name(local_name)
+        if normalized_name == "href":
+            if (
+                tag_name in SVG_INTERNAL_HREF_ELEMENTS
+                and _is_safe_internal_svg_href(raw_value)
+            ):
+                sanitized.set("href", raw_value.strip())
+                saw_safe_internal_href = True
+            continue
         if normalized_name not in SVG_ALLOWED_ATTRIBUTES:
             continue
         if not _is_safe_svg_attribute_value(normalized_name, raw_value):
             continue
         sanitized.set(normalized_name, raw_value)
+
+    if tag_name == "use" and not saw_safe_internal_href:
+        return None
 
     if is_root:
         sanitized.attrib.pop("width", None)
@@ -364,6 +408,16 @@ def _sanitize_svg_element(element: ET.Element, *, is_root: bool = False) -> ET.E
         sanitized.set("aria-hidden", "true")
         sanitized.set("focusable", "false")
         sanitized.set("xmlns", SVG_NAMESPACE)
+
+    if element.text:
+        if tag_name in SVG_TEXT_CONTENT_ELEMENTS:
+            if CONTROL_CHAR_RE.search(element.text):
+                raise RegistryDocsError(f"icon SVG <{tag_name}> text contains control characters")
+            sanitized.text = element.text
+        elif element.text.strip():
+            raise RegistryDocsError(
+                f"icon SVG element <{tag_name}> contains unsupported text content"
+            )
 
     for child in element:
         sanitized_child = _sanitize_svg_element(child)
@@ -496,15 +550,16 @@ def _render_agent_cards(agents: list[dict[str, str]], icons: dict[str, str]) -> 
             lines.append("    }")
         lines.append("  >")
         if description:
-            lines.append(f"    <p>{description}</p>")
+            lines.append(f"    {description}")
+            lines.append("")
         if repository:
             lines.append(
-                "    "
-                f'<p><strong>{version_text}</strong>, '
-                f'<a href="{_escape_html(repository)}"><Icon icon="github" /></a></p>'
+                f'    **{version_text}**, '
+                f'<a href="{_escape_html(repository)}"><Icon icon="github" /></a>'
             )
         else:
-            lines.append(f"    <p><strong>{version_text}</strong></p>")
+            lines.append(f"    **{version_text}**")
+        lines.append("")
         lines.append("  </Card>")
 
     lines.append("</CardGroup>")
