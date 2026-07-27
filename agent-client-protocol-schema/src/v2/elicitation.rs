@@ -15,7 +15,7 @@ use super::{
     ToolCallId,
 };
 use crate::IntoOption;
-use crate::SkipListener;
+use crate::serde_util::SkipListener;
 
 /// Unique identifier for an elicitation.
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, PartialEq, Eq, Hash, Display, From)]
@@ -1275,16 +1275,12 @@ pub struct ElicitationCapabilities {
     ///
     /// Optional. Omitted and `null` are equivalent and mean form support is not advertised.
     /// Supplying `{}` explicitly advertises form support.
-    #[serde_as(deserialize_as = "DefaultOnError")]
-    #[schemars(extend("x-deserialize-default-on-error" = true))]
     #[serde(default)]
     pub form: Option<ElicitationFormCapabilities>,
     /// Whether the client supports URL-based elicitation.
     ///
     /// Optional. Omitted or `null` both mean the client does not advertise support.
     /// Supplying `{}` means the client supports URL-based elicitation.
-    #[serde_as(deserialize_as = "DefaultOnError")]
-    #[schemars(extend("x-deserialize-default-on-error" = true))]
     #[serde(default)]
     pub url: Option<ElicitationUrlCapabilities>,
     /// The _meta property is reserved by ACP to allow clients and agents to attach additional

@@ -8,11 +8,87 @@ use std::{collections::BTreeMap, sync::Arc};
 
 use derive_more::{Display, From};
 use schemars::{JsonSchema, Schema};
-use serde::{Deserialize, Serialize};
-use serde_with::{DefaultOnError, VecSkipError, serde_as, skip_serializing_none};
+use serde::{Deserialize, Deserializer, Serialize};
+use serde_with::{DefaultOnError, Same, VecSkipError, serde_as, skip_serializing_none};
 
 use super::{AbsolutePath, ContentBlock, MediaType, Meta, Terminal};
-use crate::{IntoMaybeUndefined, IntoOption, MaybeUndefined, SkipListener};
+use crate::serde_util::SkipListener;
+use crate::{IntoMaybeUndefined, IntoOption, MaybeUndefined};
+
+#[cfg(feature = "unstable_tool_call_name")]
+fn deserialize_tool_call_name<'de, D>(deserializer: D) -> Result<MaybeUndefined<String>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    crate::serde_util::strict_field(deserializer, "name")
+}
+
+fn deserialize_tool_call_title<'de, D>(deserializer: D) -> Result<MaybeUndefined<String>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    crate::serde_util::strict_field(deserializer, "title")
+}
+
+fn deserialize_tool_call_kind<'de, D>(deserializer: D) -> Result<MaybeUndefined<ToolKind>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    crate::serde_util::strict_field(deserializer, "kind")
+}
+
+fn deserialize_tool_call_status<'de, D>(
+    deserializer: D,
+) -> Result<MaybeUndefined<ToolCallStatus>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    crate::serde_util::strict_field(deserializer, "status")
+}
+
+fn deserialize_tool_call_content<'de, D>(
+    deserializer: D,
+) -> Result<MaybeUndefined<Vec<ToolCallContent>>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    crate::serde_util::strict_field_as::<
+        D,
+        MaybeUndefined<Vec<ToolCallContent>>,
+        MaybeUndefined<VecSkipError<Same, SkipListener>>,
+    >(deserializer, "content")
+}
+
+fn deserialize_tool_call_locations<'de, D>(
+    deserializer: D,
+) -> Result<MaybeUndefined<Vec<ToolCallLocation>>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    crate::serde_util::strict_field_as::<
+        D,
+        MaybeUndefined<Vec<ToolCallLocation>>,
+        MaybeUndefined<VecSkipError<Same, SkipListener>>,
+    >(deserializer, "locations")
+}
+
+fn deserialize_tool_call_raw_input<'de, D>(
+    deserializer: D,
+) -> Result<MaybeUndefined<serde_json::Value>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    crate::serde_util::strict_field(deserializer, "rawInput")
+}
+
+fn deserialize_tool_call_raw_output<'de, D>(
+    deserializer: D,
+) -> Result<MaybeUndefined<serde_json::Value>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    crate::serde_util::strict_field(deserializer, "rawOutput")
+}
 
 /// Represents an upsert for a tool call that the language model has requested.
 ///
@@ -46,50 +122,71 @@ pub struct ToolCallUpdate {
     /// call ID the client has not seen before, omission or `null` means that no
     /// tool name is available.
     #[cfg(feature = "unstable_tool_call_name")]
-    #[serde_as(deserialize_as = "DefaultOnError")]
-    #[schemars(extend("x-deserialize-default-on-error" = true))]
-    #[serde(default, skip_serializing_if = "MaybeUndefined::is_undefined")]
+    #[serde(
+        default,
+        deserialize_with = "deserialize_tool_call_name",
+        skip_serializing_if = "MaybeUndefined::is_undefined"
+    )]
     pub name: MaybeUndefined<String>,
     /// Human-readable title describing what the tool is doing.
-    #[serde_as(deserialize_as = "DefaultOnError")]
-    #[schemars(extend("x-deserialize-default-on-error" = true))]
-    #[serde(default, skip_serializing_if = "MaybeUndefined::is_undefined")]
+    #[serde(
+        default,
+        deserialize_with = "deserialize_tool_call_title",
+        skip_serializing_if = "MaybeUndefined::is_undefined"
+    )]
     pub title: MaybeUndefined<String>,
     /// The category of tool being invoked.
     /// Helps clients choose appropriate icons and UI treatment.
-    #[serde_as(deserialize_as = "DefaultOnError")]
-    #[schemars(extend("x-deserialize-default-on-error" = true))]
-    #[serde(default, skip_serializing_if = "MaybeUndefined::is_undefined")]
+    #[serde(
+        default,
+        deserialize_with = "deserialize_tool_call_kind",
+        skip_serializing_if = "MaybeUndefined::is_undefined"
+    )]
     pub kind: MaybeUndefined<ToolKind>,
     /// Current execution status of the tool call.
-    #[serde_as(deserialize_as = "DefaultOnError")]
-    #[schemars(extend("x-deserialize-default-on-error" = true))]
-    #[serde(default, skip_serializing_if = "MaybeUndefined::is_undefined")]
+    #[serde(
+        default,
+        deserialize_with = "deserialize_tool_call_status",
+        skip_serializing_if = "MaybeUndefined::is_undefined"
+    )]
     pub status: MaybeUndefined<ToolCallStatus>,
     /// Content produced by the tool call.
-    #[serde_as(deserialize_as = "DefaultOnError<MaybeUndefined<VecSkipError<_, SkipListener>>>")]
-    #[schemars(extend("x-deserialize-default-on-error" = true, "x-deserialize-skip-invalid-items" = true))]
-    #[serde(default, skip_serializing_if = "MaybeUndefined::is_undefined")]
+    /// Malformed present values are rejected so they cannot be mistaken for an omitted patch.
+    #[schemars(extend("x-deserialize-skip-invalid-items" = true))]
+    #[serde(
+        default,
+        deserialize_with = "deserialize_tool_call_content",
+        skip_serializing_if = "MaybeUndefined::is_undefined"
+    )]
     pub content: MaybeUndefined<Vec<ToolCallContent>>,
     /// File locations affected by this tool call.
     /// Enables "follow-along" features in clients.
-    #[serde_as(deserialize_as = "DefaultOnError<MaybeUndefined<VecSkipError<_, SkipListener>>>")]
-    #[schemars(extend("x-deserialize-default-on-error" = true, "x-deserialize-skip-invalid-items" = true))]
-    #[serde(default, skip_serializing_if = "MaybeUndefined::is_undefined")]
+    #[schemars(extend("x-deserialize-skip-invalid-items" = true))]
+    #[serde(
+        default,
+        deserialize_with = "deserialize_tool_call_locations",
+        skip_serializing_if = "MaybeUndefined::is_undefined"
+    )]
     pub locations: MaybeUndefined<Vec<ToolCallLocation>>,
     /// Raw input parameters sent to the tool.
-    #[serde_as(deserialize_as = "DefaultOnError")]
-    #[schemars(extend("x-deserialize-default-on-error" = true))]
-    #[serde(default, skip_serializing_if = "MaybeUndefined::is_undefined")]
+    #[serde(
+        default,
+        deserialize_with = "deserialize_tool_call_raw_input",
+        skip_serializing_if = "MaybeUndefined::is_undefined"
+    )]
     pub raw_input: MaybeUndefined<serde_json::Value>,
     /// Raw output returned by the tool.
-    #[serde_as(deserialize_as = "DefaultOnError")]
-    #[schemars(extend("x-deserialize-default-on-error" = true))]
-    #[serde(default, skip_serializing_if = "MaybeUndefined::is_undefined")]
+    #[serde(
+        default,
+        deserialize_with = "deserialize_tool_call_raw_output",
+        skip_serializing_if = "MaybeUndefined::is_undefined"
+    )]
     pub raw_output: MaybeUndefined<serde_json::Value>,
     /// The _meta property is reserved by ACP to allow clients and agents to attach additional
     /// metadata to their interactions. Omitted means no metadata update; `null` is an
     /// explicit clear signal. Implementations MUST NOT make assumptions about values at these keys.
+    /// Malformed extension metadata remains lenient by design because `_meta`
+    /// is advisory and does not define the canonical tool-call state.
     ///
     /// See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/extensibility)
     #[serde_as(deserialize_as = "DefaultOnError<MaybeUndefined<_>>")]
@@ -309,6 +406,10 @@ impl IntoOption<ToolCallId> for &str {
 /// Tool kinds help clients choose appropriate icons and optimize how they
 /// display tool execution progress.
 ///
+/// v2 keeps this enum losslessly decode-open. Unknown values are preserved so
+/// draft peers can forward or display future tool kinds without corrupting the
+/// wire payload.
+///
 /// See protocol docs: [Creating](https://agentclientprotocol.com/protocol/tool-calls#creating)
 #[derive(Debug, Clone, Default, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
@@ -347,6 +448,9 @@ pub enum ToolKind {
 /// Execution status of a tool call.
 ///
 /// Tool calls progress through different statuses during their lifecycle.
+///
+/// v2 keeps this enum losslessly decode-open so future lifecycle states can be
+/// preserved instead of forcing older peers to reject or rewrite them.
 ///
 /// See protocol docs: [Status](https://agentclientprotocol.com/protocol/tool-calls#status)
 #[derive(Clone, Debug, Default, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
@@ -1142,6 +1246,54 @@ mod tests {
             panic!("locations should deserialize to a value");
         };
         assert_eq!(locations.len(), 1);
+    }
+
+    #[test]
+    fn tool_call_update_rejects_malformed_present_patch_fields() {
+        for payload in [
+            serde_json::json!({"toolCallId": "tc_1", "title": false}),
+            serde_json::json!({"toolCallId": "tc_1", "kind": false}),
+            serde_json::json!({"toolCallId": "tc_1", "status": false}),
+            serde_json::json!({"toolCallId": "tc_1", "content": false}),
+            serde_json::json!({"toolCallId": "tc_1", "locations": "oops"}),
+        ] {
+            let err = serde_json::from_value::<ToolCallUpdate>(payload).unwrap_err();
+            assert!(
+                ["title", "kind", "status", "content", "locations"]
+                    .iter()
+                    .any(|field| err.to_string().contains(field)),
+                "{err}"
+            );
+        }
+
+        let lenient_meta = serde_json::from_value::<ToolCallUpdate>(serde_json::json!({
+            "toolCallId": "tc_1",
+            "_meta": false
+        }))
+        .unwrap();
+        assert_eq!(lenient_meta.meta, MaybeUndefined::Undefined);
+    }
+
+    #[test]
+    fn tool_call_update_preserves_forward_compatibility_for_unknown_fields_and_enums() {
+        let update: ToolCallUpdate = serde_json::from_value(serde_json::json!({
+            "toolCallId": "tc_1",
+            "kind": "review",
+            "status": "deferred",
+            "futureField": {
+                "reserved": true
+            }
+        }))
+        .unwrap();
+
+        assert_eq!(
+            update.kind,
+            MaybeUndefined::Value(ToolKind::Unknown("review".to_string()))
+        );
+        assert_eq!(
+            update.status,
+            MaybeUndefined::Value(ToolCallStatus::Other("deferred".to_string()))
+        );
     }
 
     #[test]

@@ -7,8 +7,8 @@ use std::{collections::BTreeMap, sync::Arc};
 
 use derive_more::{Display, From};
 use schemars::{JsonSchema, Schema};
-use serde::{Deserialize, Serialize};
-use serde_with::{DefaultOnError, VecSkipError, serde_as, skip_serializing_none};
+use serde::{Deserialize, Deserializer, Serialize};
+use serde_with::{DefaultOnError, Same, VecSkipError, serde_as, skip_serializing_none};
 
 #[cfg(feature = "unstable_plan_operations")]
 use super::PlanRemoved;
@@ -23,7 +23,39 @@ use super::{
     CompleteElicitationNotification, CreateElicitationRequest, CreateElicitationResponse,
     ElicitationCapabilities,
 };
-use crate::{IntoMaybeUndefined, IntoOption, MaybeUndefined, SkipListener};
+use crate::serde_util::SkipListener;
+use crate::{IntoMaybeUndefined, IntoOption, MaybeUndefined};
+
+fn deserialize_session_info_title<'de, D>(
+    deserializer: D,
+) -> Result<MaybeUndefined<String>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    crate::serde_util::strict_field(deserializer, "title")
+}
+
+fn deserialize_session_info_updated_at<'de, D>(
+    deserializer: D,
+) -> Result<MaybeUndefined<String>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    crate::serde_util::strict_field(deserializer, "updatedAt")
+}
+
+fn deserialize_message_content<'de, D>(
+    deserializer: D,
+) -> Result<MaybeUndefined<Vec<ContentBlock>>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    crate::serde_util::strict_field_as::<
+        D,
+        MaybeUndefined<Vec<ContentBlock>>,
+        MaybeUndefined<VecSkipError<Same, SkipListener>>,
+    >(deserializer, "content")
+}
 
 #[cfg(feature = "unstable_mcp_over_acp")]
 use super::mcp::{
@@ -338,18 +370,25 @@ impl ConfigOptionUpdate {
 #[non_exhaustive]
 pub struct SessionInfoUpdate {
     /// Human-readable title for the session. Set to null to clear.
-    #[serde_as(deserialize_as = "DefaultOnError")]
-    #[schemars(extend("x-deserialize-default-on-error" = true))]
-    #[serde(default, skip_serializing_if = "MaybeUndefined::is_undefined")]
+    #[serde(
+        default,
+        deserialize_with = "deserialize_session_info_title",
+        skip_serializing_if = "MaybeUndefined::is_undefined"
+    )]
     pub title: MaybeUndefined<String>,
     /// RFC 3339 timestamp of last activity. Set to null to clear.
-    #[serde_as(deserialize_as = "DefaultOnError")]
-    #[schemars(extend("x-deserialize-default-on-error" = true, "format" = "date-time"))]
-    #[serde(default, skip_serializing_if = "MaybeUndefined::is_undefined")]
+    #[schemars(extend("format" = "date-time"))]
+    #[serde(
+        default,
+        deserialize_with = "deserialize_session_info_updated_at",
+        skip_serializing_if = "MaybeUndefined::is_undefined"
+    )]
     pub updated_at: MaybeUndefined<String>,
     /// The _meta property is reserved by ACP to allow clients and agents to attach additional
     /// metadata to their interactions. Omitted means no metadata update; `null` is an
     /// explicit clear signal. Implementations MUST NOT make assumptions about values at these keys.
+    /// Malformed extension metadata remains lenient by design because `_meta`
+    /// is advisory, not authoritative session state.
     ///
     /// See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/extensibility)
     #[serde_as(deserialize_as = "DefaultOnError<MaybeUndefined<_>>")]
@@ -818,13 +857,19 @@ pub struct UserMessage {
     /// A unique identifier for the message.
     pub message_id: MessageId,
     /// Complete replacement content for this message.
-    #[serde_as(deserialize_as = "DefaultOnError<MaybeUndefined<VecSkipError<_, SkipListener>>>")]
-    #[schemars(extend("x-deserialize-default-on-error" = true, "x-deserialize-skip-invalid-items" = true))]
-    #[serde(default, skip_serializing_if = "MaybeUndefined::is_undefined")]
+    /// Malformed present values are rejected so they cannot be mistaken for an omitted patch.
+    #[schemars(extend("x-deserialize-skip-invalid-items" = true))]
+    #[serde(
+        default,
+        deserialize_with = "deserialize_message_content",
+        skip_serializing_if = "MaybeUndefined::is_undefined"
+    )]
     pub content: MaybeUndefined<Vec<ContentBlock>>,
     /// The _meta property is reserved by ACP to allow clients and agents to attach additional
     /// metadata to their interactions. Implementations MUST NOT make assumptions about values at
     /// these keys. Omitted means no metadata update; `null` is an explicit clear signal.
+    /// Malformed extension metadata remains lenient by design because `_meta`
+    /// is advisory, not authoritative message state.
     ///
     /// See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/extensibility)
     #[serde_as(deserialize_as = "DefaultOnError<MaybeUndefined<_>>")]
@@ -889,13 +934,19 @@ pub struct AgentMessage {
     /// A unique identifier for the message.
     pub message_id: MessageId,
     /// Complete replacement content for this message.
-    #[serde_as(deserialize_as = "DefaultOnError<MaybeUndefined<VecSkipError<_, SkipListener>>>")]
-    #[schemars(extend("x-deserialize-default-on-error" = true, "x-deserialize-skip-invalid-items" = true))]
-    #[serde(default, skip_serializing_if = "MaybeUndefined::is_undefined")]
+    /// Malformed present values are rejected so they cannot be mistaken for an omitted patch.
+    #[schemars(extend("x-deserialize-skip-invalid-items" = true))]
+    #[serde(
+        default,
+        deserialize_with = "deserialize_message_content",
+        skip_serializing_if = "MaybeUndefined::is_undefined"
+    )]
     pub content: MaybeUndefined<Vec<ContentBlock>>,
     /// The _meta property is reserved by ACP to allow clients and agents to attach additional
     /// metadata to their interactions. Implementations MUST NOT make assumptions about values at
     /// these keys. Omitted means no metadata update; `null` is an explicit clear signal.
+    /// Malformed extension metadata remains lenient by design because `_meta`
+    /// is advisory, not authoritative message state.
     ///
     /// See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/extensibility)
     #[serde_as(deserialize_as = "DefaultOnError<MaybeUndefined<_>>")]
@@ -960,13 +1011,19 @@ pub struct AgentThought {
     /// A unique identifier for the thought message.
     pub message_id: MessageId,
     /// Complete replacement content for this thought message.
-    #[serde_as(deserialize_as = "DefaultOnError<MaybeUndefined<VecSkipError<_, SkipListener>>>")]
-    #[schemars(extend("x-deserialize-default-on-error" = true, "x-deserialize-skip-invalid-items" = true))]
-    #[serde(default, skip_serializing_if = "MaybeUndefined::is_undefined")]
+    /// Malformed present values are rejected so they cannot be mistaken for an omitted patch.
+    #[schemars(extend("x-deserialize-skip-invalid-items" = true))]
+    #[serde(
+        default,
+        deserialize_with = "deserialize_message_content",
+        skip_serializing_if = "MaybeUndefined::is_undefined"
+    )]
     pub content: MaybeUndefined<Vec<ContentBlock>>,
     /// The _meta property is reserved by ACP to allow clients and agents to attach additional
     /// metadata to their interactions. Implementations MUST NOT make assumptions about values at
     /// these keys. Omitted means no metadata update; `null` is an explicit clear signal.
+    /// Malformed extension metadata remains lenient by design because `_meta`
+    /// is advisory, not authoritative message state.
     ///
     /// See protocol docs: [Extensibility](https://agentclientprotocol.com/protocol/extensibility)
     #[serde_as(deserialize_as = "DefaultOnError<MaybeUndefined<_>>")]
@@ -1854,8 +1911,6 @@ pub struct ClientCapabilities {
     /// Optional. Omitted or `null` both mean the client does not advertise any
     /// authentication-method extensions.
     #[cfg(feature = "unstable_auth_methods")]
-    #[serde_as(deserialize_as = "DefaultOnError")]
-    #[schemars(extend("x-deserialize-default-on-error" = true))]
     #[serde(default)]
     pub auth: Option<AuthCapabilities>,
     /// Elicitation capabilities supported by the client.
@@ -1863,8 +1918,6 @@ pub struct ClientCapabilities {
     ///
     /// Optional. Omitted or `null` both mean the client does not advertise
     /// elicitation support.
-    #[serde_as(deserialize_as = "DefaultOnError")]
-    #[schemars(extend("x-deserialize-default-on-error" = true))]
     #[serde(default)]
     pub elicitation: Option<ElicitationCapabilities>,
     /// **UNSTABLE**
@@ -1876,8 +1929,6 @@ pub struct ClientCapabilities {
     /// Optional. Omitted or `null` both mean the client does not advertise any
     /// NES suggestion-kind extensions.
     #[cfg(feature = "unstable_nes")]
-    #[serde_as(deserialize_as = "DefaultOnError")]
-    #[schemars(extend("x-deserialize-default-on-error" = true))]
     #[serde(default)]
     pub nes: Option<ClientNesCapabilities>,
     /// **UNSTABLE**
@@ -1886,8 +1937,8 @@ pub struct ClientCapabilities {
     ///
     /// The position encodings supported by the client, in order of preference.
     #[cfg(feature = "unstable_nes")]
-    #[serde_as(deserialize_as = "DefaultOnError<VecSkipError<_, SkipListener>>")]
-    #[schemars(extend("x-deserialize-default-on-error" = true, "x-deserialize-skip-invalid-items" = true))]
+    #[serde_as(deserialize_as = "VecSkipError<_, SkipListener>")]
+    #[schemars(extend("x-deserialize-skip-invalid-items" = true))]
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub position_encodings: Vec<PositionEncodingKind>,
 
@@ -1984,8 +2035,6 @@ pub struct AuthCapabilities {
     ///
     /// Optional. Omitted or `null` both mean the client does not advertise support.
     /// Supplying `{}` means the agent may include `terminal` entries in its authentication methods.
-    #[serde_as(deserialize_as = "DefaultOnError")]
-    #[schemars(extend("x-deserialize-default-on-error" = true))]
     #[serde(default)]
     pub terminal: Option<TerminalAuthCapabilities>,
     /// The _meta property is reserved by ACP to allow clients and agents to attach additional
@@ -2302,9 +2351,10 @@ mod tests {
             serde_json::from_value(json!({ "elicitation": null })).unwrap();
         assert!(null.elicitation.is_none());
 
-        let malformed: ClientCapabilities =
-            serde_json::from_value(json!({ "elicitation": false })).unwrap();
-        assert!(malformed.elicitation.is_none());
+        drop(
+            serde_json::from_value::<ClientCapabilities>(json!({ "elicitation": false }))
+                .unwrap_err(),
+        );
 
         let empty: ClientCapabilities =
             serde_json::from_value(json!({ "elicitation": {} })).unwrap();
@@ -2398,15 +2448,15 @@ mod tests {
 
     #[cfg(feature = "unstable_auth_methods")]
     #[test]
-    fn test_client_capabilities_auth_defaults_on_malformed_value() {
+    fn test_client_capabilities_auth_rejects_malformed_value() {
         use serde_json::json;
 
-        let capabilities: ClientCapabilities = serde_json::from_value(json!({
-            "auth": false
-        }))
-        .unwrap();
-
-        assert_eq!(capabilities.auth, None);
+        drop(
+            serde_json::from_value::<ClientCapabilities>(json!({
+                "auth": false
+            }))
+            .unwrap_err(),
+        );
     }
 
     #[test]
@@ -2462,6 +2512,25 @@ mod tests {
             serde_json::to_value(SessionInfoUpdate::new()).unwrap(),
             json!({})
         );
+    }
+
+    #[test]
+    fn session_info_update_rejects_malformed_present_state_fields() {
+        use serde_json::json;
+
+        let mut meta = Meta::new();
+        meta.insert("source".to_string(), json!("session-info"));
+
+        let err = serde_json::from_value::<SessionInfoUpdate>(json!({"title": false})).unwrap_err();
+        assert!(err.to_string().contains("title"), "{err}");
+
+        let err =
+            serde_json::from_value::<SessionInfoUpdate>(json!({"updatedAt": false})).unwrap_err();
+        assert!(err.to_string().contains("updatedAt"), "{err}");
+
+        let lenient_meta =
+            serde_json::from_value::<SessionInfoUpdate>(json!({"_meta": false})).unwrap();
+        assert_eq!(lenient_meta.meta, MaybeUndefined::Undefined);
 
         assert_eq!(
             serde_json::to_value(SessionInfoUpdate::new().meta(None::<Meta>)).unwrap(),
@@ -2657,13 +2726,6 @@ mod tests {
         .unwrap();
         assert_eq!(patch.content, MaybeUndefined::Undefined);
         assert_eq!(patch.meta, MaybeUndefined::Undefined);
-
-        let malformed_meta = serde_json::from_value::<AgentMessage>(json!({
-            "messageId": "msg_agent_c42b9",
-            "_meta": false
-        }))
-        .unwrap();
-        assert_eq!(malformed_meta.meta, MaybeUndefined::Undefined);
 
         let patch = serde_json::from_value::<AgentThought>(json!({
             "messageId": "msg_thought_a12"
@@ -2930,6 +2992,48 @@ mod tests {
                 }
             })
         );
+    }
+
+    #[test]
+    fn message_upserts_reject_malformed_present_content_but_keep_forward_compatibility() {
+        use serde_json::json;
+
+        for (label, payload) in [
+            (
+                "user content",
+                json!({"messageId": "msg_user_1", "content": false}),
+            ),
+            (
+                "agent content",
+                json!({"messageId": "msg_agent_1", "content": {"type": "text"}}),
+            ),
+            (
+                "thought content",
+                json!({"messageId": "msg_thought_1", "content": "oops"}),
+            ),
+        ] {
+            let err = match label {
+                "user content" => serde_json::from_value::<UserMessage>(payload).unwrap_err(),
+                "agent content" => serde_json::from_value::<AgentMessage>(payload).unwrap_err(),
+                _ => serde_json::from_value::<AgentThought>(payload).unwrap_err(),
+            };
+            assert!(err.to_string().contains("content"), "{label}: {err}");
+        }
+
+        let forward_compatible: UserMessage = serde_json::from_value(json!({
+            "messageId": "msg_user_fc",
+            "content": [
+                { "type": "text", "text": "hello" }
+            ],
+            "futureField": {
+                "reserved": true
+            }
+        }))
+        .unwrap();
+        assert!(matches!(
+            forward_compatible.content,
+            MaybeUndefined::Value(ref content) if content.len() == 1
+        ));
     }
 
     #[cfg(feature = "unstable_plan_operations")]
@@ -3405,11 +3509,12 @@ mod tests {
             })
         );
 
-        let deserialized: AuthCapabilities = serde_json::from_value(json!({
-            "terminal": false
-        }))
-        .unwrap();
-        assert!(deserialized.terminal.is_none());
+        drop(
+            serde_json::from_value::<AuthCapabilities>(json!({
+                "terminal": false
+            }))
+            .unwrap_err(),
+        );
     }
 
     #[test]
