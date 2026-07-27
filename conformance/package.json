@@ -1,0 +1,22 @@
+{
+  "name": "@darbotlm/acp-conformance",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Executable ACP conformance suite with schema-backed validation and reference targets",
+  "scripts": {
+    "test": "tsx src/cli.ts run --profile reference-stdio --report .artifacts/reference-report.json",
+    "test:negative": "tsx src/cli.ts run --profile reference-bad-stdio --expected-fail --report .artifacts/reference-bad-report.json",
+    "test:in-process": "tsx src/cli.ts run --profile reference-in-process --report .artifacts/reference-in-process-report.json"
+  },
+  "dependencies": {
+    "ajv": "8.17.1",
+    "ajv-formats": "3.0.1",
+    "fast-glob": "3.3.3"
+  },
+  "devDependencies": {
+    "@types/node": "24.6.0",
+    "tsx": "4.20.6",
+    "typescript": "5.9.3"
+  }
+}
