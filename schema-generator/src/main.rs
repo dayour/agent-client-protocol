@@ -20,11 +20,119 @@ use schemars::{
 };
 use serde::{Deserialize, Serialize};
 use std::{
-    env, fs,
+    env,
+    error::Error,
+    fs, io,
     path::{Path, PathBuf},
 };
 
 use markdown_generator::MarkdownGenerator;
+
+type AppResult<T> = std::result::Result<T, Box<dyn Error + Send + Sync>>;
+
+fn contextual_error(message: impl Into<String>) -> Box<dyn Error + Send + Sync> {
+    Box::new(io::Error::other(message.into()))
+}
+
+#[derive(Clone, Copy)]
+enum TextArtifactKind {
+    Json,
+    Markdown,
+}
+
+fn normalized_text(contents: &str) -> String {
+    contents
+        .replace("\r\n", "\n")
+        .trim_end_matches(['\r', '\n'])
+        .to_owned()
+}
+
+fn markdown_equivalence_key(contents: &str) -> String {
+    let mut key = String::new();
+    let mut previous_was_hyphen = false;
+    for character in normalized_text(contents)
+        .chars()
+        .filter(|character| !character.is_whitespace())
+    {
+        if character == '-' {
+            if !previous_was_hyphen {
+                key.push(character);
+            }
+            previous_was_hyphen = true;
+        } else {
+            key.push(character);
+            previous_was_hyphen = false;
+        }
+    }
+    key
+}
+
+fn artifacts_are_equivalent(existing: &str, generated: &str, kind: TextArtifactKind) -> bool {
+    match kind {
+        TextArtifactKind::Json => {
+            match (
+                serde_json::from_str::<serde_json::Value>(existing),
+                serde_json::from_str::<serde_json::Value>(generated),
+            ) {
+                (Ok(existing_json), Ok(generated_json)) => existing_json == generated_json,
+                _ => normalized_text(existing) == normalized_text(generated),
+            }
+        }
+        TextArtifactKind::Markdown => {
+            markdown_equivalence_key(existing) == markdown_equivalence_key(generated)
+        }
+    }
+}
+
+fn apply_existing_text_style(existing: &str, generated: &str) -> String {
+    let line_ending = if existing.contains("\r\n") {
+        "\r\n"
+    } else {
+        "\n"
+    };
+    let had_trailing_newline = existing.ends_with("\r\n") || existing.ends_with('\n');
+    let mut styled = if line_ending == "\r\n" {
+        generated.replace('\n', "\r\n")
+    } else {
+        generated.to_owned()
+    };
+    styled.truncate(styled.trim_end_matches(['\r', '\n']).len());
+    if had_trailing_newline {
+        styled.push_str(line_ending);
+    }
+    styled
+}
+
+fn write_text_artifact(
+    path: &Path,
+    contents: &str,
+    artifact_label: &str,
+    kind: TextArtifactKind,
+) -> AppResult<()> {
+    let contents_to_write = match fs::read_to_string(path) {
+        Ok(existing) => {
+            if artifacts_are_equivalent(&existing, contents, kind) {
+                return Ok(());
+            }
+
+            apply_existing_text_style(&existing, contents)
+        }
+        Err(error) if error.kind() == io::ErrorKind::NotFound => contents.to_owned(),
+        Err(error) => {
+            return Err(contextual_error(format!(
+                "Failed to read existing {artifact_label} {} before rewriting it: {error}. The schema generator compares current bytes to avoid unnecessary artifact churn.",
+                path.display()
+            )));
+        }
+    };
+
+    fs::write(path, contents_to_write).map_err(|error| {
+        contextual_error(format!(
+            "Failed to write {artifact_label} {}: {error}.",
+            path.display()
+        ))
+    })
+}
 
 #[cfg(feature = "unstable_protocol_v2")]
 const PROTOCOL_DOC_BASE: &str = "https://agentclientprotocol.com/protocol";
@@ -114,36 +222,53 @@ enum AcpTypes {
     ProtocolLevel(JsonRpcMessage<Notification<ProtocolLevelNotification>>),
 }
 
-fn main() {
-    let schema_value = root_schema_value();
+fn main() -> AppResult<()> {
+    let schema_value = root_schema_value()?;
 
-    let root = repo_root();
+    let root = repo_root()?;
     let schema_dir = root.join("schema");
     let docs_protocol_dir = root.join("docs").join("protocol");
 
-    fs::create_dir_all(schema_dir.clone()).unwrap();
-    fs::create_dir_all(docs_protocol_dir.clone()).unwrap();
+    fs::create_dir_all(&schema_dir).map_err(|error| {
+        contextual_error(format!(
+            "Failed to create schema output directory {}: {error}. The schema generator needs a writable repository checkout to emit JSON Schema artifacts.",
+            schema_dir.display()
+        ))
+    })?;
+    fs::create_dir_all(&docs_protocol_dir).map_err(|error| {
+        contextual_error(format!(
+            "Failed to create protocol docs output directory {}: {error}. The schema generator needs a writable repository checkout to emit markdown artifacts.",
+            docs_protocol_dir.display()
+        ))
+    })?;
 
     write_schema(
         &schema_value,
         schema_dir.as_path(),
         docs_protocol_dir.as_path(),
-    );
+    )?;
+
+    Ok(())
 }
 
-fn repo_root() -> PathBuf {
+fn repo_root() -> AppResult<PathBuf> {
     Path::new(env!("CARGO_MANIFEST_DIR"))
         .parent()
-        .expect("schema-generator manifest directory should have a repository root parent")
-        .to_path_buf()
+        .map(Path::to_path_buf)
+        .ok_or_else(|| {
+            contextual_error(format!(
+                "Failed to determine the repository root from CARGO_MANIFEST_DIR={:?}. The schema-generator crate is expected to live directly under the repository root.",
+                env!("CARGO_MANIFEST_DIR")
+            ))
+        })
 }
 
 #[cfg(test)]
-fn schema_crate_dir() -> PathBuf {
-    repo_root().join("agent-client-protocol-schema")
+fn schema_crate_dir() -> AppResult<PathBuf> {
+    Ok(repo_root()?.join("agent-client-protocol-schema"))
 }
 
-fn root_schema_value() -> serde_json::Value {
+fn root_schema_value() -> AppResult<serde_json::Value> {
     let mut settings = SchemaSettings::draft2020_12();
     settings.untagged_enum_variant_titles = true;
     let mut bool_schemas = ReplaceBoolSchemas::default();
@@ -156,10 +281,19 @@ fn root_schema_value() -> serde_json::Value {
     let schema = generator.into_root_schema_for::<AcpTypes>();
 
     // Convert to serde_json::Value for post-processing
-    serde_json::to_value(&schema).unwrap()
+    serde_json::to_value(&schema).map_err(|error| {
+        contextual_error(format!(
+            "Failed to serialize the generated ACP root schema into JSON: {error}. This usually means schemars emitted a structure the schema generator's post-processing does not expect."
+        ))
+    })
 }
 
-fn write_schema(schema_value: &serde_json::Value, schema_dir: &Path, docs_protocol_dir: &Path) {
+#[expect(clippy::too_many_lines)]
+fn write_schema(
+    schema_value: &serde_json::Value,
+    schema_dir: &Path,
+    docs_protocol_dir: &Path,
+) -> AppResult<()> {
     // Each cfg combination owns exactly one filename, with disjoint write
     // sets so the generation runs that produce the published schemas
     // can run in any order without clobbering each other:
@@ -178,14 +312,26 @@ fn write_schema(schema_value: &serde_json::Value, schema_dir: &Path, docs_protoc
         (false, false) => "v1/schema.json",
     };
     let published_schema_value = schema_value_for_publication(schema_value);
-    let schema_json = serde_json::to_string_pretty(&published_schema_value).unwrap();
+    let schema_json = serde_json::to_string_pretty(&published_schema_value).map_err(|error| {
+        contextual_error(format!(
+            "Failed to serialize published schema payload for {schema_file}: {error}. This usually means schema post-processing produced a non-serializable JSON value."
+        ))
+    })?;
     let schema_path = schema_dir.join(schema_file);
     if let Some(parent) = schema_path.parent() {
-        fs::create_dir_all(parent)
-            .unwrap_or_else(|e| panic!("Failed to create {}: {e}", parent.display()));
+        fs::create_dir_all(parent).map_err(|error| {
+            contextual_error(format!(
+                "Failed to create schema output directory {} for {schema_file}: {error}. The schema generator needs permission to create versioned schema folders.",
+                parent.display()
+            ))
+        })?;
     }
-    fs::write(schema_path, &schema_json)
-        .unwrap_or_else(|e| panic!("Failed to write {schema_file}: {e}"));
+    write_text_artifact(
+        &schema_path,
+        &schema_json,
+        "schema artifact",
+        TextArtifactKind::Json,
+    )?;
 
     // The version embedded in `meta*.json` reflects the protocol version the
     // *schema itself describes*. Generating with the `unstable_protocol_v2`
@@ -213,14 +359,26 @@ fn write_schema(schema_value: &serde_json::Value, schema_dir: &Path, docs_protoc
         (false, true) => "v1/meta.unstable.json",
         (false, false) => "v1/meta.json",
     };
-    let metadata_json = serde_json::to_string_pretty(&metadata).unwrap();
+    let metadata_json = serde_json::to_string_pretty(&metadata).map_err(|error| {
+        contextual_error(format!(
+            "Failed to serialize protocol metadata for {meta_file}: {error}. This usually means the metadata object contains an unexpected value."
+        ))
+    })?;
     let meta_path = schema_dir.join(meta_file);
     if let Some(parent) = meta_path.parent() {
-        fs::create_dir_all(parent)
-            .unwrap_or_else(|e| panic!("Failed to create {}: {e}", parent.display()));
+        fs::create_dir_all(parent).map_err(|error| {
+            contextual_error(format!(
+                "Failed to create metadata output directory {} for {meta_file}: {error}. The schema generator needs permission to create versioned schema folders.",
+                parent.display()
+            ))
+        })?;
     }
-    fs::write(meta_path, &metadata_json)
-        .unwrap_or_else(|e| panic!("Failed to write {meta_file}: {e}"));
+    write_text_artifact(
+        &meta_path,
+        &metadata_json,
+        "metadata artifact",
+        TextArtifactKind::Json,
+    )?;
 
     // Generate markdown documentation. Each cfg combination owns its own
     // doc file, so the `npm run generate` runs don't clobber each other:
@@ -230,7 +388,7 @@ fn write_schema(schema_value: &serde_json::Value, schema_dir: &Path, docs_protoc
     // - `v2/schema.mdx`           — v2 without unstable feature flags
     // - `v2/draft/schema.mdx`     — v2 + unstable feature flags
     let mut markdown_gen = MarkdownGenerator::new(schema_file);
-    let mut markdown_doc = markdown_gen.generate(schema_value);
+    let mut markdown_doc = markdown_gen.generate(schema_value)?;
 
     let protocol_doc_base = match (
         cfg!(feature = "unstable_protocol_v2"),
@@ -258,15 +416,26 @@ fn write_schema(schema_value: &serde_json::Value, schema_dir: &Path, docs_protoc
 
     let doc_path = docs_protocol_dir.join(doc_file);
     if let Some(parent) = doc_path.parent() {
-        fs::create_dir_all(parent)
-            .unwrap_or_else(|e| panic!("Failed to create {}: {e}", parent.display()));
+        fs::create_dir_all(parent).map_err(|error| {
+            contextual_error(format!(
+                "Failed to create markdown docs output directory {} for {doc_file}: {error}. The schema generator needs permission to create versioned docs folders.",
+                parent.display()
+            ))
+        })?;
     }
 
-    fs::write(doc_path, markdown_doc).unwrap_or_else(|e| panic!("Failed to write {doc_file}: {e}"));
+    write_text_artifact(
+        &doc_path,
+        &markdown_doc,
+        "protocol docs artifact",
+        TextArtifactKind::Markdown,
+    )?;
 
-    println!("✓ Generated {schema_file}");
-    println!("✓ Generated {meta_file}");
-    println!("✓ Generated {doc_file}");
+    println!("Generated {schema_file}");
+    println!("Generated {meta_file}");
+    println!("Generated {doc_file}");
+
+    Ok(())
 }
 
 fn schema_value_for_publication(schema_value: &serde_json::Value) -> serde_json::Value {
@@ -328,7 +497,7 @@ mod schema_annotation_tests {
 
     #[test]
     fn generated_schema_includes_tolerant_deserialization_extensions() {
-        let schema = root_schema_value();
+        let schema = root_schema_value().expect("root schema generation should succeed");
 
         #[cfg(not(feature = "unstable_protocol_v2"))]
         {
@@ -367,7 +536,7 @@ mod schema_annotation_tests {
     #[cfg(feature = "unstable_protocol_v2")]
     #[test]
     fn generated_v2_schema_includes_json_rpc_batch_messages() {
-        let schema = root_schema_value();
+        let schema = root_schema_value().expect("root schema generation should succeed");
         for title in [
             "AgentBatchCall",
             "AgentBatchResponse",
@@ -431,7 +600,7 @@ mod schema_annotation_tests {
     #[cfg(feature = "unstable_protocol_v2")]
     #[test]
     fn generated_v2_schema_uses_standard_base64_content_encoding() {
-        let schema = root_schema_value();
+        let schema = root_schema_value().expect("root schema generation should succeed");
 
         for (definition, property) in [
             ("ImageContent", "data"),
@@ -456,7 +625,7 @@ mod schema_annotation_tests {
     #[cfg(feature = "unstable_protocol_v2")]
     #[test]
     fn generated_v2_schema_references_semantic_string_types() {
-        let schema = root_schema_value();
+        let schema = root_schema_value().expect("root schema generation should succeed");
 
         for definition in ["AbsolutePath", "SessionListCursor", "MediaType"] {
             assert_eq!(
@@ -516,7 +685,9 @@ mod schema_annotation_tests {
     #[cfg(feature = "unstable_protocol_v2")]
     #[test]
     fn published_v2_schema_links_to_versioned_v2_protocol_docs() {
-        let schema = schema_value_for_publication(&root_schema_value());
+        let schema = schema_value_for_publication(
+            &root_schema_value().expect("root schema generation should succeed"),
+        );
         let schema_json = serde_json::to_string(&schema).unwrap();
 
         let protocol_doc_base = if cfg!(feature = "unstable") {
@@ -545,7 +716,7 @@ mod schema_annotation_tests {
 
     #[test]
     fn source_default_on_error_fields_are_schema_annotated() {
-        let root = schema_crate_dir();
+        let root = schema_crate_dir().expect("schema crate path should resolve");
         for module_dir in ["src/v1", "src/v2"] {
             for entry in fs::read_dir(root.join(module_dir)).unwrap() {
                 let path = entry.unwrap().path();
@@ -583,7 +754,7 @@ mod schema_annotation_tests {
 
     #[test]
     fn source_meta_fields_are_default_on_error_annotated() {
-        let root = schema_crate_dir();
+        let root = schema_crate_dir().expect("schema crate path should resolve");
         for module_dir in ["src/v1", "src/v2"] {
             for entry in fs::read_dir(root.join(module_dir)).unwrap() {
                 let path = entry.unwrap().path();
@@ -622,7 +793,7 @@ mod schema_annotation_tests {
 
     #[test]
     fn generated_schema_meta_fields_are_default_on_error_annotated() {
-        let schema = root_schema_value();
+        let schema = root_schema_value().expect("root schema generation should succeed");
         let mut checked = 0;
 
         assert_meta_properties_are_annotated(&schema, &mut checked);
@@ -709,6 +880,7 @@ mod schema_annotation_tests {
 }
 
 mod markdown_generator {
+    use super::{AppResult, contextual_error, repo_root};
     use serde_json::Value;
     use std::collections::{BTreeMap, BTreeSet, HashMap};
     use std::fmt::Write;
@@ -731,7 +903,7 @@ mod markdown_generator {
         }
 
         #[expect(clippy::too_many_lines)]
-        pub fn generate(&mut self, schema: &Value) -> String {
+        pub fn generate(&mut self, schema: &Value) -> AppResult<String> {
             // Extract definitions
             if let Some(defs) = schema.get("$defs").and_then(|v| v.as_object()) {
                 self.definitions = defs.iter().map(|(k, v)| (k.clone(), v.clone())).collect();
@@ -779,7 +951,16 @@ mod markdown_generator {
                 }
 
                 if let Some(side) = def.get("x-side").and_then(|v| v.as_str()) {
-                    let method = def.get("x-method").unwrap().as_str().unwrap();
+                    let method_value = def.get("x-method").ok_or_else(|| {
+                        contextual_error(format!(
+                            "Schema definition `{name}` is annotated with x-side=`{side}` but is missing an `x-method` annotation. Side-specific schema definitions must declare the ACP method they document."
+                        ))
+                    })?;
+                    let method = method_value.as_str().ok_or_else(|| {
+                        contextual_error(format!(
+                            "Schema definition `{name}` has a non-string `x-method` annotation: {method_value}. The documentation generator expects `x-method` to be a string ACP method name."
+                        ))
+                    })?;
 
                     let types = match side {
                         "agent" => &mut agent_types,
@@ -797,7 +978,11 @@ mod markdown_generator {
                                 .push(entry);
                             continue;
                         }
-                        _ => unimplemented!("Unexpected side {side}"),
+                        _ => {
+                            return Err(contextual_error(format!(
+                                "Schema definition `{name}` has unsupported `x-side` value `{side}`. Expected one of: agent, client, protocol, both."
+                            )));
+                        }
                     };
 
                     types
@@ -809,7 +994,7 @@ mod markdown_generator {
                 }
             }
 
-            let side_docs = extract_side_docs();
+            let side_docs = extract_side_docs()?;
             let mut duplicate_methods = BTreeSet::new();
             for method in agent_types.keys() {
                 if client_types.contains_key(method) || protocol_types.contains_key(method) {
@@ -839,7 +1024,7 @@ requests from clients and execute tasks using language models and tools."
                 self.generate_method(
                     anchor_prefix,
                     &method,
-                    side_docs.agent_method_doc(&method),
+                    side_docs.agent_method_doc(&method)?,
                     types,
                 );
             }
@@ -861,7 +1046,7 @@ and control access to resources."
                 self.generate_method(
                     anchor_prefix,
                     &method,
-                    side_docs.client_method_doc(&method),
+                    side_docs.client_method_doc(&method)?,
                     types,
                 );
             }
@@ -886,7 +1071,7 @@ starting with '$/' it is free to ignore the notification."
                     self.generate_method(
                         anchor_prefix,
                         &method,
-                        side_docs.protocol_method_doc(&method),
+                        side_docs.protocol_method_doc(&method)?,
                         types,
                     );
                 }
@@ -897,7 +1082,7 @@ starting with '$/' it is free to ignore the notification."
                 self.document_type(2, &name, &def);
             }
 
-            self.output.clone()
+            Ok(self.output.clone())
         }
 
         fn generate_method(
@@ -1784,86 +1969,205 @@ starting with '$/' it is free to ignore the notification."
     }
 
     impl SideDocs {
-        fn agent_method_doc(&self, method_name: &str) -> &String {
+        #[expect(clippy::too_many_lines)]
+        fn agent_method_doc(&self, method_name: &str) -> AppResult<&str> {
             match method_name {
-                "initialize" => self.agent.get("InitializeRequest").unwrap(),
+                "initialize" => {
+                    lookup_side_doc(&self.agent, "InitializeRequest", method_name, "agent")
+                }
                 "authenticate" => {
                     lookup_side_doc(&self.agent, "AuthenticateRequest", method_name, "agent")
                 }
                 "auth/login" => {
                     lookup_side_doc(&self.agent, "LoginAuthRequest", method_name, "agent")
                 }
-                "providers/list" => self.agent.get("ListProvidersRequest").unwrap(),
-                "providers/set" => self.agent.get("SetProviderRequest").unwrap(),
-                "providers/disable" => self.agent.get("DisableProviderRequest").unwrap(),
-                "session/new" => self.agent.get("NewSessionRequest").unwrap(),
-                "session/load" => self.agent.get("LoadSessionRequest").unwrap(),
-                "session/list" => self.agent.get("ListSessionsRequest").unwrap(),
-                "session/delete" => self.agent.get("DeleteSessionRequest").unwrap(),
-                "session/fork" => self.agent.get("ForkSessionRequest").unwrap(),
-                "session/resume" => self.agent.get("ResumeSessionRequest").unwrap(),
-                "session/set_mode" => self.agent.get("SetSessionModeRequest").unwrap(),
-                "session/set_config_option" => {
-                    self.agent.get("SetSessionConfigOptionRequest").unwrap()
+                "providers/list" => {
+                    lookup_side_doc(&self.agent, "ListProvidersRequest", method_name, "agent")
                 }
-                "session/prompt" => self.agent.get("PromptRequest").unwrap(),
-                "session/cancel" => self
-                    .agent
-                    .get("CancelSessionNotification")
-                    .or_else(|| self.agent.get("CancelNotification"))
-                    .unwrap(),
-                "session/close" => self.agent.get("CloseSessionRequest").unwrap(),
-                "logout" => self.agent.get("LogoutRequest").unwrap(),
-                "auth/logout" => self.agent.get("LogoutAuthRequest").unwrap(),
-                "nes/start" => self.agent.get("StartNesRequest").unwrap(),
-                "nes/suggest" => self.agent.get("SuggestNesRequest").unwrap(),
-                "nes/close" => self.agent.get("CloseNesRequest").unwrap(),
-                "nes/accept" => self.agent.get("AcceptNesNotification").unwrap(),
-                "nes/reject" => self.agent.get("RejectNesNotification").unwrap(),
-                "document/didOpen" => self.agent.get("DidOpenDocumentNotification").unwrap(),
-                "document/didChange" => self.agent.get("DidChangeDocumentNotification").unwrap(),
-                "document/didClose" => self.agent.get("DidCloseDocumentNotification").unwrap(),
-                "document/didSave" => self.agent.get("DidSaveDocumentNotification").unwrap(),
-                "document/didFocus" => self.agent.get("DidFocusDocumentNotification").unwrap(),
-                "mcp/message" => self.agent.get("MessageMcpRequest").unwrap(),
-                _ => panic!("Introduced a method? Add it here :)"),
+                "providers/set" => {
+                    lookup_side_doc(&self.agent, "SetProviderRequest", method_name, "agent")
+                }
+                "providers/disable" => {
+                    lookup_side_doc(&self.agent, "DisableProviderRequest", method_name, "agent")
+                }
+                "session/new" => {
+                    lookup_side_doc(&self.agent, "NewSessionRequest", method_name, "agent")
+                }
+                "session/load" => {
+                    lookup_side_doc(&self.agent, "LoadSessionRequest", method_name, "agent")
+                }
+                "session/list" => {
+                    lookup_side_doc(&self.agent, "ListSessionsRequest", method_name, "agent")
+                }
+                "session/delete" => {
+                    lookup_side_doc(&self.agent, "DeleteSessionRequest", method_name, "agent")
+                }
+                "session/fork" => {
+                    lookup_side_doc(&self.agent, "ForkSessionRequest", method_name, "agent")
+                }
+                "session/resume" => {
+                    lookup_side_doc(&self.agent, "ResumeSessionRequest", method_name, "agent")
+                }
+                "session/set_mode" => {
+                    lookup_side_doc(&self.agent, "SetSessionModeRequest", method_name, "agent")
+                }
+                "session/set_config_option" => lookup_side_doc(
+                    &self.agent,
+                    "SetSessionConfigOptionRequest",
+                    method_name,
+                    "agent",
+                ),
+                "session/prompt" => {
+                    lookup_side_doc(&self.agent, "PromptRequest", method_name, "agent")
+                }
+                "session/cancel" => lookup_side_doc_candidates(
+                    &self.agent,
+                    &["CancelSessionNotification", "CancelNotification"],
+                    method_name,
+                    "agent",
+                ),
+                "session/close" => {
+                    lookup_side_doc(&self.agent, "CloseSessionRequest", method_name, "agent")
+                }
+                "logout" => lookup_side_doc(&self.agent, "LogoutRequest", method_name, "agent"),
+                "auth/logout" => {
+                    lookup_side_doc(&self.agent, "LogoutAuthRequest", method_name, "agent")
+                }
+                "nes/start" => {
+                    lookup_side_doc(&self.agent, "StartNesRequest", method_name, "agent")
+                }
+                "nes/suggest" => {
+                    lookup_side_doc(&self.agent, "SuggestNesRequest", method_name, "agent")
+                }
+                "nes/close" => {
+                    lookup_side_doc(&self.agent, "CloseNesRequest", method_name, "agent")
+                }
+                "nes/accept" => {
+                    lookup_side_doc(&self.agent, "AcceptNesNotification", method_name, "agent")
+                }
+                "nes/reject" => {
+                    lookup_side_doc(&self.agent, "RejectNesNotification", method_name, "agent")
+                }
+                "document/didOpen" => lookup_side_doc(
+                    &self.agent,
+                    "DidOpenDocumentNotification",
+                    method_name,
+                    "agent",
+                ),
+                "document/didChange" => lookup_side_doc(
+                    &self.agent,
+                    "DidChangeDocumentNotification",
+                    method_name,
+                    "agent",
+                ),
+                "document/didClose" => lookup_side_doc(
+                    &self.agent,
+                    "DidCloseDocumentNotification",
+                    method_name,
+                    "agent",
+                ),
+                "document/didSave" => lookup_side_doc(
+                    &self.agent,
+                    "DidSaveDocumentNotification",
+                    method_name,
+                    "agent",
+                ),
+                "document/didFocus" => lookup_side_doc(
+                    &self.agent,
+                    "DidFocusDocumentNotification",
+                    method_name,
+                    "agent",
+                ),
+                "mcp/message" => {
+                    lookup_side_doc(&self.agent, "MessageMcpRequest", method_name, "agent")
+                }
+                _ => missing_method_mapping("agent", method_name),
             }
         }
 
-        fn client_method_doc(&self, method_name: &str) -> &String {
+        fn client_method_doc(&self, method_name: &str) -> AppResult<&str> {
             match method_name {
-                "session/request_permission" => {
-                    self.client.get("RequestPermissionRequest").unwrap()
+                "session/request_permission" => lookup_side_doc(
+                    &self.client,
+                    "RequestPermissionRequest",
+                    method_name,
+                    "client",
+                ),
+                "fs/write_text_file" => {
+                    lookup_side_doc(&self.client, "WriteTextFileRequest", method_name, "client")
                 }
-                "fs/write_text_file" => self.client.get("WriteTextFileRequest").unwrap(),
-                "fs/read_text_file" => self.client.get("ReadTextFileRequest").unwrap(),
-                "session/update" => self
-                    .client
-                    .get("UpdateSessionNotification")
-                    .or_else(|| self.client.get("SessionNotification"))
-                    .unwrap(),
-                "terminal/create" => self.client.get("CreateTerminalRequest").unwrap(),
-                "terminal/output" => self.client.get("TerminalOutputRequest").unwrap(),
-                "terminal/release" => self.client.get("ReleaseTerminalRequest").unwrap(),
-                "terminal/wait_for_exit" => self.client.get("WaitForTerminalExitRequest").unwrap(),
-                "terminal/kill" => self.client.get("KillTerminalRequest").unwrap(),
-                "elicitation/create" => self.client.get("CreateElicitationRequest").unwrap(),
-                "elicitation/complete" => {
-                    self.client.get("CompleteElicitationNotification").unwrap()
+                "fs/read_text_file" => {
+                    lookup_side_doc(&self.client, "ReadTextFileRequest", method_name, "client")
                 }
-                "mcp/connect" => self.client.get("ConnectMcpRequest").unwrap(),
-                "mcp/message" => self.client.get("MessageMcpRequest").unwrap(),
-                "mcp/disconnect" => self.client.get("DisconnectMcpRequest").unwrap(),
-                _ => panic!("Introduced a method? Add it here :)"),
+                "session/update" => lookup_side_doc_candidates(
+                    &self.client,
+                    &["UpdateSessionNotification", "SessionNotification"],
+                    method_name,
+                    "client",
+                ),
+                "terminal/create" => {
+                    lookup_side_doc(&self.client, "CreateTerminalRequest", method_name, "client")
+                }
+                "terminal/output" => {
+                    lookup_side_doc(&self.client, "TerminalOutputRequest", method_name, "client")
+                }
+                "terminal/release" => lookup_side_doc(
+                    &self.client,
+                    "ReleaseTerminalRequest",
+                    method_name,
+                    "client",
+                ),
+                "terminal/wait_for_exit" => lookup_side_doc(
+                    &self.client,
+                    "WaitForTerminalExitRequest",
+                    method_name,
+                    "client",
+                ),
+                "terminal/kill" => {
+                    lookup_side_doc(&self.client, "KillTerminalRequest", method_name, "client")
+                }
+                "elicitation/create" => lookup_side_doc(
+                    &self.client,
+                    "CreateElicitationRequest",
+                    method_name,
+                    "client",
+                ),
+                "elicitation/complete" => lookup_side_doc(
+                    &self.client,
+                    "CompleteElicitationNotification",
+                    method_name,
+                    "client",
+                ),
+                "mcp/connect" => {
+                    lookup_side_doc(&self.client, "ConnectMcpRequest", method_name, "client")
+                }
+                "mcp/message" => {
+                    lookup_side_doc(&self.client, "MessageMcpRequest", method_name, "client")
+                }
+                "mcp/disconnect" => {
+                    lookup_side_doc(&self.client, "DisconnectMcpRequest", method_name, "client")
+                }
+                _ => missing_method_mapping("client", method_name),
             }
         }
 
-        fn protocol_method_doc(&self, method_name: &str) -> &String {
+        fn protocol_method_doc(&self, method_name: &str) -> AppResult<&str> {
             match method_name {
-                "$/cancel_request" => self.protocol.get("CancelRequestNotification").unwrap(),
-                _ => panic!("Introduced a method? Add it here :)"),
+                "$/cancel_request" => lookup_side_doc(
+                    &self.protocol,
+                    "CancelRequestNotification",
+                    method_name,
+                    "protocol",
+                ),
+                _ => missing_method_mapping("protocol", method_name),
             }
         }
+    }
+
+    fn missing_method_mapping(side: &str, method_name: &str) -> AppResult<&'static str> {
+        Err(contextual_error(format!(
+            "No {side} side-doc lookup mapping exists for ACP method `{method_name}`. Update the schema generator lookup table so generated documentation knows which rustdoc item to use for this method."
+        )))
     }
 
     fn lookup_side_doc<'a>(
@@ -1871,155 +2175,205 @@ starting with '$/' it is free to ignore the notification."
         type_name: &str,
         method_name: &str,
         side: &str,
-    ) -> &'a String {
-        docs.get(type_name).unwrap_or_else(|| {
-            panic!(
-                "Missing {side} rustdoc entry {type_name} for method {method_name}; check schema-generator rustdoc path filtering"
-            )
-        })
+    ) -> AppResult<&'a str> {
+        lookup_side_doc_candidates(docs, &[type_name], method_name, side)
+    }
+
+    fn lookup_side_doc_candidates<'a>(
+        docs: &'a HashMap<String, String>,
+        type_names: &[&str],
+        method_name: &str,
+        side: &str,
+    ) -> AppResult<&'a str> {
+        type_names
+            .iter()
+            .find_map(|type_name| docs.get(*type_name).map(String::as_str))
+            .ok_or_else(|| {
+                contextual_error(format!(
+                    "Missing {side} rustdoc entry for method `{method_name}`. Tried schema items {}. This usually means rustdoc path filtering excluded the item or the schema generator lookup table points at the wrong request/notification type.",
+                    type_names.join(", ")
+                ))
+            })
     }
 
     #[expect(clippy::too_many_lines)]
-    fn extract_side_docs() -> SideDocs {
-        let root = super::repo_root();
+    fn extract_side_docs() -> AppResult<SideDocs> {
+        let root = repo_root()?;
+        let rustdoc_args = [
+            "+nightly",
+            "rustdoc",
+            "-p",
+            "agent-client-protocol-schema",
+            "--lib",
+            "--all-features",
+            "--",
+            "-Z",
+            "unstable-options",
+            "--output-format",
+            "json",
+        ];
+        let rustdoc_command = format!("cargo {}", rustdoc_args.join(" "));
         let output = Command::new("cargo")
             .current_dir(&root)
-            .args([
-                "+nightly",
-                "rustdoc",
-                "-p",
-                "agent-client-protocol-schema",
-                "--lib",
-                "--all-features",
-                "--",
-                "-Z",
-                "unstable-options",
-                "--output-format",
-                "json",
-            ])
+            .args(rustdoc_args)
             .output()
-            .unwrap();
-
-        assert!(
-            output.status.success(),
-            "Failed to generate rustdoc JSON: {}",
-            String::from_utf8_lossy(&output.stderr)
-        );
+            .map_err(|error| {
+                contextual_error(format!(
+                    "Failed to invoke `{rustdoc_command}` from {}: {error}. The schema generator needs Cargo and the nightly toolchain available to extract rustdoc side documentation.",
+                    root.display()
+                ))
+            })?;
 
         // Parse the JSON output
         let json_path = root.join("target/doc/agent_client_protocol_schema.json");
-        let json_content = fs::read_to_string(&json_path)
-            .unwrap_or_else(|e| panic!("Failed to read rustdoc JSON {}: {e}", json_path.display()));
-        let doc: Value = serde_json::from_str(&json_content).unwrap();
+        if !output.status.success() {
+            return Err(contextual_error(format!(
+                "Failed to generate rustdoc JSON with `{rustdoc_command}` in {}. Exit status: {}. Expected output file: {}. stderr:\n{}",
+                root.display(),
+                output.status,
+                json_path.display(),
+                String::from_utf8_lossy(&output.stderr)
+            )));
+        }
+        let json_content = fs::read_to_string(&json_path).map_err(|error| {
+            contextual_error(format!(
+                "Failed to read rustdoc JSON {}: {error}. `{rustdoc_command}` should have created this file before side-doc extraction began.",
+                json_path.display()
+            ))
+        })?;
+        let doc: Value = serde_json::from_str(&json_content).map_err(|error| {
+            contextual_error(format!(
+                "Failed to parse rustdoc JSON {}: {error}. This usually means rustdoc emitted invalid or truncated JSON, or the rustdoc JSON format changed.",
+                json_path.display()
+            ))
+        })?;
 
         let mut side_docs = SideDocs::default();
 
-        if let Some(index) = doc["index"].as_object() {
-            for (_, item) in index {
-                if item["name"].as_str() == Some("ClientRequest")
-                    && is_current_protocol_item(item)
-                    && let Some(variants) = item["inner"]["enum"]["variants"].as_array()
-                {
-                    for variant_id in variants {
-                        if let Some(variant) = doc["index"][variant_id.to_string()].as_object()
-                            && let Some(name) = variant["name"].as_str()
-                        {
-                            side_docs.agent.insert(
-                                name.to_string(),
-                                variant["docs"].as_str().unwrap_or_default().to_string(),
-                            );
-                        }
+        let index = doc.get("index").and_then(Value::as_object).ok_or_else(|| {
+            contextual_error(format!(
+                "Rustdoc JSON {} is missing the top-level `index` object. The rustdoc JSON schema may have changed and schema-generator::extract_side_docs needs to be updated.",
+                json_path.display()
+            ))
+        })?;
+        for (_, item) in index {
+            if item["name"].as_str() == Some("ClientRequest")
+                && is_current_protocol_item(item)
+                && let Some(variants) = item["inner"]["enum"]["variants"].as_array()
+            {
+                for variant_id in variants {
+                    if let Some(variant) = index
+                        .get(&variant_id.to_string())
+                        .and_then(Value::as_object)
+                        && let Some(name) = variant["name"].as_str()
+                    {
+                        side_docs.agent.insert(
+                            name.to_string(),
+                            variant["docs"].as_str().unwrap_or_default().to_string(),
+                        );
                     }
                 }
+            }
 
-                if item["name"].as_str() == Some("ClientNotification")
-                    && is_current_protocol_item(item)
-                    && let Some(variants) = item["inner"]["enum"]["variants"].as_array()
-                {
-                    for variant_id in variants {
-                        if let Some(variant) = doc["index"][variant_id.to_string()].as_object()
-                            && let Some(name) = variant["name"].as_str()
-                        {
-                            side_docs.agent.insert(
-                                name.to_string(),
-                                variant["docs"].as_str().unwrap_or_default().to_string(),
-                            );
-                        }
+            if item["name"].as_str() == Some("ClientNotification")
+                && is_current_protocol_item(item)
+                && let Some(variants) = item["inner"]["enum"]["variants"].as_array()
+            {
+                for variant_id in variants {
+                    if let Some(variant) = index
+                        .get(&variant_id.to_string())
+                        .and_then(Value::as_object)
+                        && let Some(name) = variant["name"].as_str()
+                    {
+                        side_docs.agent.insert(
+                            name.to_string(),
+                            variant["docs"].as_str().unwrap_or_default().to_string(),
+                        );
                     }
                 }
+            }
 
-                if item["name"].as_str() == Some("AgentRequest")
-                    && is_current_protocol_item(item)
-                    && let Some(variants) = item["inner"]["enum"]["variants"].as_array()
-                {
-                    for variant_id in variants {
-                        if let Some(variant) = doc["index"][variant_id.to_string()].as_object()
-                            && let Some(name) = variant["name"].as_str()
-                        {
-                            side_docs.client.insert(
-                                name.to_string(),
-                                variant["docs"].as_str().unwrap_or_default().to_string(),
-                            );
-                        }
+            if item["name"].as_str() == Some("AgentRequest")
+                && is_current_protocol_item(item)
+                && let Some(variants) = item["inner"]["enum"]["variants"].as_array()
+            {
+                for variant_id in variants {
+                    if let Some(variant) = index
+                        .get(&variant_id.to_string())
+                        .and_then(Value::as_object)
+                        && let Some(name) = variant["name"].as_str()
+                    {
+                        side_docs.client.insert(
+                            name.to_string(),
+                            variant["docs"].as_str().unwrap_or_default().to_string(),
+                        );
                     }
                 }
+            }
 
-                if item["name"].as_str() == Some("AgentNotification")
-                    && is_current_protocol_item(item)
-                    && let Some(variants) = item["inner"]["enum"]["variants"].as_array()
-                {
-                    for variant_id in variants {
-                        if let Some(variant) = doc["index"][variant_id.to_string()].as_object()
-                            && let Some(name) = variant["name"].as_str()
-                        {
-                            side_docs.client.insert(
-                                name.to_string(),
-                                variant["docs"].as_str().unwrap_or_default().to_string(),
-                            );
-                        }
+            if item["name"].as_str() == Some("AgentNotification")
+                && is_current_protocol_item(item)
+                && let Some(variants) = item["inner"]["enum"]["variants"].as_array()
+            {
+                for variant_id in variants {
+                    if let Some(variant) = index
+                        .get(&variant_id.to_string())
+                        .and_then(Value::as_object)
+                        && let Some(name) = variant["name"].as_str()
+                    {
+                        side_docs.client.insert(
+                            name.to_string(),
+                            variant["docs"].as_str().unwrap_or_default().to_string(),
+                        );
                     }
                 }
+            }
 
-                if item["name"].as_str() == Some("ProtocolLevelNotification")
-                    && is_current_protocol_item(item)
-                    && let Some(variants) = item["inner"]["enum"]["variants"].as_array()
-                {
-                    for variant_id in variants {
-                        if let Some(variant) = doc["index"][variant_id.to_string()].as_object()
-                            && let Some(name) = variant["name"].as_str()
-                        {
-                            side_docs.protocol.insert(
-                                name.to_string(),
-                                variant["docs"].as_str().unwrap_or_default().to_string(),
-                            );
-                        }
+            if item["name"].as_str() == Some("ProtocolLevelNotification")
+                && is_current_protocol_item(item)
+                && let Some(variants) = item["inner"]["enum"]["variants"].as_array()
+            {
+                for variant_id in variants {
+                    if let Some(variant) = index
+                        .get(&variant_id.to_string())
+                        .and_then(Value::as_object)
+                        && let Some(name) = variant["name"].as_str()
+                    {
+                        side_docs.protocol.insert(
+                            name.to_string(),
+                            variant["docs"].as_str().unwrap_or_default().to_string(),
+                        );
                     }
                 }
             }
         }
 
-        side_docs
+        Ok(side_docs)
     }
 
     fn is_current_protocol_item(item: &Value) -> bool {
         let Some(filename) = item["span"]["filename"].as_str() else {
             return false;
         };
-        let filename = filename.replace('\\', "/");
-
-        if cfg!(feature = "unstable_protocol_v2") {
-            filename.starts_with("src/v2/")
-                || filename.starts_with("agent-client-protocol-schema/src/v2/")
+        let expected_version = if cfg!(feature = "unstable_protocol_v2") {
+            "v2"
         } else {
-            filename.starts_with("src/v1/")
-                || filename.starts_with("agent-client-protocol-schema/src/v1/")
-        }
+            "v1"
+        };
+
+        filename
+            .split(['/', '\\'])
+            .filter(|component| !component.is_empty() && *component != ".")
+            .collect::<Vec<_>>()
+            .windows(2)
+            .any(|window| window[0] == "src" && window[1] == expected_version)
     }
 
     #[cfg(test)]
     mod tests {
-        use super::{MarkdownGenerator, is_current_protocol_item};
+        use super::{MarkdownGenerator, is_current_protocol_item, lookup_side_doc};
         use serde_json::json;
+        use std::collections::HashMap;
 
         #[test]
         fn document_union_includes_shared_properties() {
@@ -2254,28 +2608,69 @@ starting with '$/' it is free to ignore the notification."
             );
         }
 
-        #[cfg(not(feature = "unstable_protocol_v2"))]
         #[test]
-        fn current_protocol_item_accepts_windows_v1_paths() {
-            let item = json!({
-                "span": {
-                    "filename": r"agent-client-protocol-schema\src\v1\agent.rs"
-                }
-            });
+        fn current_protocol_item_accepts_relative_absolute_and_unc_paths() {
+            let current_version = if cfg!(feature = "unstable_protocol_v2") {
+                "v2"
+            } else {
+                "v1"
+            };
+            let paths = [
+                format!("src/{current_version}/agent.rs"),
+                format!(r"agent-client-protocol-schema\src\{current_version}\agent.rs"),
+                format!(
+                    r"E:\acp-fleet\generator\agent-client-protocol-schema\src\{current_version}\agent.rs"
+                ),
+                format!(
+                    "E:/acp-fleet/generator/agent-client-protocol-schema/src/{current_version}/agent.rs"
+                ),
+                format!(
+                    r"E:\acp-fleet\generator/agent-client-protocol-schema\src/{current_version}\agent.rs"
+                ),
+                format!(
+                    r"\\server\share\agent-client-protocol-schema\src\{current_version}\agent.rs"
+                ),
+            ];
 
-            assert!(is_current_protocol_item(&item));
+            for path in paths {
+                let item = json!({
+                    "span": {
+                        "filename": path
+                    }
+                });
+
+                assert!(is_current_protocol_item(&item), "expected {path} to match");
+            }
         }
 
-        #[cfg(feature = "unstable_protocol_v2")]
         #[test]
-        fn current_protocol_item_accepts_windows_v2_paths() {
+        fn current_protocol_item_rejects_other_protocol_versions() {
+            let other_version = if cfg!(feature = "unstable_protocol_v2") {
+                "v1"
+            } else {
+                "v2"
+            };
             let item = json!({
                 "span": {
-                    "filename": r"agent-client-protocol-schema\src\v2\agent.rs"
+                    "filename": format!(
+                        r"\\server\share\agent-client-protocol-schema\src\{other_version}\agent.rs"
+                    )
                 }
             });
 
-            assert!(is_current_protocol_item(&item));
+            assert!(!is_current_protocol_item(&item));
+        }
+
+        #[test]
+        fn lookup_side_doc_error_names_method_and_type() {
+            let docs = HashMap::new();
+            let error = lookup_side_doc(&docs, "AuthenticateRequest", "authenticate", "agent")
+                .expect_err("missing side docs should return an error");
+            let message = error.to_string();
+
+            assert!(message.contains("AuthenticateRequest"));
+            assert!(message.contains("authenticate"));
+            assert!(message.contains("rustdoc path filtering"));
         }
     }
 }
