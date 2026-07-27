@@ -1,5 +1,17 @@
 # Changelog
 
+## [Unreleased]
+
+### Fixed
+
+- *(schema-generator)* Normalize rustdoc paths on Windows so v1 and v2 side-doc extraction works with backslash-separated filenames.
+- *(schema-generator)* Report the missing side-doc type and method when generated documentation lookup fails.
+- *(registry)* Read and write registry documentation as UTF-8 so non-ASCII agent metadata is preserved on Windows.
+
+### Documentation
+
+- Document the Windows UNC working-directory limitation and the drive-backed workflow for npm, schema generation, registry generation, and local docs preview.
+
 ## [1.6.0](https://github.com/agentclientprotocol/agent-client-protocol/compare/v1.5.0...v1.6.0) - 2026-07-21
 
 ### Added
