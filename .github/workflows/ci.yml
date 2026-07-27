@@ -16,6 +16,9 @@ concurrency:
   group: "ci-${{ github.ref }}"
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
+env:
+  NODE_VERSION: "24"
+
 jobs:
   msrv:
     name: Minimum supported Rust version
@@ -40,57 +43,261 @@ jobs:
       - name: Check with MSRV
         run: cargo check --all-targets --all-features --locked
 
-  build:
-    name: Build
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
+  build-test:
+    name: Build and test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    defaults:
+      run:
+        shell: bash
 
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+      - name: Normalize Git line endings on Windows
+        if: runner.os == 'Windows'
+        run: |
+          git config --global core.autocrlf false
+          git config --global core.eol lf
 
-      - name: Use Node.js
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
         with:
-          node-version: latest
-          cache: "npm"
+          persist-credentials: false
 
       - name: Setup Rust
         uses: actions-rust-lang/setup-rust-toolchain@166cdcfd11aee3cb47222f9ddb555ce30ddb9659
         with:
-          toolchain: nightly,stable
-          components: rustfmt,clippy
+          toolchain: stable
+          components: clippy
+
+      - name: Lint
+        run: cargo clippy --workspace --all-targets --all-features -- -D warnings
+
+      - name: Build
+        run: cargo build --workspace --all-targets --all-features
+
+      - name: Run tests
+        run: cargo test --workspace --all-features
+
+  generated-artifacts:
+    name: Generated artifacts (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - name: Normalize Git line endings on Windows
+        if: runner.os == 'Windows'
+        run: |
+          git config --global core.autocrlf false
+          git config --global core.eol lf
+
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+        with:
+          persist-credentials: false
+
+      - name: Use Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+          cache-dependency-path: package-lock.json
+
+      - name: Setup Rust
+        uses: actions-rust-lang/setup-rust-toolchain@166cdcfd11aee3cb47222f9ddb555ce30ddb9659
+        with:
+          toolchain: stable
 
       - name: Install dependencies
         run: npm ci
 
-      - name: Check formatting
-        run: npm run format:check
+      - name: Check generated files are up to date
+        run: |
+          npm run generate
+          if ! git diff --quiet; then
+            git --no-pager diff --stat
+            echo "Generated files are out of date. Run 'npm run generate' and commit the changes."
+            exit 1
+          fi
+
+  npm-check:
+    name: npm check script
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+        with:
+          persist-credentials: false
+
+      - name: Use Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+          cache-dependency-path: package-lock.json
+
+      - name: Setup Rust
+        uses: actions-rust-lang/setup-rust-toolchain@166cdcfd11aee3cb47222f9ddb555ce30ddb9659
+        with:
+          toolchain: stable
+          components: clippy
+
+      - name: Install dependencies
+        run: npm ci
 
       - name: Check for typos
         uses: crate-ci/typos@bee27e3a4fd1ea2111cf90ab89cd076c870fce14
         with:
           config: ./typos.toml
 
-      - name: Lint
-        run: |
-          cargo clippy
-          cargo clippy --all-targets --all-features
+      - name: Run npm check
+        run: npm run check
 
-      - name: Build
-        run: cargo build --all-targets --all-features
+  docs-rs:
+    name: docs.rs build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+        with:
+          persist-credentials: false
+
+      - name: Setup Rust
+        uses: actions-rust-lang/setup-rust-toolchain@166cdcfd11aee3cb47222f9ddb555ce30ddb9659
+        with:
+          toolchain: nightly,stable
 
       - name: Check docs.rs build
         env:
           RUSTDOCFLAGS: --cfg docsrs
         run: cargo +nightly doc -p agent-client-protocol-schema --all-features --no-deps
 
-      - name: Run tests
-        run: cargo test --all-features
+  docs-site:
+    name: Docs site build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
 
-      - name: Check generated files are up to date
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+        with:
+          persist-credentials: false
+
+      - name: Use Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Validate docs site
+        working-directory: docs
+        run: npx mint validate
+
+  registry-docs:
+    name: Registry docs generator
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v5
+        with:
+          python-version: "3.14"
+
+      - name: Smoke test registry generator offline
+        if: github.event_name == 'pull_request'
         run: |
-          npm run generate
-          git diff --exit-code || (echo "Generated files are out of date. Run 'npm run generate' and commit the changes." && exit 1)
+          python - <<'PY'
+          import importlib.util
+          import json
+          import os
+          from pathlib import Path
+
+          spec = importlib.util.spec_from_file_location(
+              "generate_registry_docs",
+              "scripts/generate_registry_docs.py",
+          )
+          module = importlib.util.module_from_spec(spec)
+          assert spec.loader is not None
+          spec.loader.exec_module(module)
+
+          temp_dir = Path(os.environ["RUNNER_TEMP"]) / "registry-docs-smoke"
+          temp_dir.mkdir(parents=True, exist_ok=True)
+          template_path = temp_dir / "_registry_agents.mdx"
+          output_path = temp_dir / "registry.mdx"
+          template_path.write_text("before\n$$AGENTS_CARDS$$\nafter\n", encoding="utf-8")
+
+          registry = {
+              "agents": [
+                  {
+                      "id": "delta-agent",
+                      "name": "Delta Agent",
+                      "description": "Handles Δ safely",
+                      "version": "1.0.0",
+                      "repository": "https://example.com/delta-agent",
+                  }
+              ]
+          }
+          svg = '<svg viewBox="0 0 20 20"><path fill-rule="evenodd" d="M0 0h20v20H0z" /></svg>'
+
+          def fake_request(url: str, timeout: int = 30) -> bytes:
+              if url == module.REGISTRY_URL:
+                  return json.dumps(registry).encode("utf-8")
+              if url == f"{module.ICON_BASE_URL}/delta-agent.svg":
+                  return svg.encode("utf-8")
+              raise AssertionError(f"unexpected URL: {url}")
+
+          module.TEMPLATE_PATH = template_path
+          module.OUTPUT_PATH = output_path
+          module._make_request = fake_request
+          module.main()
+
+          rendered = output_path.read_text(encoding="utf-8")
+          assert "Delta Agent" in rendered
+          assert "Handles Δ safely" in rendered
+          assert "fillRule" in rendered
+          assert module.PLACEHOLDER not in rendered
+          print(f"Generated {output_path}")
+          PY
+
+      - name: Use Node.js
+        if: github.event_name != 'pull_request'
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Check registry docs are up to date
+        if: github.event_name != 'pull_request'
+        run: |
+          npm run generate:registry
+          if ! git diff --quiet -- docs/get-started/registry.mdx; then
+            git --no-pager diff --stat -- docs/get-started/registry.mdx
+            echo "Registry documentation is out of date. Run 'npm run generate:registry' and commit the changes."
+            exit 1
+          fi
 
   rust-changes:
     name: Detect Rust changes
