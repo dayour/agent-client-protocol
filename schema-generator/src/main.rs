@@ -34,181 +34,13 @@ fn contextual_error(message: impl Into<String>) -> Box<dyn Error + Send + Sync> 
     Box::new(io::Error::other(message.into()))
 }
 
-#[derive(Clone, Copy, Debug, Default)]
-struct GeneratorOptions {
-    force_write_artifacts: bool,
-}
-
-impl GeneratorOptions {
-    fn parse() -> AppResult<Self> {
-        let mut options = Self::default();
-
-        for argument in env::args().skip(1) {
-            match argument.as_str() {
-                "--force-write-artifacts" => options.force_write_artifacts = true,
-                _ => {
-                    return Err(contextual_error(format!(
-                        "Unsupported schema-generator argument `{argument}`. Supported flags: --force-write-artifacts"
-                    )));
-                }
-            }
-        }
-
-        Ok(options)
-    }
-}
-
-#[derive(Clone, Copy)]
-enum TextArtifactKind {
-    Json,
-    Markdown,
-}
-
-fn normalized_text(contents: &str) -> String {
-    contents
-        .replace("\r\n", "\n")
-        .trim_end_matches(['\r', '\n'])
-        .to_owned()
-}
-
-fn markdown_equivalence_key(contents: &str) -> String {
-    let mut key = String::new();
-    let mut previous_was_hyphen = false;
-    for character in normalized_text(contents)
-        .chars()
-        .filter(|character| !character.is_whitespace())
-    {
-        if character == '-' {
-            if !previous_was_hyphen {
-                key.push(character);
-            }
-            previous_was_hyphen = true;
-        } else {
-            key.push(character);
-            previous_was_hyphen = false;
-        }
-    }
-    key
-}
-
-fn artifacts_are_equivalent(existing: &str, generated: &str, kind: TextArtifactKind) -> bool {
-    match kind {
-        TextArtifactKind::Json => {
-            match (
-                serde_json::from_str::<serde_json::Value>(existing),
-                serde_json::from_str::<serde_json::Value>(generated),
-            ) {
-                (Ok(existing_json), Ok(generated_json)) => existing_json == generated_json,
-                _ => normalized_text(existing) == normalized_text(generated),
-            }
-        }
-        TextArtifactKind::Markdown => {
-            markdown_equivalence_key(existing) == markdown_equivalence_key(generated)
-        }
-    }
-}
-
-fn apply_existing_text_style(existing: &str, generated: &str) -> String {
-    let line_ending = if existing.contains("\r\n") {
-        "\r\n"
-    } else {
-        "\n"
-    };
-    let had_trailing_newline = existing.ends_with("\r\n") || existing.ends_with('\n');
-    let mut styled = if line_ending == "\r\n" {
-        generated.replace('\n', "\r\n")
-    } else {
-        generated.to_owned()
-    };
-    styled.truncate(styled.trim_end_matches(['\r', '\n']).len());
-    if had_trailing_newline {
-        styled.push_str(line_ending);
-    }
-    styled
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-enum ArtifactWriteOutcome {
-    Generated,
-    SkippedEquivalent,
-}
-
-fn write_text_artifact(
-    path: &Path,
-    contents: &str,
-    artifact_label: &str,
-    kind: TextArtifactKind,
-) -> AppResult<ArtifactWriteOutcome> {
-    let contents_to_write = match fs::read_to_string(path) {
-        Ok(existing) => {
-            if artifacts_are_equivalent(&existing, contents, kind) {
-                return Ok(ArtifactWriteOutcome::SkippedEquivalent);
-            }
-
-            apply_existing_text_style(&existing, contents)
-        }
-        Err(error) if error.kind() == io::ErrorKind::NotFound => contents.to_owned(),
-        Err(error) => {
-            return Err(contextual_error(format!(
-                "Failed to read existing {artifact_label} {} before rewriting it: {error}. The schema generator compares current bytes to avoid unnecessary artifact churn.",
-                path.display()
-            )));
-        }
-    };
-
-    fs::write(path, contents_to_write).map_err(|error| {
+fn write_text_artifact(path: &Path, contents: &str, artifact_label: &str) -> AppResult<()> {
+    fs::write(path, contents).map_err(|error| {
         contextual_error(format!(
             "Failed to write {artifact_label} {}: {error}.",
             path.display()
         ))
-    })?;
-
-    Ok(ArtifactWriteOutcome::Generated)
-}
-
-fn maybe_write_text_artifact(
-    path: &Path,
-    contents: &str,
-    artifact_label: &str,
-    kind: TextArtifactKind,
-    force_write: bool,
-) -> AppResult<ArtifactWriteOutcome> {
-    if force_write {
-        fs::write(path, contents).map_err(|error| {
-            contextual_error(format!(
-                "Failed to force-write {artifact_label} {}: {error}.",
-                path.display()
-            ))
-        })?;
-        Ok(ArtifactWriteOutcome::Generated)
-    } else {
-        write_text_artifact(path, contents, artifact_label, kind)
-    }
-}
-
-fn report_artifact_write(
-    path: &Path,
-    artifact_label: &str,
-    outcome: ArtifactWriteOutcome,
-    force_write: bool,
-) {
-    match outcome {
-        ArtifactWriteOutcome::Generated if force_write => {
-            println!(
-                "Generated {} (forced raw rewrite of {artifact_label})",
-                path.display()
-            );
-        }
-        ArtifactWriteOutcome::Generated => {
-            println!("Generated {}", path.display());
-        }
-        ArtifactWriteOutcome::SkippedEquivalent => {
-            println!(
-                "Skipped {} because generated {artifact_label} bytes differ only in formatting from the checked-in artifact. Re-run with --force-write-artifacts to overwrite bytes for drift checks.",
-                path.display()
-            );
-        }
-    }
+    })
 }
 
 #[cfg(feature = "unstable_protocol_v2")]
@@ -300,7 +132,6 @@ enum AcpTypes {
 }
 
 fn main() -> AppResult<()> {
-    let options = GeneratorOptions::parse()?;
     let schema_value = root_schema_value()?;
 
     let root = repo_root()?;
@@ -324,7 +155,6 @@ fn main() -> AppResult<()> {
         &schema_value,
         schema_dir.as_path(),
         docs_protocol_dir.as_path(),
-        options,
     )?;
 
     Ok(())
@@ -372,7 +202,6 @@ fn write_schema(
     schema_value: &serde_json::Value,
     schema_dir: &Path,
     docs_protocol_dir: &Path,
-    options: GeneratorOptions,
 ) -> AppResult<()> {
     // Each cfg combination owns exactly one filename, with disjoint write
     // sets so the generation runs that produce the published schemas
@@ -406,13 +235,7 @@ fn write_schema(
             ))
         })?;
     }
-    let schema_outcome = maybe_write_text_artifact(
-        &schema_path,
-        &schema_json,
-        "schema artifact",
-        TextArtifactKind::Json,
-        options.force_write_artifacts,
-    )?;
+    write_text_artifact(&schema_path, &schema_json, "schema artifact")?;
 
     // The version embedded in `meta*.json` reflects the protocol version the
     // *schema itself describes*. Generating with the `unstable_protocol_v2`
@@ -454,13 +277,7 @@ fn write_schema(
             ))
         })?;
     }
-    let meta_outcome = maybe_write_text_artifact(
-        &meta_path,
-        &metadata_json,
-        "metadata artifact",
-        TextArtifactKind::Json,
-        options.force_write_artifacts,
-    )?;
+    write_text_artifact(&meta_path, &metadata_json, "metadata artifact")?;
 
     // Generate markdown documentation. Each cfg combination owns its own
     // doc file, so the `npm run generate` runs don't clobber each other:
@@ -506,32 +323,11 @@ fn write_schema(
         })?;
     }
 
-    let doc_outcome = maybe_write_text_artifact(
-        &doc_path,
-        &markdown_doc,
-        "protocol docs artifact",
-        TextArtifactKind::Markdown,
-        options.force_write_artifacts,
-    )?;
+    write_text_artifact(&doc_path, &markdown_doc, "protocol docs artifact")?;
 
-    report_artifact_write(
-        &schema_path,
-        "schema artifact",
-        schema_outcome,
-        options.force_write_artifacts,
-    );
-    report_artifact_write(
-        &meta_path,
-        "metadata artifact",
-        meta_outcome,
-        options.force_write_artifacts,
-    );
-    report_artifact_write(
-        &doc_path,
-        "protocol docs artifact",
-        doc_outcome,
-        options.force_write_artifacts,
-    );
+    println!("Generated {}", schema_path.display());
+    println!("Generated {}", meta_path.display());
+    println!("Generated {}", doc_path.display());
 
     Ok(())
 }
