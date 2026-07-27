@@ -10,10 +10,20 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  fork-publish-disabled:
+    if: ${{ github.repository != 'agentclientprotocol/agent-client-protocol' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Explain fork release asset posture
+        run: |
+          echo "Schema release uploads are disabled in forks."
+          echo "This fork tracks upstream ACP protocol content but is independently maintained for hardening work."
+          echo "Do not publish release assets under upstream names from ${GITHUB_REPOSITORY}."
+
   upload-schema:
     permissions:
       contents: write # to upload release assets
-    if: github.repository_owner == 'agentclientprotocol' && (startsWith(github.event.release.tag_name, 'schema-v1') || startsWith(github.event.release.tag_name, 'schema-v2'))
+    if: ${{ github.repository == 'agentclientprotocol/agent-client-protocol' && (startsWith(github.event.release.tag_name, 'schema-v1') || startsWith(github.event.release.tag_name, 'schema-v2')) }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
