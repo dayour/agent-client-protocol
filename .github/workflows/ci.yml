@@ -56,12 +56,6 @@ jobs:
         shell: bash
 
     steps:
-      - name: Normalize Git line endings on Windows
-        if: runner.os == 'Windows'
-        run: |
-          git config --global core.autocrlf false
-          git config --global core.eol lf
-
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
         with:
           persist-credentials: false
@@ -94,12 +88,6 @@ jobs:
         shell: bash
 
     steps:
-      - name: Normalize Git line endings on Windows
-        if: runner.os == 'Windows'
-        run: |
-          git config --global core.autocrlf false
-          git config --global core.eol lf
-
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
         with:
           persist-credentials: false
