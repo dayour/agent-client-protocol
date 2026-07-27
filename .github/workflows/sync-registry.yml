@@ -19,33 +19,58 @@ jobs:
       id-token: write
 
     steps:
+      - name: Check workflow prerequisites
+        id: prereqs
+        env:
+          RELEASE_PLZ_APP_ID: ${{ secrets.RELEASE_PLZ_APP_ID }}
+          RELEASE_PLZ_APP_PRIVATE_KEY: ${{ secrets.RELEASE_PLZ_APP_PRIVATE_KEY }}
+        run: |
+          if [ "${{ github.repository_owner }}" != "agentclientprotocol" ]; then
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "Skipping registry sync outside the upstream repository owner."
+            exit 0
+          fi
+          if [ -z "$RELEASE_PLZ_APP_ID" ] || [ -z "$RELEASE_PLZ_APP_PRIVATE_KEY" ]; then
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "Skipping registry sync because GitHub App secrets are not configured."
+            exit 0
+          fi
+          echo "enabled=true" >> "$GITHUB_OUTPUT"
+
       - name: Checkout repository
+        if: steps.prereqs.outputs.enabled == 'true'
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
         with:
           persist-credentials: false
 
       - name: Set up Python
+        if: steps.prereqs.outputs.enabled == 'true'
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v5
         with:
           python-version: "3.14"
 
       - name: Set up Node.js
+        if: steps.prereqs.outputs.enabled == 'true'
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v4
         with:
           node-version: latest
           cache: "npm"
 
       - name: Install dependencies
+        if: steps.prereqs.outputs.enabled == 'true'
         run: npm ci
 
       - name: Generate registry docs
+        if: steps.prereqs.outputs.enabled == 'true'
         run: python scripts/generate_registry_docs.py
 
       - name: Format generated files
+        if: steps.prereqs.outputs.enabled == 'true'
         run: npx prettier --write docs/get-started/registry.mdx
 
       - name: Check for changes
         id: changes
+        if: steps.prereqs.outputs.enabled == 'true'
         run: |
           if git diff --quiet docs/get-started/registry.mdx; then
             echo "changed=false" >> $GITHUB_OUTPUT
@@ -56,6 +81,7 @@ jobs:
         # Generating a GitHub token, so that PRs and tags created by
         # the action can trigger actions workflows.
       - name: Generate GitHub token
+        if: steps.prereqs.outputs.enabled == 'true' && steps.changes.outputs.changed == 'true'
         uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1
         id: generate-token
         with:
@@ -66,7 +92,7 @@ jobs:
 
       - name: Create Pull Request
         id: cpr
-        if: steps.changes.outputs.changed == 'true'
+        if: steps.prereqs.outputs.enabled == 'true' && steps.changes.outputs.changed == 'true'
         uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v6
         with:
           token: ${{ steps.generate-token.outputs.token }}
@@ -79,9 +105,3 @@ jobs:
           branch: auto/sync-registry
           delete-branch: true
           labels: documentation
-
-      - name: Enable auto-merge
-        if: steps.cpr.outputs.pull-request-number
-        run: gh pr merge --squash --auto "${{ steps.cpr.outputs.pull-request-number }}"
-        env:
-          GH_TOKEN: ${{ steps.generate-token.outputs.token }}
