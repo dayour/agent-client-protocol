@@ -25,6 +25,11 @@ jobs:
           RELEASE_PLZ_APP_ID: ${{ secrets.RELEASE_PLZ_APP_ID }}
           RELEASE_PLZ_APP_PRIVATE_KEY: ${{ secrets.RELEASE_PLZ_APP_PRIVATE_KEY }}
         run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+            echo "Manual dispatch enabled."
+            exit 0
+          fi
           if [ "${{ github.repository_owner }}" != "agentclientprotocol" ]; then
             echo "enabled=false" >> "$GITHUB_OUTPUT"
             echo "Skipping registry sync outside the upstream repository owner."
@@ -81,7 +86,7 @@ jobs:
         # Generating a GitHub token, so that PRs and tags created by
         # the action can trigger actions workflows.
       - name: Generate GitHub token
-        if: steps.prereqs.outputs.enabled == 'true' && steps.changes.outputs.changed == 'true'
+        if: steps.prereqs.outputs.enabled == 'true' && steps.changes.outputs.changed == 'true' && secrets.RELEASE_PLZ_APP_ID != '' && secrets.RELEASE_PLZ_APP_PRIVATE_KEY != ''
         uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1
         id: generate-token
         with:
@@ -95,7 +100,7 @@ jobs:
         if: steps.prereqs.outputs.enabled == 'true' && steps.changes.outputs.changed == 'true'
         uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v6
         with:
-          token: ${{ steps.generate-token.outputs.token }}
+          token: ${{ steps.generate-token.outputs.token || github.token }}
           commit-message: "docs: update registry agents"
           title: "docs: update registry agents"
           body: |

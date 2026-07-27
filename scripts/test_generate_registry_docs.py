@@ -119,6 +119,35 @@ class GenerateRegistryDocsTests(unittest.TestCase):
         self.assertIn("letterSpacing=", sanitized)
         self.assertIn(">Δ</text>", sanitized)
 
+    def test_sanitize_svg_escapes_braces_in_text_nodes_for_jsx(self) -> None:
+        svg = """
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
+          <title>{title}</title>
+          <text x="8" y="10">{value}</text>
+        </svg>
+        """
+
+        sanitized = registry_docs._sanitize_svg(svg)
+        rendered = registry_docs._render_agent_cards(
+            [
+                {
+                    "id": "brace-agent",
+                    "name": "Brace Agent",
+                    "description": "desc",
+                    "version": "1.0.0",
+                    "website": "https://example.com",
+                    "repository": "https://github.com/example/brace-agent",
+                }
+            ],
+            {"brace-agent": sanitized},
+        )
+
+        self.assertIn("<title>&#123;title&#125;</title>", rendered)
+        self.assertIn('><text x="8" y="10">&#123;value&#125;</text></svg>', rendered)
+        self.assertNotIn("<title>{title}</title>", rendered)
+        self.assertNotIn(">{value}</text>", rendered)
+        self.assertNotIn("&amp;#123;", rendered)
+
     def test_validate_registry_rejects_javascript_urls(self) -> None:
         payload = {
             "agents": [

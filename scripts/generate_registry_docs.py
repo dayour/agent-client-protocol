@@ -449,7 +449,20 @@ def _sanitize_svg(svg: str) -> str:
     if sanitized_root is None:
         raise RegistryDocsError("icon SVG did not contain a valid <svg> root")
 
-    return ET.tostring(sanitized_root, encoding="unicode", short_empty_elements=True)
+    serialized = ET.tostring(sanitized_root, encoding="unicode", short_empty_elements=True)
+    return _escape_svg_text_nodes_for_jsx(serialized)
+
+
+def _escape_svg_text_nodes_for_jsx(serialized_svg: str) -> str:
+    """Escape braces in text nodes so MDX does not treat them as JSX expressions."""
+
+    def replace_text(match: re.Match[str]) -> str:
+        text = match.group(1)
+        if not text:
+            return match.group(0)
+        return f">{text.replace('{', '&#123;').replace('}', '&#125;')}<"
+
+    return re.sub(r">([^<]*)<", replace_text, serialized_svg)
 
 
 def _make_request(url: str, timeout: int = 30) -> bytes:
