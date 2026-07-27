@@ -14,9 +14,9 @@ use std::{fmt::Display, str};
 
 use schemars::{JsonSchema, Schema};
 use serde::{Deserialize, Serialize};
-use serde_with::{DefaultOnError, serde_as, skip_serializing_none};
+use serde_with::{serde_as, skip_serializing_none};
 
-use crate::IntoOption;
+use crate::{DefaultOnError, IntoOption};
 
 /// Convenience result type using this protocol version's error type.
 pub type Result<T, E = Error> = std::result::Result<T, E>;

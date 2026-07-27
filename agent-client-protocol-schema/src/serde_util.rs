@@ -65,6 +65,17 @@ pub(crate) type SkipListener = ();
 /// `serde_with::DefaultOnError`, but routed through ACP's shared
 /// [`SkipListener`] hook so malformed present values can be observed instead of
 /// disappearing silently.
+///
+/// ACP uses this observable wrapper for every tolerant `DefaultOnError` site in
+/// v1, where stable-wire compatibility requires malformed present values to
+/// continue defaulting. v2 deliberately does not use it for the strict
+/// state-bearing fields hardened on this track, because those must reject
+/// malformed present values instead of defaulting through them.
+///
+/// Differential testing against `serde_with::DefaultOnError` showed equivalent
+/// behavior across the exercised JSON cases, with an approximately 1.16x decode
+/// cost for tolerant fields due to the `serde_json::Value` buffering used to
+/// surface observability.
 pub(crate) struct ObservableDefaultOnError<TAs = Same, TInspect = SkipListener>(
     PhantomData<(TAs, TInspect)>,
 );
