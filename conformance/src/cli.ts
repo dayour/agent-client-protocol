@@ -1,8 +1,7 @@
-import path from 'node:path';
-
 import { runSuite } from './runner.js';
 import type { BuildSpec, ProtocolVersion, TargetSpec } from './types.js';
 import { packageRoot } from './utils.js';
+import { builtinProfile } from './profiles.js';
 
 interface ParsedArgs {
   targetCommand?: string;
@@ -15,19 +14,55 @@ interface ParsedArgs {
   cwd?: string;
   env: Record<string, string>;
   build?: BuildSpec;
+  faults: string[];
 }
 
-const parsed = parseArgs(process.argv.slice(2));
-
-if (parsed.subcommand !== 'run') {
-  throw new Error('Usage: tsx src/cli.ts run [--profile reference-stdio|reference-bad-stdio|reference-in-process] [--report path] [--expected-fail]');
-}
-
-const target = buildTarget(parsed);
-await runSuite(target, {
-  reportPath: parsed.reportPath,
-  expectedFail: parsed.expectedFail,
+process.on('unhandledRejection', (reason) => {
+  const message = reason instanceof Error ? reason.stack ?? reason.message : String(reason);
+  console.error(`FATAL: unhandledRejection: ${message}`);
+  process.exit(1);
 });
+
+process.on('uncaughtException', (error) => {
+  console.error(`FATAL: uncaughtException: ${error.stack ?? error.message}`);
+  process.exit(1);
+});
+
+void main();
+
+async function main(): Promise<void> {
+  try {
+    const parsed = parseArgs(process.argv.slice(2));
+
+    if (parsed.subcommand !== 'run') {
+      throw new Error('Usage: tsx src/cli.ts run [--profile reference-stdio|reference-bad-stdio|reference-in-process] [--report path] [--expected-fail] [--fault fault-name]');
+    }
+
+    const target = buildTarget(parsed);
+    const summary = await runSuite(target, {
+      reportPath: parsed.reportPath,
+      expectedFail: parsed.expectedFail,
+    });
+
+    if (summary.aborted) {
+      process.exitCode = 1;
+      return;
+    }
+
+    if (summary.failed > 0 && !parsed.expectedFail) {
+      process.exitCode = 1;
+      return;
+    }
+
+    if (summary.failed === 0 && parsed.expectedFail) {
+      process.exitCode = 1;
+    }
+  } catch (error) {
+    const failure = error as Error;
+    console.error(`FATAL: ${failure.stack ?? failure.message}`);
+    process.exit(1);
+  }
+}
 
 function parseArgs(argv: string[]): ParsedArgs & { subcommand: string } {
   if (argv.length === 0) {
@@ -40,6 +75,7 @@ function parseArgs(argv: string[]): ParsedArgs & { subcommand: string } {
     versions: [1, 2],
     expectedFail: false,
     env: {},
+    faults: [],
   };
 
   for (let index = 1; index < argv.length; index += 1) {
@@ -74,6 +110,9 @@ function parseArgs(argv: string[]): ParsedArgs & { subcommand: string } {
         result.env[name] = valueParts.join('=');
         break;
       }
+      case '--fault':
+        result.faults.push(argv[++index]);
+        break;
       case '--build-command': {
         result.build = result.build ?? { output: '', sources: [] };
         result.build.command = argv[++index];
@@ -104,7 +143,7 @@ function parseArgs(argv: string[]): ParsedArgs & { subcommand: string } {
 
 function buildTarget(parsed: ParsedArgs): TargetSpec {
   if (parsed.profile) {
-    return builtinProfile(parsed.profile, parsed.reportPath);
+    return builtinProfile(parsed.profile, parsed.faults);
   }
   if (!parsed.driver || (parsed.driver === 'stdio' && !parsed.targetCommand)) {
     throw new Error('External targets require --driver and --target-command');
@@ -118,45 +157,6 @@ function buildTarget(parsed: ParsedArgs): TargetSpec {
     cwd: parsed.cwd ?? packageRoot,
     env: parsed.env,
     build: parsed.build,
+    faults: parsed.faults,
   };
-}
-
-function builtinProfile(profile: string, reportPath?: string): TargetSpec {
-  const common = {
-    requestedVersions: [1, 2] as ProtocolVersion[],
-    cwd: packageRoot,
-  };
-  switch (profile) {
-    case 'reference-stdio':
-      return {
-        ...common,
-        name: 'reference-stdio',
-        driver: 'stdio',
-        command: process.execPath,
-        args: ['--import', 'tsx', path.resolve(packageRoot, 'src/stdio-agent.ts')],
-        env: {
-          ACP_REFERENCE_MODE: 'good',
-        },
-      };
-    case 'reference-bad-stdio':
-      return {
-        ...common,
-        name: 'reference-bad-stdio',
-        driver: 'stdio',
-        command: process.execPath,
-        args: ['--import', 'tsx', path.resolve(packageRoot, 'src/stdio-agent.ts')],
-        env: {
-          ACP_REFERENCE_MODE: 'bad',
-        },
-      };
-    case 'reference-in-process':
-      return {
-        ...common,
-        name: 'reference-in-process',
-        driver: 'in-process',
-        referenceMode: 'good',
-      };
-    default:
-      throw new Error(`Unknown built-in profile: ${profile}`);
-  }
 }

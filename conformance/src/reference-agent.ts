@@ -10,7 +10,12 @@ import type {
 import { SchemaRegistry } from './schema.js';
 import { base64, firstTextBlock, isoNow, sleep } from './utils.js';
 
-type ReferenceMode = 'good' | 'bad';
+export type ReferenceFault =
+  | 'illegal-v2-fs-read-text-file'
+  | 'omit-v1-prompt-stop-reason'
+  | 'omit-v1-session-new-session-id'
+  | 'timeout-v1-session-new'
+  | 'wrong-type-v1-session-new-session-id';
 
 interface HistoryEntry {
   role: 'user' | 'agent';
@@ -46,11 +51,11 @@ interface InProcessReferenceTransport {
 }
 
 export async function createReferenceInProcessTransport(
-  mode: ReferenceMode,
+  faults: string[],
   onStdout: (line: string) => void,
   onStderr: (line: string) => void,
 ): Promise<InProcessReferenceTransport> {
-  const agent = new ReferenceAgent(mode, onStdout, onStderr);
+  const agent = new ReferenceAgent(faults, onStdout, onStderr);
   return {
     async receive(line: string): Promise<void> {
       await agent.receive(line);
@@ -74,12 +79,15 @@ export class ReferenceAgent {
   private nextMessageId = 1;
   private nextToolCallId = 1;
   private nextTerminalId = 1;
+  private readonly faults: Set<ReferenceFault>;
 
   constructor(
-    private readonly mode: ReferenceMode,
+    faults: string[],
     private readonly emitStdout: (line: string) => void,
     private readonly emitStderr: (line: string) => void,
-  ) {}
+  ) {
+    this.faults = new Set(faults.filter((fault): fault is ReferenceFault => this.isReferenceFault(fault)));
+  }
 
   async receive(line: string): Promise<void> {
     let message: JsonRpcMessage;
@@ -326,7 +334,18 @@ export class ReferenceAgent {
       history: [],
       scenario: null,
     });
-    const result = this.version === 1 ? { sessionId, modes: null, configOptions: null } : { sessionId };
+    if (this.version === 1 && this.hasFault('timeout-v1-session-new')) {
+      return;
+    }
+    if (this.version === 1 && (this.hasFault('omit-v1-session-new-session-id') || this.hasFault('wrong-type-v1-session-new-session-id'))) {
+      await this.emitMessage({
+        jsonrpc: '2.0',
+        id: message.id,
+        result: this.v1SessionNewResult(sessionId),
+      });
+      return;
+    }
+    const result = this.version === 1 ? this.v1SessionNewResult(sessionId) : { sessionId };
     await this.sendSuccess(message.id, 'session/new', result);
   }
 
@@ -474,7 +493,7 @@ export class ReferenceAgent {
         },
       },
     });
-    if (this.mode === 'bad') {
+    if (this.hasFault('omit-v1-prompt-stop-reason')) {
       await this.emitMessage({
         jsonrpc: '2.0',
         id: context.v1RequestId!,
@@ -720,7 +739,7 @@ export class ReferenceAgent {
         },
       },
     });
-    if (this.mode === 'bad') {
+    if (this.hasFault('omit-v1-prompt-stop-reason')) {
       await this.emitMessage({
         jsonrpc: '2.0',
         id: context.v1RequestId!,
@@ -844,7 +863,7 @@ export class ReferenceAgent {
       },
     });
 
-    if (this.mode === 'bad') {
+    if (this.hasFault('illegal-v2-fs-read-text-file')) {
       await this.emitMessage({
         jsonrpc: '2.0',
         id: this.nextAgentRequestId++,
@@ -1011,6 +1030,27 @@ export class ReferenceAgent {
     this.emitStdout(JSON.stringify(message));
   }
 
+  private v1SessionNewResult(sessionId: string): Record<string, JsonValue> {
+    if (this.hasFault('omit-v1-session-new-session-id')) {
+      return {
+        modes: null,
+        configOptions: null,
+      };
+    }
+    if (this.hasFault('wrong-type-v1-session-new-session-id')) {
+      return {
+        sessionId: 12345,
+        modes: null,
+        configOptions: null,
+      };
+    }
+    return {
+      sessionId,
+      modes: null,
+      configOptions: null,
+    };
+  }
+
   private extractRequestedVersion(params: JsonValue | undefined): ProtocolVersion | undefined {
     if (!params || typeof params !== 'object' || Array.isArray(params)) {
       return undefined;
@@ -1021,6 +1061,20 @@ export class ReferenceAgent {
 
   private newMessageId(prefix: 'user' | 'agent'): string {
     return `msg_${prefix}_${String(this.nextMessageId++).padStart(4, '0')}`;
+  }
+
+  private hasFault(fault: ReferenceFault): boolean {
+    return this.faults.has(fault);
+  }
+
+  private isReferenceFault(fault: string): fault is ReferenceFault {
+    return (
+      fault === 'illegal-v2-fs-read-text-file' ||
+      fault === 'omit-v1-prompt-stop-reason' ||
+      fault === 'omit-v1-session-new-session-id' ||
+      fault === 'timeout-v1-session-new' ||
+      fault === 'wrong-type-v1-session-new-session-id'
+    );
   }
 
   private knownMethodsForVersion(version: ProtocolVersion): Set<string> {

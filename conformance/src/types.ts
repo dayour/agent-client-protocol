@@ -61,7 +61,7 @@ export interface ValidationFailure {
 
 export interface CaseFailure {
   message: string;
-  details?: ValidationFailure;
+  details?: unknown;
 }
 
 export interface CaseResult {
@@ -84,6 +84,9 @@ export interface RunSummary {
   passed: number;
   failed: number;
   skipped: number;
+  aborted: boolean;
+  runFailure?: string;
+  reportPath?: string;
   cases: CaseResult[];
 }
 
@@ -104,6 +107,8 @@ export interface TargetSpec {
   env?: Record<string, string>;
   build?: BuildSpec;
   referenceMode?: 'good' | 'bad';
+  faults?: string[];
+  requestTimeoutMs?: number;
 }
 
 export interface ConformanceCaseContext {

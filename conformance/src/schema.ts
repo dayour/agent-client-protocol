@@ -67,7 +67,7 @@ export class SchemaRegistry {
       },
     );
     if (!validator(message)) {
-      throw this.validationError('jsonrpc-error', 'agent-to-client', validator.errors ?? [], raw, message);
+      throw this.validationError(version, 'jsonrpc-error', 'agent-to-client', validator.errors ?? [], raw, message);
     }
   }
 
@@ -79,7 +79,7 @@ export class SchemaRegistry {
     const validator = this.memoizedValidator(state, key, this.buildEnvelopeSchema(version, sender, kind, message, responseMethod));
     if (!validator(message)) {
       const method = kind === 'response' ? responseMethod ?? 'unknown-response' : (message as JsonRpcRequest | JsonRpcNotification).method;
-      throw this.validationError(method, direction, validator.errors ?? [], raw, message);
+      throw this.validationError(version, method, direction, validator.errors ?? [], raw, message);
     }
   }
 
@@ -246,6 +246,7 @@ export class SchemaRegistry {
   }
 
   private validationError(
+    version: ProtocolVersion,
     method: string,
     direction: 'client-to-agent' | 'agent-to-client',
     errors: ErrorObject[],
@@ -254,11 +255,12 @@ export class SchemaRegistry {
   ): Error & { details: ValidationFailure } {
     const first = errors[0];
     const path = first?.instancePath || '/';
+    const expected = this.describeExpected(version, method, first, message);
     const details: ValidationFailure = {
       method,
       direction,
       path,
-      expected: this.describeExpected(first),
+      expected,
       actual: stringifyValue(path === '/' ? message : this.lookup(message, path)),
       rawMessage: raw,
     };
@@ -269,9 +271,20 @@ export class SchemaRegistry {
     return error;
   }
 
-  private describeExpected(error?: ErrorObject): string {
+  private describeExpected(version: ProtocolVersion, method: string, error: ErrorObject | undefined, message: unknown): string {
     if (!error) {
       return 'schema match';
+    }
+    if (
+      error.keyword === 'const' &&
+      (error.params as { allowedValue?: unknown }).allowedValue === '__method_not_allowed__' &&
+      method !== '__method_not_allowed__'
+    ) {
+      const actualMethod =
+        message && typeof message === 'object' && 'method' in (message as Record<string, unknown>)
+          ? String((message as Record<string, unknown>).method)
+          : method;
+      return `method "${actualMethod}" is not part of protocol v${version}`;
     }
     switch (error.keyword) {
       case 'required':

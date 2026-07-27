@@ -12,99 +12,118 @@ export interface RunOptions {
 }
 
 export async function runSuite(target: TargetSpec, options: RunOptions = {}): Promise<RunSummary> {
-  const preparedTarget = await prepareTarget(target);
   const startedAt = isoNow();
-  const actualVersions = [...preparedTarget.requestedVersions];
   const results: CaseResult[] = [];
+  let preparedTarget: TargetSpec | undefined;
+  let requestedVersions = [...target.requestedVersions];
+  let actualVersions: number[] = [];
+  let aborted = false;
+  let runFailure: string | undefined;
 
-  console.log(`ACP Conformance Suite`);
-  console.log(`Target: ${preparedTarget.name}`);
-  console.log(`Driver: ${preparedTarget.driver}`);
-  console.log(`Requested versions: ${preparedTarget.requestedVersions.join(', ')}`);
-  console.log('');
+  try {
+    preparedTarget = await prepareTarget(target);
+    requestedVersions = [...preparedTarget.requestedVersions];
+    actualVersions = [...preparedTarget.requestedVersions];
 
-  for (const version of preparedTarget.requestedVersions) {
-    console.log(`[v${version}] Starting cases`);
-    for (const testCase of conformanceCases.filter((candidate) => candidate.versions.includes(version))) {
-      if (testCase.driverSupport && !testCase.driverSupport.includes(preparedTarget.driver)) {
-        results.push({
-          id: testCase.id,
-          title: testCase.title,
-          protocolVersion: version,
-          status: 'skipped',
-          durationMs: 0,
-          notes: [`driver ${preparedTarget.driver} is not supported by this case`],
-        });
-        console.log(`SKIP [v${version}] ${testCase.id} - driver ${preparedTarget.driver} not supported`);
-        continue;
-      }
-
-      const started = Date.now();
-      const connection = await openConnection(preparedTarget, version);
-      try {
-        await testCase.run(connection, { target: preparedTarget, version });
-        const durationMs = Date.now() - started;
-        results.push({
-          id: testCase.id,
-          title: testCase.title,
-          protocolVersion: version,
-          status: 'passed',
-          durationMs,
-          notes: [],
-        });
-        console.log(`PASS [v${version}] ${testCase.id} (${durationMs}ms)`);
-      } catch (error) {
-        const durationMs = Date.now() - started;
-        const failure = error as Error & { details?: unknown };
-        results.push({
-          id: testCase.id,
-          title: testCase.title,
-          protocolVersion: version,
-          status: 'failed',
-          durationMs,
-          notes: [],
-          failure: {
-            message: failure.message,
-            details: failure.details as never,
-          },
-        });
-        console.log(`FAIL [v${version}] ${testCase.id} (${durationMs}ms)`);
-        console.log(`  ${failure.message}`);
-      } finally {
-        await connection.close();
-      }
-    }
+    console.log(`ACP Conformance Suite`);
+    console.log(`Target: ${preparedTarget.name}`);
+    console.log(`Driver: ${preparedTarget.driver}`);
+    console.log(`Requested versions: ${preparedTarget.requestedVersions.join(', ')}`);
     console.log('');
+
+    for (const version of preparedTarget.requestedVersions) {
+      console.log(`[v${version}] Starting cases`);
+      for (const testCase of conformanceCases.filter((candidate) => candidate.versions.includes(version))) {
+        if (testCase.driverSupport && !testCase.driverSupport.includes(preparedTarget.driver)) {
+          results.push({
+            id: testCase.id,
+            title: testCase.title,
+            protocolVersion: version,
+            status: 'skipped',
+            durationMs: 0,
+            notes: [`driver ${preparedTarget.driver} is not supported by this case`],
+          });
+          console.log(`SKIP [v${version}] ${testCase.id} - driver ${preparedTarget.driver} not supported`);
+          continue;
+        }
+
+        const started = Date.now();
+        let connection;
+        try {
+          connection = await openConnection(preparedTarget, version);
+          await testCase.run(connection, { target: preparedTarget, version });
+          const durationMs = Date.now() - started;
+          results.push({
+            id: testCase.id,
+            title: testCase.title,
+            protocolVersion: version,
+            status: 'passed',
+            durationMs,
+            notes: [],
+          });
+          console.log(`PASS [v${version}] ${testCase.id} (${durationMs}ms)`);
+        } catch (error) {
+          const durationMs = Date.now() - started;
+          const failure = error as Error & { details?: unknown };
+          results.push({
+            id: testCase.id,
+            title: testCase.title,
+            protocolVersion: version,
+            status: 'failed',
+            durationMs,
+            notes: [],
+            failure: {
+              message: failure.message,
+              details: failure.details,
+            },
+          });
+          console.log(`FAIL [v${version}] ${testCase.id} (${durationMs}ms)`);
+          console.log(`  ${failure.message}`);
+        } finally {
+          await connection?.close();
+        }
+      }
+      console.log('');
+    }
+  } catch (error) {
+    aborted = true;
+    const failure = error as Error;
+    runFailure = failure.message;
+    console.log('FATAL');
+    console.log(`  ${runFailure}`);
   }
 
   const finishedAt = isoNow();
   const summary: RunSummary = {
-    target: preparedTarget.name,
-    driver: preparedTarget.driver,
-    requestedVersions: preparedTarget.requestedVersions,
+    target: preparedTarget?.name ?? target.name,
+    driver: preparedTarget?.driver ?? target.driver,
+    requestedVersions,
     actualVersions,
     startedAt,
     finishedAt,
     passed: results.filter((result) => result.status === 'passed').length,
     failed: results.filter((result) => result.status === 'failed').length,
     skipped: results.filter((result) => result.status === 'skipped').length,
+    aborted,
+    runFailure,
     cases: results,
   };
 
-  printSummary(summary);
   if (options.reportPath) {
     const resolvedReportPath = path.isAbsolute(options.reportPath) ? options.reportPath : path.resolve(packageRoot, options.reportPath);
-    await fs.mkdir(path.dirname(resolvedReportPath), { recursive: true });
-    await fs.writeFile(resolvedReportPath, JSON.stringify(summary, null, 2));
-    console.log(`JSON report: ${resolvedReportPath}`);
+    try {
+      await fs.mkdir(path.dirname(resolvedReportPath), { recursive: true });
+      await fs.writeFile(resolvedReportPath, JSON.stringify(summary, null, 2));
+      summary.reportPath = resolvedReportPath;
+    } catch (error) {
+      const failure = error as Error;
+      summary.aborted = true;
+      summary.runFailure = summary.runFailure ?? `Failed to write report ${resolvedReportPath}: ${failure.message}`;
+    }
   }
-
-  if (summary.failed > 0 && !options.expectedFail) {
-    throw new Error(`Conformance suite failed with ${summary.failed} failing case(s)`);
-  }
-
-  if (summary.failed === 0 && options.expectedFail) {
-    throw new Error(`Expected target ${preparedTarget.name} to fail, but all conformance cases passed`);
+  printSummary(summary);
+  if (summary.reportPath) {
+    console.log(`JSON report: ${summary.reportPath}`);
   }
 
   return summary;
@@ -115,6 +134,10 @@ function printSummary(summary: RunSummary): void {
   console.log(`  Passed: ${summary.passed}`);
   console.log(`  Failed: ${summary.failed}`);
   console.log(`  Skipped: ${summary.skipped}`);
+  console.log(`  Aborted: ${summary.aborted ? 'yes' : 'no'}`);
   console.log(`  Started: ${summary.startedAt}`);
   console.log(`  Finished: ${summary.finishedAt}`);
+  if (summary.runFailure) {
+    console.log(`  Run failure: ${summary.runFailure}`);
+  }
 }

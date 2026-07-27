@@ -2,6 +2,8 @@
 
 This package is a self-contained, executable conformance suite for the Agent Client Protocol (ACP). It validates real JSON-RPC traffic against the repository's generated schemas in `../schema/v1/schema.json` and `../schema/v2/schema.json`, drives deterministic protocol scenarios over a real transport, and proves both success and failure with bundled reference targets.
 
+Every outbound request is bounded by a timeout, every schema validation failure rejects the in-flight request that triggered it, and the runner writes a JSON report plus a terminal summary on both success and failure paths.
+
 ## What it validates
 
 The suite focuses on the protocol behaviors that can hide false parity claims:
@@ -75,10 +77,21 @@ npm run test:negative
 npm run test:in-process
 ```
 
+`npm run test:negative` does two things:
+
+1. runs the original bundled non-conforming target
+2. runs three injectable fault profiles that prove the harness fails cleanly for:
+   - missing required response fields
+   - wrong scalar response types
+   - requests that never receive a response
+
 Reports are written to `.artifacts/` and ignored by Git:
 
 - `.artifacts/reference-report.json`
 - `.artifacts/reference-bad-report.json`
+- `.artifacts/reference-fault-missing-session-id.json`
+- `.artifacts/reference-fault-wrong-type-session-id.json`
+- `.artifacts/reference-fault-timeout-session-new.json`
 - `.artifacts/reference-in-process-report.json`
 
 ## Pointing the suite at an external stdio target
@@ -123,6 +136,8 @@ These are valid extension methods under:
 
 The conformance assertions still operate on standard ACP traffic. The extension methods only select deterministic scenarios so the suite can prove the standard protocol flows.
 
+For explicit failure injection without source edits, the CLI also accepts repeated `--fault <name>` flags for the bundled reference target. The bundled negative suite uses this to inject schema-visible faults and timeout faults from the command line rather than by editing the reference implementation.
+
 ## Intended downstream targets
 
 These are the next intended adapters or launch targets, but this task does not run them:
@@ -142,6 +157,8 @@ Each run produces:
   - pass/fail counts
   - per-case duration
   - structured failure details
+  - whether the run aborted before completing every case
+  - a top-level run failure reason when startup, transport, or report-writing fails
 
 Schema validation failures include:
 
@@ -151,6 +168,8 @@ Schema validation failures include:
 - expected shape or field
 - actual value
 - raw message
+
+Timeout failures include the original method name and the request id so silent or wedged targets fail as bounded diagnostics rather than hanging the suite.
 
 ## Adding a new test case
 

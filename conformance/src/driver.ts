@@ -25,13 +25,15 @@ import { createReferenceInProcessTransport } from './reference-agent.js';
 
 interface Transport {
   readonly kind: TransportKind;
-  start(onStdout: (line: string) => void, onStderr: (line: string) => void): Promise<void>;
+  start(onStdout: (line: string) => void, onStderr: (line: string) => void, onFatal: (error: Error) => void): Promise<void>;
   sendLine(line: string): Promise<void>;
   close(): Promise<void>;
 }
 
 interface PendingResponse {
   method: string;
+  requestId: string | number;
+  timeout: NodeJS.Timeout;
   resolve: (message: JsonRpcSuccessResponse | JsonRpcErrorResponse) => void;
   reject: (error: Error) => void;
 }
@@ -63,18 +65,24 @@ export class HarnessConnection {
   private nextId = 1;
   private closed = false;
   private fatalError?: Error;
+  private readonly requestTimeoutMs: number;
 
   constructor(
     readonly target: TargetSpec,
     readonly version: ProtocolVersion,
     private readonly transport: Transport,
-  ) {}
+  ) {
+    this.requestTimeoutMs = target.requestTimeoutMs ?? 5_000;
+  }
 
   async start(): Promise<void> {
     await this.transport.start(
       (line) => this.handleStdout(line),
       (line) => {
         this.transcript.push({ timestamp: isoNow(), direction: 'stderr', raw: line });
+      },
+      (error) => {
+        this.failAll(error);
       },
     );
   }
@@ -108,9 +116,23 @@ export class HarnessConnection {
     }
     this.transcript.push({ timestamp: isoNow(), direction: 'client->agent', raw, parsed: message });
     const responsePromise = new Promise<JsonRpcSuccessResponse | JsonRpcErrorResponse>((resolve, reject) => {
-      this.pendingResponses.set(id, { method, resolve, reject });
+      const timeout = setTimeout(() => {
+        this.pendingResponses.delete(id);
+        reject(new Error(`No response within ${this.requestTimeoutMs}ms for ${method} request id ${String(id)}`));
+      }, this.requestTimeoutMs);
+      this.pendingResponses.set(id, { method, requestId: id, timeout, resolve, reject });
     });
-    await this.transport.sendLine(raw);
+    try {
+      await this.transport.sendLine(raw);
+    } catch (error) {
+      const pending = this.pendingResponses.get(id);
+      if (pending) {
+        clearTimeout(pending.timeout);
+        this.pendingResponses.delete(id);
+        pending.reject(error as Error);
+      }
+      throw error;
+    }
     return { id, response: responsePromise };
   }
 
@@ -245,6 +267,7 @@ export class HarnessConnection {
     }
     this.closed = true;
     for (const [, pending] of this.pendingResponses) {
+      clearTimeout(pending.timeout);
       pending.reject(new Error('Connection closed before response arrived'));
     }
     this.pendingResponses.clear();
@@ -301,16 +324,19 @@ export class HarnessConnection {
       this.schema.validateInbound(this.version, 'agent', parsed, line, pending.method);
     } catch (error) {
       this.pendingResponses.delete(id as string | number);
+      clearTimeout(pending.timeout);
       pending.reject(error as Error);
       return;
     }
     this.pendingResponses.delete(id as string | number);
+    clearTimeout(pending.timeout);
     pending.resolve(parsed as JsonRpcSuccessResponse | JsonRpcErrorResponse);
   }
 
   private failAll(error: Error): void {
     this.fatalError = error;
     for (const [, pending] of this.pendingResponses) {
+      clearTimeout(pending.timeout);
       pending.reject(error);
     }
     this.pendingResponses.clear();
@@ -336,7 +362,7 @@ class StdioTransport implements Transport {
 
   constructor(private readonly target: TargetSpec) {}
 
-  async start(onStdout: (line: string) => void, onStderr: (line: string) => void): Promise<void> {
+  async start(onStdout: (line: string) => void, onStderr: (line: string) => void, onFatal: (error: Error) => void): Promise<void> {
     if (!this.target.command) {
       throw new Error('Missing command for stdio transport');
     }
@@ -356,8 +382,15 @@ class StdioTransport implements Transport {
     const stderrRl = readline.createInterface({ input: child.stderr! });
     stderrRl.on('line', onStderr);
 
+    child.on('error', (error) => {
+      onFatal(new Error(`target process error: ${error.message}`));
+    });
+
     child.on('exit', (code, signal) => {
       onStderr(`target exited with code=${String(code)} signal=${String(signal)}`);
+      if (code !== 0 && code !== null) {
+        onFatal(new Error(`target exited with code=${String(code)} signal=${String(signal)}`));
+      }
     });
   }
 
@@ -381,7 +414,9 @@ class StdioTransport implements Transport {
       return;
     }
     this.child.stdin?.end();
-    this.child.kill();
+    if (!this.child.killed) {
+      this.child.kill();
+    }
   }
 }
 
@@ -393,10 +428,10 @@ class InProcessTransport implements Transport {
 
   constructor(private readonly target: TargetSpec) {}
 
-  async start(onStdout: (line: string) => void, onStderr: (line: string) => void): Promise<void> {
+  async start(onStdout: (line: string) => void, onStderr: (line: string) => void, _onFatal: (error: Error) => void): Promise<void> {
     this.stdoutHandler = onStdout;
     this.stderrHandler = onStderr;
-    this.endpoint = await createReferenceInProcessTransport(this.target.referenceMode ?? 'good', onStdout, onStderr);
+    this.endpoint = await createReferenceInProcessTransport(this.target.faults ?? [], onStdout, onStderr);
   }
 
   async sendLine(line: string): Promise<void> {

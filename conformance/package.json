@@ -6,7 +6,9 @@
   "description": "Executable ACP conformance suite with schema-backed validation and reference targets",
   "scripts": {
     "test": "tsx src/cli.ts run --profile reference-stdio --report .artifacts/reference-report.json",
-    "test:negative": "tsx src/cli.ts run --profile reference-bad-stdio --expected-fail --report .artifacts/reference-bad-report.json",
+    "test:negative": "tsx src/cli.ts run --profile reference-bad-stdio --expected-fail --report .artifacts/reference-bad-report.json && tsx src/fault-suite.ts",
+    "test:negative:baseline": "tsx src/cli.ts run --profile reference-bad-stdio --expected-fail --report .artifacts/reference-bad-report.json",
+    "test:negative:faults": "tsx src/fault-suite.ts",
     "test:in-process": "tsx src/cli.ts run --profile reference-in-process --report .artifacts/reference-in-process-report.json"
   },
   "dependencies": {

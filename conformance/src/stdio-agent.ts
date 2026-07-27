@@ -2,9 +2,15 @@ import readline from 'node:readline';
 
 import { ReferenceAgent } from './reference-agent.js';
 
-const mode = process.env.ACP_REFERENCE_MODE === 'bad' ? 'bad' : 'good';
+const faults = [
+  ...(process.env.ACP_REFERENCE_MODE === 'bad' ? ['omit-v1-prompt-stop-reason', 'illegal-v2-fs-read-text-file'] : []),
+  ...((process.env.ACP_REFERENCE_FAULTS ?? '')
+    .split(',')
+    .map((value) => value.trim())
+    .filter((value) => value.length > 0)),
+];
 const agent = new ReferenceAgent(
-  mode,
+  faults,
   (line) => {
     process.stdout.write(`${line}\n`);
   },
