@@ -2,15 +2,44 @@
 
 ## [Unreleased]
 
+### Added
+
+- *(conformance)* Executable ACP conformance suite under `conformance/`, with a reference agent, stdio and in-process transports, and 18 protocol cases covering v1 and v2. `npm run test:conformance` runs the positive suite; `npm run test:conformance:negative` runs a deliberately non-conforming agent plus fault injection, so the harness is proven able to detect failure rather than merely reporting success.
+- *(conformance)* Fault injection with a closed set of named faults. An unrecognized `--fault` name is now a hard error; it was previously discarded silently, which made a non-conforming run report a clean pass.
+- *(conformance)* Late-transport fault detection. Every case now drains a settle window and asserts connection health before recording a pass, so a malformed message that is the last thing on the wire can no longer slip through after a turn completes.
+- *(ci)* Conformance suite job on the ubuntu, windows, and macOS matrix, running both the positive and negative suites.
+- *(ci)* Cross-platform build, lint, and test matrix, a generated-artifact drift gate on all three operating systems, a minimum-supported-Rust-version job, a feature-powerset check, and supply-chain auditing via `cargo-deny`.
+- *(rust)* Round-trip tests proving the schema types serialize through the JSON-RPC envelope types for `initialize`, `session/new`, and `session/update`.
+
+### Changed
+
+- *(schema)* **Breaking, v2 draft only.** Malformed-but-present values in state-bearing v2 payloads are now rejected instead of being silently replaced with defaults. This applies to the `unstable_protocol_v2` draft surface and implements the strictness doctrine already documented in the v2 migration guide. Stable v1 is deliberately unchanged; see below.
+- *(schema)* Stable v1 keeps upstream-compatible tolerant decoding, but tolerance is now observable. Every tolerant v1 field routes malformed values through a shared skip listener, so a dropped value can be inspected rather than vanishing silently. The generated v1 schema is byte-for-byte unchanged in meaning: all 242 `x-deserialize-default-on-error` annotations are retained. Measured cost of the observable decoder is 1.16x on a tolerant-field-heavy struct.
+- *(schema-generator)* Removed the artifact equivalence and skip subsystem. It compared generated markdown with all whitespace stripped, so a structural change such as joining two list items onto one line was judged equivalent and the write was skipped, leaving a corrupted artifact in place while reporting success. Generation now always writes; `npm run generate` already ends in `npm run format`, which produces the committed bytes.
+- *(tooling)* Removed the prettier wrapper fallback so the pinned prettier version in the lockfile is always the one that runs.
+
 ### Fixed
 
 - *(schema-generator)* Normalize rustdoc paths on Windows so v1 and v2 side-doc extraction works with backslash-separated filenames.
 - *(schema-generator)* Report the missing side-doc type and method when generated documentation lookup fails.
-- *(registry)* Read and write registry documentation as UTF-8 so non-ASCII agent metadata is preserved on Windows.
+- *(schema-generator)* Anchor path matching so unrelated paths sharing a prefix are not treated as matches.
+- *(rust)* Drop a stale `#[expect(clippy::too_many_lines)]` that became unfulfilled once the equivalence subsystem was removed, which failed `cargo clippy -- -D warnings`.
+- *(registry)* Read and write registry documentation as UTF-8 so non-ASCII agent metadata is preserved on Windows. The previous behavior truncated `registry.mdx` to zero bytes on a `UnicodeEncodeError`.
+- *(registry)* Preserve whitespace and `tspan` text when sanitizing agent icon SVGs, and escape braces so MDX does not interpret them. The previous sanitizer silently stripped child `width` and `height` attributes.
+- *(registry)* Add a safe generator CLI and make the sync workflow's fork posture explicit so a fork does not push registry updates to the wrong remote.
+- *(ci)* Add `.gitattributes` with `* text=auto eol=lf`. On Windows checkouts with `core.autocrlf=true` and no `.gitattributes`, `prettier --check` reported nearly every file as misformatted purely because of line endings.
+- *(tooling)* Exclude `CLAUDE.md` from prettier. It is a symlink to `AGENTS.md`; formatting it on a Windows checkout with `core.symlinks=false` rewrites the symlink target and breaks the link on Linux and macOS.
+- *(tooling)* Exclude `conformance/.artifacts` from prettier. Prettier only honors the root `.gitignore`, so running the conformance suite left machine-written reports that failed `format:check`.
+- *(schema)* Restore prettier formatting to generated schema and documentation artifacts so the generated-artifact drift gate reproduces the committed bytes.
 
 ### Documentation
 
 - Document the Windows UNC working-directory limitation and the drive-backed workflow for npm, schema generation, registry generation, and local docs preview.
+- *(rust)* Clarify that this repository ships the ACP schema and types, not the Rust runtime. The runtime is published separately as the `agent-client-protocol` crate.
+- *(rfd)* Record the Rust runtime package boundary decision, including the version constraint that keeps the runtime out of this workspace: published runtime `v2.0.0` pins `agent-client-protocol-schema = "=1.5.0"` while this workspace is at `1.6.0`, so consuming it in-tree would resolve two incompatible copies of the schema types.
+- *(rfd)* Add an RFD proposing that stable v1 `initialize` decoding be tightened upstream, rather than diverging in this fork.
+- Clarify fork provenance in the README.
+
 
 ## [1.6.0](https://github.com/agentclientprotocol/agent-client-protocol/compare/v1.5.0...v1.6.0) - 2026-07-21
 
