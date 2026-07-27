@@ -1,0 +1,460 @@
+from __future__ import annotations
+
+import contextlib
+import io
+import os
+import sys
+import tempfile
+import unittest
+from pathlib import Path
+from unittest import mock
+
+SCRIPT_DIR = Path(__file__).resolve().parent
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
+
+import generate_registry_docs as registry_docs
+
+
+class _PartialWriteThenFail:
+    def __init__(self, path: Path) -> None:
+        self._path = path
+        self._handle = path.open("w", encoding="utf-8", newline="\n")
+        self.name = str(path)
+
+    def __enter__(self) -> _PartialWriteThenFail:
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback) -> bool:
+        self._handle.close()
+        return False
+
+    def write(self, content: str) -> int:
+        partial = content[:8]
+        self._handle.write(partial)
+        self._handle.flush()
+        raise UnicodeEncodeError("cp1252", "Δ", 0, 1, "ordinal not in range")
+
+    def flush(self) -> None:
+        self._handle.flush()
+
+    def fileno(self) -> int:
+        return self._handle.fileno()
+
+
+def _read_text(path: Path) -> str:
+    with path.open("r", encoding="utf-8", newline="") as handle:
+        return handle.read()
+
+
+class GenerateRegistryDocsTests(unittest.TestCase):
+    def test_main_help_exits_without_fetch_or_write(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output_path = Path(temp_dir) / "registry.mdx"
+            stdout_buffer = io.StringIO()
+            stderr_buffer = io.StringIO()
+
+            with (
+                mock.patch.dict(
+                    os.environ,
+                    {"REGISTRY_OUTPUT_PATH": str(output_path)},
+                    clear=False,
+                ),
+                mock.patch.object(
+                    registry_docs,
+                    "generate_registry_docs",
+                    side_effect=AssertionError("generate_registry_docs should not run"),
+                ) as generate_mock,
+                mock.patch.object(
+                    registry_docs,
+                    "_make_request",
+                    side_effect=AssertionError("_make_request should not run"),
+                ) as request_mock,
+                contextlib.redirect_stdout(stdout_buffer),
+                contextlib.redirect_stderr(stderr_buffer),
+            ):
+                with self.assertRaises(SystemExit) as exc:
+                    registry_docs.main(["--help"])
+
+            self.assertEqual(exc.exception.code, 0)
+            generate_mock.assert_not_called()
+            request_mock.assert_not_called()
+            self.assertFalse(output_path.exists())
+            self.assertIn("usage:", stdout_buffer.getvalue())
+            self.assertIn("--registry-url", stdout_buffer.getvalue())
+            self.assertEqual(stderr_buffer.getvalue(), "")
+
+    def test_main_unknown_flag_exits_without_fetch_or_write(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output_path = Path(temp_dir) / "registry.mdx"
+            stdout_buffer = io.StringIO()
+            stderr_buffer = io.StringIO()
+
+            with (
+                mock.patch.dict(
+                    os.environ,
+                    {"REGISTRY_OUTPUT_PATH": str(output_path)},
+                    clear=False,
+                ),
+                mock.patch.object(
+                    registry_docs,
+                    "generate_registry_docs",
+                    side_effect=AssertionError("generate_registry_docs should not run"),
+                ) as generate_mock,
+                mock.patch.object(
+                    registry_docs,
+                    "_make_request",
+                    side_effect=AssertionError("_make_request should not run"),
+                ) as request_mock,
+                contextlib.redirect_stdout(stdout_buffer),
+                contextlib.redirect_stderr(stderr_buffer),
+            ):
+                with self.assertRaises(SystemExit) as exc:
+                    registry_docs.main(["--unknown-flag"])
+
+            self.assertEqual(exc.exception.code, 2)
+            generate_mock.assert_not_called()
+            request_mock.assert_not_called()
+            self.assertFalse(output_path.exists())
+            self.assertEqual(stdout_buffer.getvalue(), "")
+            self.assertIn("unrecognized arguments: --unknown-flag", stderr_buffer.getvalue())
+
+    def test_sanitize_svg_strips_active_content(self) -> None:
+        svg = """
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
+          <script>alert(1)</script>
+          <foreignObject><div>bad</div></foreignObject>
+          <rect width="16" height="16" fill="currentColor" onload="alert(1)" />
+          <use href="https://evil.example/icon.svg#part" />
+        </svg>
+        """
+
+        sanitized = registry_docs._sanitize_svg(svg)
+
+        self.assertIn('className="agent-icon"', sanitized)
+        self.assertIn("<rect", sanitized)
+        self.assertNotIn("<script", sanitized)
+        self.assertNotIn("foreignObject", sanitized)
+        self.assertNotIn("onload=", sanitized)
+        self.assertNotIn("<use", sanitized)
+        self.assertNotIn("https://evil.example", sanitized)
+
+    def test_sanitize_svg_preserves_legitimate_primitives_and_internal_refs(self) -> None:
+        svg = """
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" overflow="visible">
+          <title>Legit Icon</title>
+          <defs>
+            <linearGradient id="grad" gradientUnits="userSpaceOnUse">
+              <stop offset="0" stop-color="currentColor" stop-opacity="0.2" />
+              <stop offset="1" stop-color="currentColor" />
+            </linearGradient>
+            <radialGradient id="rad">
+              <stop offset="0.5" stop-color="currentColor" />
+            </radialGradient>
+            <clipPath id="clip">
+              <rect x="1" y="1" width="14" height="14" rx="2" />
+            </clipPath>
+            <mask id="mask" maskUnits="userSpaceOnUse" mask-content-units="userSpaceOnUse">
+              <circle cx="8" cy="8" r="6" fill="white" />
+            </mask>
+            <path id="shape" d="M2 2H14V14H2Z" />
+          </defs>
+          <g transform="translate(0 0)" clip-path="url(#clip)" mask="url(#mask)" opacity="0.9">
+            <use href="#shape" fill="url(#grad)" />
+            <polygon points="8,2 14,14 2,14" fill="url(#rad)" fill-rule="evenodd" clip-rule="evenodd" />
+            <rect x="2" y="2" width="12" height="12" rx="2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+            <text x="8" y="10.5" text-anchor="middle" font-size="8" font-family="Georgia, serif" font-style="italic" font-weight="700" letter-spacing="-0.2" fill="currentColor">Δ</text>
+          </g>
+        </svg>
+        """
+
+        sanitized = registry_docs._sanitize_svg(svg)
+
+        self.assertIn("<title>Legit Icon</title>", sanitized)
+        self.assertIn("<defs>", sanitized)
+        self.assertIn("<linearGradient", sanitized)
+        self.assertIn("<radialGradient", sanitized)
+        self.assertIn("<clipPath", sanitized)
+        self.assertIn("<mask", sanitized)
+        self.assertIn('<use href="#shape"', sanitized)
+        self.assertIn('mask="url(#mask)"', sanitized)
+        self.assertIn('clipPath="url(#clip)"', sanitized)
+        self.assertIn("fillRule=", sanitized)
+        self.assertIn("clipRule=", sanitized)
+        self.assertIn("strokeWidth=", sanitized)
+        self.assertIn("strokeLinecap=", sanitized)
+        self.assertIn("strokeLinejoin=", sanitized)
+        self.assertIn("gradientUnits=", sanitized)
+        self.assertIn("textAnchor=", sanitized)
+        self.assertIn("fontSize=", sanitized)
+        self.assertIn("fontFamily=", sanitized)
+        self.assertIn("fontStyle=", sanitized)
+        self.assertIn("fontWeight=", sanitized)
+        self.assertIn("letterSpacing=", sanitized)
+        self.assertIn(">Δ</text>", sanitized)
+
+    def test_sanitize_svg_escapes_braces_in_text_nodes_for_jsx(self) -> None:
+        svg = """
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
+          <title>{title}</title>
+          <text x="8" y="10">{value}</text>
+        </svg>
+        """
+
+        sanitized = registry_docs._sanitize_svg(svg)
+        rendered = registry_docs._render_agent_cards(
+            [
+                {
+                    "id": "brace-agent",
+                    "name": "Brace Agent",
+                    "description": "desc",
+                    "version": "1.0.0",
+                    "website": "https://example.com",
+                    "repository": "https://github.com/example/brace-agent",
+                }
+            ],
+            {"brace-agent": sanitized},
+        )
+
+        self.assertIn("<title>&#123;title&#125;</title>", rendered)
+        self.assertIn('><text x="8" y="10">&#123;value&#125;</text></svg>', rendered)
+        self.assertNotIn("<title>{title}</title>", rendered)
+        self.assertNotIn(">{value}</text>", rendered)
+        self.assertNotIn("&amp;#123;", rendered)
+
+    def test_sanitize_svg_preserves_tspan_and_tail_text(self) -> None:
+        svg = """
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
+          <text x="1" y="10">Hello <tspan x="4" dx="1" dy="2" font-size="8">W</tspan>orld</text>
+        </svg>
+        """
+
+        sanitized = registry_docs._sanitize_svg(svg)
+
+        self.assertIn("<text x=\"1\" y=\"10\">Hello ", sanitized)
+        self.assertIn(
+            "<tspan x=\"4\" dx=\"1\" dy=\"2\" fontSize=\"8\">W</tspan>orld</text>",
+            sanitized,
+        )
+
+    def test_sanitize_svg_preserves_inter_tspan_space(self) -> None:
+        svg = """
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
+          <text x="0" y="10"><tspan>A</tspan> <tspan>B</tspan></text>
+        </svg>
+        """
+
+        sanitized = registry_docs._sanitize_svg(svg)
+
+        self.assertIn(
+            "<text x=\"0\" y=\"10\"><tspan>A</tspan> <tspan>B</tspan></text>",
+            sanitized,
+        )
+
+    def test_sanitize_svg_escapes_braces_in_tail_text_for_jsx(self) -> None:
+        svg = """
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
+          <text x="1" y="10"><tspan>A</tspan> <tspan>B</tspan> {orld}</text>
+        </svg>
+        """
+
+        sanitized = registry_docs._sanitize_svg(svg)
+        rendered = registry_docs._render_agent_cards(
+            [
+                {
+                    "id": "tspan-agent",
+                    "name": "Tspan Agent",
+                    "description": "desc",
+                    "version": "1.0.0",
+                    "website": "https://example.com",
+                    "repository": "https://github.com/example/tspan-agent",
+                }
+            ],
+            {"tspan-agent": sanitized},
+        )
+
+        self.assertIn(
+            "<text x=\"1\" y=\"10\"><tspan>A</tspan> <tspan>B</tspan> &#123;orld&#125;</text>",
+            rendered,
+        )
+        self.assertNotIn("<tspan>B</tspan> {orld}</text>", rendered)
+        self.assertNotIn("&amp;#123;orld", rendered)
+
+    def test_validate_registry_rejects_javascript_urls(self) -> None:
+        payload = {
+            "agents": [
+                {
+                    "id": "bad-agent",
+                    "name": "Bad Agent",
+                    "description": "Unsafe website",
+                    "version": "1.0.0",
+                    "website": "javascript:alert(1)",
+                }
+            ]
+        }
+
+        with self.assertRaisesRegex(
+            registry_docs.RegistryDocsError, "website must be an absolute https URL"
+        ):
+            registry_docs._validate_registry_payload(payload)
+
+    def test_validate_registry_rejects_javascript_repository_urls(self) -> None:
+        payload = {
+            "agents": [
+                {
+                    "id": "bad-repo",
+                    "name": "Bad Repo",
+                    "description": "Unsafe repository",
+                    "version": "1.0.0",
+                    "repository": "data:text/html;base64,QQ==",
+                }
+            ]
+        }
+
+        with self.assertRaisesRegex(
+            registry_docs.RegistryDocsError, "repository must be an absolute https URL"
+        ):
+            registry_docs._validate_registry_payload(payload)
+
+    def test_validate_registry_rejects_malformed_and_oversized_entries(self) -> None:
+        with self.assertRaisesRegex(
+            registry_docs.RegistryDocsError, "agent at index 0 must be an object"
+        ):
+            registry_docs._validate_registry_payload({"agents": ["not-an-object"]})
+
+        oversized_name = "A" * (registry_docs.MAX_NAME_LENGTH + 1)
+        with self.assertRaisesRegex(
+            registry_docs.RegistryDocsError,
+            f"name exceeds {registry_docs.MAX_NAME_LENGTH} characters",
+        ):
+            registry_docs._validate_registry_payload(
+                {
+                    "agents": [
+                        {
+                            "id": "oversized-agent",
+                            "name": oversized_name,
+                            "description": "desc",
+                            "version": "1.0.0",
+                        }
+                    ]
+                }
+            )
+
+        with self.assertRaisesRegex(
+            registry_docs.RegistryDocsError, "description contains control characters"
+        ):
+            registry_docs._validate_registry_payload(
+                {
+                    "agents": [
+                        {
+                            "id": "control-char-agent",
+                            "name": "Control Char Agent",
+                            "description": "bad\x01description",
+                            "version": "1.0.0",
+                        }
+                    ]
+                }
+            )
+
+    def test_validate_placeholder_count_rejects_missing_placeholder(self) -> None:
+        with self.assertRaisesRegex(
+            registry_docs.RegistryDocsError, "exactly once; found 0"
+        ):
+            registry_docs._validate_placeholder_count("no placeholder here")
+
+    def test_validate_placeholder_count_rejects_multiple_placeholders(self) -> None:
+        template = f"{registry_docs.PLACEHOLDER}\n{registry_docs.PLACEHOLDER}"
+        with self.assertRaisesRegex(
+            registry_docs.RegistryDocsError, "exactly once; found 2"
+        ):
+            registry_docs._validate_placeholder_count(template)
+
+    def test_validate_placeholder_count_accepts_single_placeholder(self) -> None:
+        template = f"before\n{registry_docs.PLACEHOLDER}\nafter\n"
+        rendered = registry_docs._render_output(template, "<CardGroup />")
+        self.assertEqual(rendered, "before\n<CardGroup />\nafter\n")
+
+    def test_atomic_write_keeps_destination_intact_on_failure(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_root = Path(temp_dir)
+            output_path = temp_root / "registry.mdx"
+            output_path.write_text("stable content\n", encoding="utf-8", newline="\n")
+            failing_temp_path = temp_root / ".registry.mdx.partial.tmp"
+
+            def _named_temp_file(*args, **kwargs):
+                return _PartialWriteThenFail(failing_temp_path)
+
+            with mock.patch.object(
+                registry_docs.tempfile, "NamedTemporaryFile", side_effect=_named_temp_file
+            ):
+                with self.assertRaises(UnicodeEncodeError):
+                    registry_docs._write_atomic(output_path, "new Δ content that fails")
+
+            self.assertEqual(_read_text(output_path), "stable content\n")
+            self.assertFalse(failing_temp_path.exists())
+
+    def test_non_ascii_round_trip_uses_utf8(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output_path = Path(temp_dir) / "registry.mdx"
+            content = "Greek delta: Δ\n"
+
+            registry_docs._write_atomic(output_path, content)
+
+            self.assertEqual(_read_text(output_path), content)
+            self.assertIn(b"\xce\x94", output_path.read_bytes())
+
+    def test_generate_registry_docs_from_local_fixture(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_root = Path(temp_dir)
+            template_path = temp_root / "_registry_agents.mdx"
+            output_path = temp_root / "registry.mdx"
+            registry_path = temp_root / "registry.json"
+            icon_path = temp_root / "local-agent.svg"
+
+            template_path.write_text(
+                "---\n## Agents\n\n$$AGENTS_CARDS$$\n",
+                encoding="utf-8",
+                newline="\n",
+            )
+            registry_path.write_text(
+                """
+                {
+                  "agents": [
+                    {
+                      "id": "local-agent",
+                      "name": "Local Agent",
+                      "description": "Handles Δ safely",
+                      "version": "1.2.3",
+                      "website": "https://example.com/agent",
+                      "repository": "https://github.com/example/local-agent"
+                    }
+                  ]
+                }
+                """.strip(),
+                encoding="utf-8",
+                newline="\n",
+            )
+            icon_path.write_text(
+                '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">'
+                '<path d="M1 1H15V15H1Z" fill="currentColor"/></svg>',
+                encoding="utf-8",
+                newline="\n",
+            )
+
+            registry_docs.generate_registry_docs(
+                registry_url=registry_path.as_uri(),
+                icon_base_url=temp_root.as_uri(),
+                template_path=template_path,
+                output_path=output_path,
+            )
+
+            output = _read_text(output_path)
+            self.assertIn("Local Agent", output)
+            self.assertIn("Handles Δ safely", output)
+            self.assertIn("https://example.com/agent", output)
+            self.assertIn("https://github.com/example/local-agent", output)
+            self.assertGreater(output_path.stat().st_size, 0)
+
+
+if __name__ == "__main__":
+    unittest.main()

@@ -9,43 +9,87 @@ on:
     - cron: "15 * * * *" # Every hour at :15
 
 jobs:
+  fork-sync-disabled:
+    name: Fork registry sync posture
+    runs-on: ubuntu-latest
+    if: ${{ github.repository != 'agentclientprotocol/agent-client-protocol' && github.event_name != 'workflow_dispatch' }}
+    steps:
+      - name: Explain fork registry sync posture
+        run: |
+          echo "Registry sync automation is disabled for scheduled fork runs."
+          echo "This fork tracks upstream ACP protocol content but is independently maintained for hardening work."
+          echo "To deliberately regenerate docs in a fork, run this workflow manually with workflow_dispatch and review the resulting changes before opening a PR."
+
   sync:
     name: Sync Registry Documentation
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    if: ${{ github.repository == 'agentclientprotocol/agent-client-protocol' || github.event_name == 'workflow_dispatch' }}
     permissions:
       contents: write
       pull-requests: write
       id-token: write
 
     steps:
+      - name: Check workflow prerequisites
+        id: prereqs
+        env:
+          RELEASE_PLZ_APP_ID: ${{ secrets.RELEASE_PLZ_APP_ID }}
+          RELEASE_PLZ_APP_PRIVATE_KEY: ${{ secrets.RELEASE_PLZ_APP_PRIVATE_KEY }}
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+            if [ -n "$RELEASE_PLZ_APP_ID" ] && [ -n "$RELEASE_PLZ_APP_PRIVATE_KEY" ]; then
+              echo "has_app_token=true" >> "$GITHUB_OUTPUT"
+            else
+              echo "has_app_token=false" >> "$GITHUB_OUTPUT"
+            fi
+            echo "Manual dispatch enabled for deliberate regeneration."
+            exit 0
+          fi
+          if [ -z "$RELEASE_PLZ_APP_ID" ] || [ -z "$RELEASE_PLZ_APP_PRIVATE_KEY" ]; then
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "has_app_token=false" >> "$GITHUB_OUTPUT"
+            echo "Skipping registry sync because GitHub App secrets are not configured."
+            exit 0
+          fi
+          echo "enabled=true" >> "$GITHUB_OUTPUT"
+          echo "has_app_token=true" >> "$GITHUB_OUTPUT"
+
       - name: Checkout repository
+        if: steps.prereqs.outputs.enabled == 'true'
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
         with:
           persist-credentials: false
 
       - name: Set up Python
+        if: steps.prereqs.outputs.enabled == 'true'
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v5
         with:
           python-version: "3.14"
 
       - name: Set up Node.js
+        if: steps.prereqs.outputs.enabled == 'true'
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v4
         with:
           node-version: latest
           cache: "npm"
 
       - name: Install dependencies
+        if: steps.prereqs.outputs.enabled == 'true'
         run: npm ci
 
       - name: Generate registry docs
+        if: steps.prereqs.outputs.enabled == 'true'
         run: python scripts/generate_registry_docs.py
 
       - name: Format generated files
+        if: steps.prereqs.outputs.enabled == 'true'
         run: npx prettier --write docs/get-started/registry.mdx
 
       - name: Check for changes
         id: changes
+        if: steps.prereqs.outputs.enabled == 'true'
         run: |
           if git diff --quiet docs/get-started/registry.mdx; then
             echo "changed=false" >> $GITHUB_OUTPUT
@@ -56,6 +100,7 @@ jobs:
         # Generating a GitHub token, so that PRs and tags created by
         # the action can trigger actions workflows.
       - name: Generate GitHub token
+        if: steps.prereqs.outputs.enabled == 'true' && steps.changes.outputs.changed == 'true' && steps.prereqs.outputs.has_app_token == 'true'
         uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1
         id: generate-token
         with:
@@ -66,10 +111,10 @@ jobs:
 
       - name: Create Pull Request
         id: cpr
-        if: steps.changes.outputs.changed == 'true'
+        if: steps.prereqs.outputs.enabled == 'true' && steps.changes.outputs.changed == 'true'
         uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v6
         with:
-          token: ${{ steps.generate-token.outputs.token }}
+          token: ${{ steps.generate-token.outputs.token || github.token }}
           commit-message: "docs: update registry agents"
           title: "docs: update registry agents"
           body: |
@@ -79,9 +124,3 @@ jobs:
           branch: auto/sync-registry
           delete-branch: true
           labels: documentation
-
-      - name: Enable auto-merge
-        if: steps.cpr.outputs.pull-request-number
-        run: gh pr merge --squash --auto "${{ steps.cpr.outputs.pull-request-number }}"
-        env:
-          GH_TOKEN: ${{ steps.generate-token.outputs.token }}
