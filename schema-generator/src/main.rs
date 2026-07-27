@@ -398,6 +398,10 @@ mod schema_annotation_tests {
             let client_info = property_schema(&schema, "InitializeRequest", "clientInfo");
             assert_bool_extension(client_info, DEFAULT_ON_ERROR_EXTENSION);
             assert_no_extension(client_info, SKIP_INVALID_ITEMS_EXTENSION);
+
+            let auth_methods = property_schema(&schema, "InitializeResponse", "authMethods");
+            assert_bool_extension(auth_methods, DEFAULT_ON_ERROR_EXTENSION);
+            assert_bool_extension(auth_methods, SKIP_INVALID_ITEMS_EXTENSION);
         }
 
         #[cfg(feature = "unstable_protocol_v2")]
@@ -421,10 +425,6 @@ mod schema_annotation_tests {
                     .is_some_and(|required| required.iter().any(|field| field == "info"))
             );
         }
-
-        let auth_methods = property_schema(&schema, "InitializeResponse", "authMethods");
-        assert_bool_extension(auth_methods, DEFAULT_ON_ERROR_EXTENSION);
-        assert_bool_extension(auth_methods, SKIP_INVALID_ITEMS_EXTENSION);
     }
 
     #[cfg(feature = "unstable_protocol_v2")]

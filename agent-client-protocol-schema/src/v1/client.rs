@@ -8,13 +8,13 @@ use std::{path::PathBuf, sync::Arc};
 use derive_more::{Display, From};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
-use serde_with::{DefaultOnError, VecSkipError, serde_as, skip_serializing_none};
+use serde_with::{VecSkipError, serde_as, skip_serializing_none};
 
 use super::{
     CompleteElicitationNotification, CreateElicitationRequest, CreateElicitationResponse,
     ElicitationCapabilities,
 };
-use crate::{IntoMaybeUndefined, IntoOption, MaybeUndefined, SkipListener};
+use crate::{DefaultOnError, IntoMaybeUndefined, IntoOption, MaybeUndefined, SkipListener};
 
 use super::{
     ContentBlock, EnvVariable, ExtNotification, ExtRequest, ExtResponse, Meta, Plan,
@@ -2603,7 +2603,8 @@ mod tests {
             ),
             "Choose a value",
         ));
-        assert_eq!(request.method(), "elicitation/create");
+        let create_method = CLIENT_METHOD_NAMES.elicitation_create;
+        assert_eq!(request.method(), create_method);
         let method = Arc::from(request.method());
         let request = crate::v1::JsonRpcMessage::wrap(crate::v1::Request {
             id: crate::v1::RequestId::Number(7),
@@ -2615,7 +2616,7 @@ mod tests {
             json!({
                 "jsonrpc": "2.0",
                 "id": 7,
-                "method": "elicitation/create",
+                "method": create_method,
                 "params": {
                     "mode": "form",
                     "sessionId": "sess_1",
@@ -2628,7 +2629,8 @@ mod tests {
         let notification = AgentNotification::CompleteElicitationNotification(
             CompleteElicitationNotification::new("elic_1"),
         );
-        assert_eq!(notification.method(), "elicitation/complete");
+        let complete_method = CLIENT_METHOD_NAMES.elicitation_complete;
+        assert_eq!(notification.method(), complete_method);
         let method = Arc::from(notification.method());
         let notification = crate::v1::JsonRpcMessage::wrap(crate::v1::Notification {
             method,
@@ -2638,7 +2640,7 @@ mod tests {
             serde_json::to_value(notification).unwrap(),
             json!({
                 "jsonrpc": "2.0",
-                "method": "elicitation/complete",
+                "method": complete_method,
                 "params": { "elicitationId": "elic_1" }
             })
         );

@@ -15,14 +15,19 @@
 use std::{
     borrow::Cow,
     ffi::OsStr,
+    marker::PhantomData,
     ops::Deref,
     path::{Path, PathBuf},
     sync::Arc,
 };
 
 use schemars::JsonSchema;
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
-use serde_with::{DeserializeAs, de::DeserializeAsWrap};
+use schemars::Schema;
+use schemars::generate::SchemaGenerator;
+#[cfg(feature = "unstable_protocol_v2")]
+use serde::de::Error as _;
+use serde::{Deserialize, Deserializer, Serialize, Serializer, de::IntoDeserializer};
+use serde_with::{DeserializeAs, Same, de::DeserializeAsWrap, schemars_1::JsonSchemaAs};
 
 // ---- SkipListener ----
 
@@ -57,9 +62,111 @@ impl serde_with::InspectError for SkipListener {
 #[cfg(not(feature = "tracing"))]
 pub(crate) type SkipListener = ();
 
+/// `serde_with::DefaultOnError`, but routed through ACP's shared
+/// [`SkipListener`] hook so malformed present values can be observed instead of
+/// disappearing silently.
+///
+/// ACP uses this observable wrapper for every tolerant `DefaultOnError` site in
+/// v1, where stable-wire compatibility requires malformed present values to
+/// continue defaulting. v2 deliberately does not use it for the strict
+/// state-bearing fields hardened on this track, because those must reject
+/// malformed present values instead of defaulting through them.
+///
+/// Differential testing against `serde_with::DefaultOnError` showed equivalent
+/// behavior across the exercised JSON cases, with an approximately 1.16x decode
+/// cost for tolerant fields due to the `serde_json::Value` buffering used to
+/// surface observability.
+pub(crate) struct ObservableDefaultOnError<TAs = Same, TInspect = SkipListener>(
+    PhantomData<(TAs, TInspect)>,
+);
+
+/// ACP's tolerant field wrapper. It preserves v1 wire-compatibility by still
+/// defaulting malformed present values, but it also surfaces the drop to the
+/// shared observability hook.
+pub(crate) type DefaultOnError<T = Same> = ObservableDefaultOnError<T, SkipListener>;
+
+impl<'de, T, TAs, TInspect> DeserializeAs<'de, T> for ObservableDefaultOnError<TAs, TInspect>
+where
+    TAs: DeserializeAs<'de, T>,
+    T: Default,
+    TInspect: serde_with::InspectError,
+{
+    fn deserialize_as<D>(deserializer: D) -> Result<T, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let value = match serde_json::Value::deserialize(deserializer) {
+            Ok(value) => value,
+            Err(error) => {
+                <TInspect as serde_with::InspectError>::inspect_error(
+                    <serde::de::value::Error as serde::de::Error>::custom(error.to_string()),
+                );
+                return Ok(T::default());
+            }
+        };
+
+        match <DeserializeAsWrap<T, TAs>>::deserialize(value.into_deserializer()) {
+            Ok(value) => Ok(value.into_inner()),
+            Err(error) => {
+                <TInspect as serde_with::InspectError>::inspect_error(
+                    <serde::de::value::Error as serde::de::Error>::custom(error.to_string()),
+                );
+                Ok(T::default())
+            }
+        }
+    }
+}
+
+impl<T, TA, TInspect> JsonSchemaAs<T> for ObservableDefaultOnError<TA, TInspect>
+where
+    TA: JsonSchemaAs<T>,
+{
+    fn schema_name() -> Cow<'static, str> {
+        TA::schema_name()
+    }
+
+    fn schema_id() -> Cow<'static, str> {
+        TA::schema_id()
+    }
+
+    fn json_schema(generator: &mut SchemaGenerator) -> Schema {
+        TA::json_schema(generator)
+    }
+
+    fn inline_schema() -> bool {
+        TA::inline_schema()
+    }
+}
+
+#[cfg(feature = "unstable_protocol_v2")]
+pub(crate) fn strict_field<'de, D, T>(
+    deserializer: D,
+    field_name: &'static str,
+) -> Result<T, D::Error>
+where
+    D: Deserializer<'de>,
+    T: Deserialize<'de>,
+{
+    T::deserialize(deserializer).map_err(|error| D::Error::custom(format!("{field_name}: {error}")))
+}
+
+#[cfg(feature = "unstable_protocol_v2")]
+pub(crate) fn strict_field_as<'de, D, T, TAs>(
+    deserializer: D,
+    field_name: &'static str,
+) -> Result<T, D::Error>
+where
+    D: Deserializer<'de>,
+    TAs: DeserializeAs<'de, T>,
+{
+    TAs::deserialize_as(deserializer)
+        .map_err(|error| D::Error::custom(format!("{field_name}: {error}")))
+}
+
 // ---- DefaultTrueOnError ----
 
 #[cfg(any(feature = "unstable_auth_methods", test))]
+#[allow(dead_code)]
 #[derive(Deserialize)]
 #[serde(transparent)]
 struct BoolDefaultTrue(bool);
@@ -73,6 +180,7 @@ impl Default for BoolDefaultTrue {
 
 /// Deserializes a boolean, falling back to `true` when the input is malformed.
 #[cfg(any(feature = "unstable_auth_methods", test))]
+#[allow(dead_code)]
 pub(crate) struct DefaultTrueOnError;
 
 #[cfg(any(feature = "unstable_auth_methods", test))]
@@ -81,10 +189,8 @@ impl<'de> DeserializeAs<'de, bool> for DefaultTrueOnError {
     where
         D: Deserializer<'de>,
     {
-        <serde_with::DefaultOnError as DeserializeAs<'de, BoolDefaultTrue>>::deserialize_as(
-            deserializer,
-        )
-        .map(|value| value.0)
+        <DefaultOnError as DeserializeAs<'de, BoolDefaultTrue>>::deserialize_as(deserializer)
+            .map(|value| value.0)
     }
 }
 
@@ -94,7 +200,9 @@ mod skip_listener_tests {
 
     use serde::{Deserialize, Serialize};
     use serde_json::json;
-    use serde_with::{DefaultOnError, VecSkipError, serde_as};
+    use serde_with::{Same, VecSkipError, serde_as};
+
+    use crate::MaybeUndefined;
 
     thread_local! {
         static SKIP_COUNT: Cell<u32> = const { Cell::new(0) };
@@ -127,101 +235,114 @@ mod skip_listener_tests {
         assert_eq!(SKIP_COUNT.with(Cell::get), 2);
     }
 
-    /// Mirrors the pattern applied to every required `Vec<T>` field in the
-    /// protocol: `DefaultOnError<VecSkipError<_, ...>>` + `#[serde(default)]`.
-    /// Element-level failures are skipped; any outer shape error (`null`, a
-    /// string, a map, etc.) collapses to `Default::default()` (i.e. `vec![]`).
+    /// Mirrors the strict list pattern used for state-bearing ACP fields:
+    /// `VecSkipError<_, ...>` + `#[serde(default)]`.
+    /// Missing fields still use the type default, but malformed present values
+    /// must surface as hard decode errors instead of collapsing into the same
+    /// representation as omission.
     #[serde_as]
-    #[derive(Deserialize, Debug, PartialEq)]
-    struct ResilientVec {
-        #[serde_as(deserialize_as = "DefaultOnError<VecSkipError<_, CountingListener>>")]
+    #[derive(Default, Deserialize, Debug, PartialEq)]
+    struct StrictVec {
+        #[serde_as(deserialize_as = "VecSkipError<_, CountingListener>")]
         #[serde(default)]
         values: Vec<u32>,
     }
 
     #[test]
-    fn resilient_vec_tolerates_missing_null_and_wrong_type() {
+    fn strict_vec_rejects_outer_shape_errors_but_skips_bad_items() {
         // Missing field -> `#[serde(default)]` supplies `vec![]`.
-        let r: ResilientVec = serde_json::from_value(json!({})).unwrap();
+        let r: StrictVec = serde_json::from_value(json!({})).unwrap();
         assert_eq!(r.values, Vec::<u32>::new());
 
-        // Explicit null -> `DefaultOnError` swallows the type error.
-        let r: ResilientVec = serde_json::from_value(json!({"values": null})).unwrap();
-        assert_eq!(r.values, Vec::<u32>::new());
+        let err = serde_json::from_value::<StrictVec>(json!({"values": null})).unwrap_err();
+        assert!(err.to_string().contains("expected a sequence"), "{err}");
 
-        // Wrong outer type (string) -> `DefaultOnError` swallows.
-        let r: ResilientVec = serde_json::from_value(json!({"values": "oops"})).unwrap();
-        assert_eq!(r.values, Vec::<u32>::new());
+        let err = serde_json::from_value::<StrictVec>(json!({"values": "oops"})).unwrap_err();
+        assert!(err.to_string().contains("expected a sequence"), "{err}");
 
-        // Wrong outer type (object) -> `DefaultOnError` swallows.
-        let r: ResilientVec = serde_json::from_value(json!({"values": {"k": 1}})).unwrap();
-        assert_eq!(r.values, Vec::<u32>::new());
+        let err = serde_json::from_value::<StrictVec>(json!({"values": {"k": 1}})).unwrap_err();
+        assert!(err.to_string().contains("expected a sequence"), "{err}");
 
         // Valid array with element errors -> `VecSkipError` skips per-element.
         SKIP_COUNT.with(|c| c.set(0));
-        let r: ResilientVec =
+        let r: StrictVec =
             serde_json::from_value(json!({"values": [1, "oops", 2, {}, 3]})).unwrap();
         assert_eq!(r.values, vec![1, 2, 3]);
         assert_eq!(SKIP_COUNT.with(Cell::get), 2);
     }
 
     #[test]
-    fn resilient_vec_does_not_invoke_inspector_on_outer_failure() {
+    fn strict_vec_does_not_invoke_inspector_on_outer_failure() {
         SKIP_COUNT.with(|c| c.set(0));
 
-        // Outer failures are swallowed silently by `DefaultOnError`; the
-        // inspector only sees per-element failures inside a valid array.
-        let _r: ResilientVec = serde_json::from_value(json!({"values": null})).unwrap();
-        let _r: ResilientVec = serde_json::from_value(json!({"values": "oops"})).unwrap();
-        let _r: ResilientVec = serde_json::from_value(json!({"values": {}})).unwrap();
+        drop(serde_json::from_value::<StrictVec>(json!({"values": null})).unwrap_err());
+        drop(serde_json::from_value::<StrictVec>(json!({"values": "oops"})).unwrap_err());
+        drop(serde_json::from_value::<StrictVec>(json!({"values": {}})).unwrap_err());
 
         assert_eq!(SKIP_COUNT.with(Cell::get), 0);
     }
 
-    /// Mirrors the pattern applied to every optional `Option<Vec<T>>` field:
-    /// `DefaultOnError<Option<VecSkipError<_, ...>>>` + `#[serde(default)]`.
-    /// `null` becomes `None`; outer shape errors also collapse to `None`;
-    /// element-level failures are skipped inside the array.
+    /// Mirrors the strict ACP patch-field pattern:
+    /// `MaybeUndefined<VecSkipError<_, ...>>` + `#[serde(default)]`.
+    /// Missing, `null`, and concrete values stay distinct, while malformed
+    /// present values fail to deserialize.
     #[serde_as]
     #[derive(Deserialize, Debug, PartialEq)]
-    struct ResilientOptionVec {
-        #[serde_as(deserialize_as = "DefaultOnError<Option<VecSkipError<_, CountingListener>>>")]
+    struct StrictMaybeUndefinedVec {
+        #[serde_as(deserialize_as = "MaybeUndefined<VecSkipError<_, CountingListener>>")]
         #[serde(default)]
-        values: Option<Vec<u32>>,
+        values: MaybeUndefined<Vec<u32>>,
     }
 
     #[test]
-    fn resilient_option_vec_tolerates_missing_null_and_wrong_type() {
-        // Missing field -> `None`.
-        let r: ResilientOptionVec = serde_json::from_value(json!({})).unwrap();
-        assert_eq!(r.values, None);
+    fn strict_maybe_undefined_vec_distinguishes_states_and_rejects_outer_errors() {
+        // Missing field -> `Undefined`.
+        let r: StrictMaybeUndefinedVec = serde_json::from_value(json!({})).unwrap();
+        assert_eq!(r.values, MaybeUndefined::Undefined);
 
-        // Explicit null -> `None`.
-        let r: ResilientOptionVec = serde_json::from_value(json!({"values": null})).unwrap();
-        assert_eq!(r.values, None);
+        // Explicit null -> `Null`.
+        let r: StrictMaybeUndefinedVec = serde_json::from_value(json!({"values": null})).unwrap();
+        assert_eq!(r.values, MaybeUndefined::Null);
 
-        // Empty array -> `Some(vec![])`.
-        let r: ResilientOptionVec = serde_json::from_value(json!({"values": []})).unwrap();
-        assert_eq!(r.values, Some(Vec::<u32>::new()));
+        // Empty array -> `Value(vec![])`.
+        let r: StrictMaybeUndefinedVec = serde_json::from_value(json!({"values": []})).unwrap();
+        assert_eq!(r.values, MaybeUndefined::Value(Vec::<u32>::new()));
 
-        // Valid array -> `Some(vec)`.
-        let r: ResilientOptionVec = serde_json::from_value(json!({"values": [1, 2, 3]})).unwrap();
-        assert_eq!(r.values, Some(vec![1, 2, 3]));
+        // Valid array -> `Value(vec)`.
+        let r: StrictMaybeUndefinedVec =
+            serde_json::from_value(json!({"values": [1, 2, 3]})).unwrap();
+        assert_eq!(r.values, MaybeUndefined::Value(vec![1, 2, 3]));
 
-        // Wrong outer type (string) -> `DefaultOnError` collapses to `None`.
-        let r: ResilientOptionVec = serde_json::from_value(json!({"values": "oops"})).unwrap();
-        assert_eq!(r.values, None);
+        let err = serde_json::from_value::<StrictMaybeUndefinedVec>(json!({"values": "oops"}))
+            .unwrap_err();
+        assert!(err.to_string().contains("expected a sequence"), "{err}");
 
-        // Wrong outer type (object) -> `DefaultOnError` collapses to `None`.
-        let r: ResilientOptionVec = serde_json::from_value(json!({"values": {"k": 1}})).unwrap();
-        assert_eq!(r.values, None);
+        let err = serde_json::from_value::<StrictMaybeUndefinedVec>(json!({"values": {"k": 1}}))
+            .unwrap_err();
+        assert!(err.to_string().contains("expected a sequence"), "{err}");
 
         // Valid array with element errors -> `VecSkipError` skips per-element.
         SKIP_COUNT.with(|c| c.set(0));
-        let r: ResilientOptionVec =
+        let r: StrictMaybeUndefinedVec =
             serde_json::from_value(json!({"values": [1, "oops", 2, {}, 3]})).unwrap();
-        assert_eq!(r.values, Some(vec![1, 2, 3]));
+        assert_eq!(r.values, MaybeUndefined::Value(vec![1, 2, 3]));
         assert_eq!(SKIP_COUNT.with(Cell::get), 2);
+    }
+
+    #[test]
+    fn strict_patch_pattern_ignores_unknown_fields_for_forward_compatibility() {
+        let r: StrictMaybeUndefinedVec = serde_json::from_value(json!({
+            "values": [1, 2, 3],
+            "futureField": {"reserved": true}
+        }))
+        .unwrap();
+        assert_eq!(r.values, MaybeUndefined::Value(vec![1, 2, 3]));
+    }
+
+    #[test]
+    fn open_enum_variants_still_deserialize_for_forward_compatibility() {
+        let kind: crate::v1::ToolKind = serde_json::from_value(json!("future_tool")).unwrap();
+        assert_eq!(kind, crate::v1::ToolKind::Other);
     }
 
     fn default_true() -> bool {
@@ -246,6 +367,50 @@ mod skip_listener_tests {
 
         let wrapper: DefaultTrueWrapper = serde_json::from_value(json!({"value": "oops"})).unwrap();
         assert!(wrapper.value);
+    }
+
+    #[serde_as]
+    #[derive(Deserialize, Debug, PartialEq)]
+    struct ObservableDefaultVec {
+        #[serde_as(
+            deserialize_as = "super::ObservableDefaultOnError<VecSkipError<_, CountingListener>, CountingListener>"
+        )]
+        #[serde(default)]
+        values: Vec<u32>,
+    }
+
+    #[serde_as]
+    #[derive(Deserialize, Debug, PartialEq)]
+    struct ObservableDefaultStruct {
+        #[serde_as(deserialize_as = "super::ObservableDefaultOnError<Same, CountingListener>")]
+        #[serde(default)]
+        values: StrictVec,
+    }
+
+    #[test]
+    fn observable_default_on_error_reports_outer_failures() {
+        SKIP_COUNT.with(|c| c.set(0));
+
+        let wrapper: ObservableDefaultVec =
+            serde_json::from_value(json!({"values": "oops"})).unwrap();
+        assert_eq!(wrapper.values, Vec::<u32>::new());
+        assert_eq!(SKIP_COUNT.with(Cell::get), 1);
+
+        SKIP_COUNT.with(|c| c.set(0));
+        let wrapper: ObservableDefaultStruct =
+            serde_json::from_value(json!({"values": "oops"})).unwrap();
+        assert_eq!(wrapper.values, StrictVec { values: vec![] });
+        assert_eq!(SKIP_COUNT.with(Cell::get), 1);
+    }
+
+    #[test]
+    fn observable_default_on_error_preserves_inner_skip_reporting() {
+        SKIP_COUNT.with(|c| c.set(0));
+
+        let wrapper: ObservableDefaultVec =
+            serde_json::from_value(json!({"values": [1, "oops", 2, {}, 3]})).unwrap();
+        assert_eq!(wrapper.values, vec![1, 2, 3]);
+        assert_eq!(SKIP_COUNT.with(Cell::get), 2);
     }
 }
 

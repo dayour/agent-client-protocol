@@ -11,11 +11,11 @@ use std::collections::HashMap;
 use derive_more::{Display, From};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
-use serde_with::{DefaultOnError, VecSkipError, serde_as, skip_serializing_none};
+use serde_with::{VecSkipError, serde_as, skip_serializing_none};
 
 #[cfg(feature = "unstable_auth_methods")]
 use crate::DefaultTrueOnError;
-use crate::{IntoOption, ProtocolVersion, SkipListener};
+use crate::{DefaultOnError, IntoOption, ProtocolVersion, SkipListener};
 
 use super::{
     ClientCapabilities, ContentBlock, ExtNotification, ExtRequest, ExtResponse, Meta, SessionId,

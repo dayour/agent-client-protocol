@@ -17,8 +17,6 @@ use super::{
     AbsolutePath, ClientCapabilities, ContentBlock, ExtNotification, ExtRequest, ExtResponse, Meta,
     SessionId,
 };
-#[cfg(feature = "unstable_auth_methods")]
-use crate::DefaultTrueOnError;
 use crate::{IntoOption, ProtocolVersion, SkipListener};
 
 #[cfg(feature = "unstable_mcp_over_acp")]
@@ -61,8 +59,6 @@ pub struct InitializeRequest {
     /// Information about the implementation sending this initialize request.
     pub info: Implementation,
     /// Capabilities supported by the client.
-    #[serde_as(deserialize_as = "DefaultOnError")]
-    #[schemars(extend("x-deserialize-default-on-error" = true))]
     #[serde(default)]
     pub capabilities: ClientCapabilities,
     /// The _meta property is reserved by ACP to allow clients and agents to attach additional
@@ -128,8 +124,6 @@ pub struct InitializeResponse {
     /// Information about the implementation sending this initialize response.
     pub info: Implementation,
     /// Capabilities supported by the agent.
-    #[serde_as(deserialize_as = "DefaultOnError")]
-    #[schemars(extend("x-deserialize-default-on-error" = true))]
     #[serde(default)]
     pub capabilities: AgentCapabilities,
     /// Authentication methods supported by the agent.
@@ -137,8 +131,6 @@ pub struct InitializeResponse {
     /// Optional. Omitted or empty means the agent does not advertise the
     /// authentication method surface. Supplying one or more valid methods means
     /// the agent MUST support both `auth/login` and `auth/logout`.
-    #[serde_as(deserialize_as = "DefaultOnError<VecSkipError<_, SkipListener>>")]
-    #[schemars(extend("x-deserialize-default-on-error" = true, "x-deserialize-skip-invalid-items" = true))]
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub auth_methods: Vec<AuthMethod>,
     /// The _meta property is reserved by ACP to allow clients and agents to attach additional
@@ -211,8 +203,6 @@ pub struct Implementation {
     /// and easily understood.
     ///
     /// If not provided, the name should be used for display.
-    #[serde_as(deserialize_as = "DefaultOnError")]
-    #[schemars(extend("x-deserialize-default-on-error" = true))]
     #[serde(default)]
     pub title: Option<String>,
     /// Version of the implementation. Can be displayed to the user or used
@@ -616,8 +606,6 @@ pub struct OtherAuthMethod {
     /// Human-readable name of the authentication method.
     pub name: String,
     /// Optional description providing more details about this authentication method.
-    #[serde_as(deserialize_as = "DefaultOnError")]
-    #[schemars(extend("x-deserialize-default-on-error" = true))]
     #[serde(default)]
     pub description: Option<String>,
     /// The _meta property is reserved by ACP to allow clients and agents to attach additional
@@ -753,8 +741,6 @@ pub struct AuthMethodAgent {
     /// Human-readable name of the authentication method.
     pub name: String,
     /// Optional description providing more details about this authentication method.
-    #[serde_as(deserialize_as = "DefaultOnError")]
-    #[schemars(extend("x-deserialize-default-on-error" = true))]
     #[serde(default)]
     pub description: Option<String>,
     /// The _meta property is reserved by ACP to allow clients and agents to attach additional
@@ -819,13 +805,9 @@ pub struct AuthMethodEnvVar {
     /// Human-readable name of the authentication method.
     pub name: String,
     /// Optional description providing more details about this authentication method.
-    #[serde_as(deserialize_as = "DefaultOnError")]
-    #[schemars(extend("x-deserialize-default-on-error" = true))]
     #[serde(default)]
     pub description: Option<String>,
     /// The environment variables the client should set.
-    #[serde_as(deserialize_as = "DefaultOnError<VecSkipError<_, SkipListener>>")]
-    #[schemars(extend("x-deserialize-default-on-error" = true, "x-deserialize-skip-invalid-items" = true))]
     pub vars: Vec<AuthEnvVar>,
     /// Optional link to a page where the user can obtain their credentials.
     #[serde_as(deserialize_as = "DefaultOnError")]
@@ -905,24 +887,18 @@ pub struct AuthEnvVar {
     /// The environment variable name (e.g. `"OPENAI_API_KEY"`).
     pub name: String,
     /// Human-readable label for this variable, displayed in client UI.
-    #[serde_as(deserialize_as = "DefaultOnError")]
-    #[schemars(extend("x-deserialize-default-on-error" = true))]
     #[serde(default)]
     pub label: Option<String>,
     /// Whether this value is a secret (e.g. API key, token).
     /// Clients should use a password-style input for secret vars.
     ///
     /// Defaults to `true`.
-    #[serde_as(deserialize_as = "DefaultTrueOnError")]
-    #[schemars(extend("x-deserialize-default-on-error" = true))]
     #[serde(default = "default_true", skip_serializing_if = "is_true")]
     #[schemars(extend("default" = true))]
     pub secret: bool,
     /// Whether this variable is optional.
     ///
     /// Defaults to `false`.
-    #[serde_as(deserialize_as = "DefaultOnError")]
-    #[schemars(extend("x-deserialize-default-on-error" = true))]
     #[serde(default, skip_serializing_if = "is_false")]
     #[schemars(extend("default" = false))]
     pub optional: bool,
@@ -1022,13 +998,9 @@ pub struct AuthMethodTerminal {
     /// Human-readable name of the authentication method.
     pub name: String,
     /// Optional description providing more details about this authentication method.
-    #[serde_as(deserialize_as = "DefaultOnError")]
-    #[schemars(extend("x-deserialize-default-on-error" = true))]
     #[serde(default)]
     pub description: Option<String>,
     /// Additional arguments to pass when running the agent binary for terminal auth.
-    #[serde_as(deserialize_as = "DefaultOnError<VecSkipError<_, SkipListener>>")]
-    #[schemars(extend("x-deserialize-default-on-error" = true, "x-deserialize-skip-invalid-items" = true))]
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub args: Vec<String>,
     /// Additional environment variables to set when running the agent binary for terminal auth.
@@ -2084,8 +2056,6 @@ pub struct SessionInfo {
     pub additional_directories: Vec<AbsolutePath>,
 
     /// Human-readable title for the session
-    #[serde_as(deserialize_as = "DefaultOnError")]
-    #[schemars(extend("x-deserialize-default-on-error" = true))]
     #[serde(default)]
     pub title: Option<String>,
     /// RFC 3339 timestamp of last activity.
@@ -2215,8 +2185,6 @@ pub struct SessionConfigSelectOption {
     /// Human-readable label for this option value.
     pub name: String,
     /// Optional description for this option value.
-    #[serde_as(deserialize_as = "DefaultOnError")]
-    #[schemars(extend("x-deserialize-default-on-error" = true))]
     #[serde(default)]
     pub description: Option<String>,
     /// The _meta property is reserved by ACP to allow clients and agents to attach additional
@@ -2511,8 +2479,6 @@ pub struct SessionConfigOption {
     /// Human-readable label for the option.
     pub name: String,
     /// Optional description for the Client to display to the user.
-    #[serde_as(deserialize_as = "DefaultOnError")]
-    #[schemars(extend("x-deserialize-default-on-error" = true))]
     #[serde(default)]
     pub description: Option<String>,
     /// Optional semantic category for this option (UX only).
@@ -4084,8 +4050,6 @@ pub struct AgentCapabilities {
     /// `session/*` method surface. Supplying `{}` means the agent supports the
     /// baseline session methods: `session/new`, `session/prompt`,
     /// `session/cancel`, and `session/update`.
-    #[serde_as(deserialize_as = "DefaultOnError")]
-    #[schemars(extend("x-deserialize-default-on-error" = true))]
     #[serde(default)]
     pub session: Option<SessionCapabilities>,
     /// Authentication-related extension capabilities supported by the agent.
@@ -4094,8 +4058,6 @@ pub struct AgentCapabilities {
     /// authentication-related extensions. This field does not advertise support
     /// for `auth/login` or `auth/logout`; those methods are advertised by a
     /// non-empty `authMethods` list in the `initialize` response.
-    #[serde_as(deserialize_as = "DefaultOnError")]
-    #[schemars(extend("x-deserialize-default-on-error" = true))]
     #[serde(default)]
     pub auth: Option<AgentAuthCapabilities>,
     /// **UNSTABLE**
@@ -4107,8 +4069,6 @@ pub struct AgentCapabilities {
     /// Optional. Omitted or `null` both mean the agent does not advertise support.
     /// Supplying `{}` means the agent supports provider configuration methods.
     #[cfg(feature = "unstable_llm_providers")]
-    #[serde_as(deserialize_as = "DefaultOnError")]
-    #[schemars(extend("x-deserialize-default-on-error" = true))]
     #[serde(default)]
     pub providers: Option<ProvidersCapabilities>,
     /// **UNSTABLE**
@@ -4120,8 +4080,6 @@ pub struct AgentCapabilities {
     /// Optional. Omitted or `null` both mean the agent does not advertise support
     /// for NES methods.
     #[cfg(feature = "unstable_nes")]
-    #[serde_as(deserialize_as = "DefaultOnError")]
-    #[schemars(extend("x-deserialize-default-on-error" = true))]
     #[serde(default)]
     pub nes: Option<NesCapabilities>,
     /// **UNSTABLE**
@@ -4130,8 +4088,6 @@ pub struct AgentCapabilities {
     ///
     /// The position encoding selected by the agent from the client's supported encodings.
     #[cfg(feature = "unstable_nes")]
-    #[serde_as(deserialize_as = "DefaultOnError")]
-    #[schemars(extend("x-deserialize-default-on-error" = true))]
     #[serde(default)]
     pub position_encoding: Option<PositionEncodingKind>,
     /// The _meta property is reserved by ACP to allow clients and agents to attach additional
@@ -4290,24 +4246,18 @@ pub struct SessionCapabilities {
     /// Optional. Omitted or `null` both mean the agent does not advertise any
     /// prompt extensions beyond the baseline text and resource-link content
     /// required by `session/prompt`.
-    #[serde_as(deserialize_as = "DefaultOnError")]
-    #[schemars(extend("x-deserialize-default-on-error" = true))]
     #[serde(default)]
     pub prompt: Option<PromptCapabilities>,
     /// MCP capabilities supported by the agent for session lifecycle requests.
     ///
     /// Optional. Omitted or `null` both mean the agent does not advertise MCP
     /// server transport support for sessions.
-    #[serde_as(deserialize_as = "DefaultOnError")]
-    #[schemars(extend("x-deserialize-default-on-error" = true))]
     #[serde(default)]
     pub mcp: Option<McpCapabilities>,
     /// Whether the agent supports `session/delete`.
     ///
     /// Optional. Omitted or `null` both mean the agent does not advertise support.
     /// Supplying `{}` means the agent supports deleting sessions from `session/list`.
-    #[serde_as(deserialize_as = "DefaultOnError")]
-    #[schemars(extend("x-deserialize-default-on-error" = true))]
     #[serde(default)]
     pub delete: Option<SessionDeleteCapabilities>,
     /// Whether the agent supports `additionalDirectories` on supported session lifecycle requests.
@@ -4318,8 +4268,6 @@ pub struct SessionCapabilities {
     ///
     /// Agents may return `SessionInfo.additionalDirectories` to report the
     /// complete ordered additional-root list associated with a listed session.
-    #[serde_as(deserialize_as = "DefaultOnError")]
-    #[schemars(extend("x-deserialize-default-on-error" = true))]
     #[serde(default)]
     pub additional_directories: Option<SessionAdditionalDirectoriesCapabilities>,
     /// **UNSTABLE**
@@ -4331,8 +4279,6 @@ pub struct SessionCapabilities {
     /// Optional. Omitted or `null` both mean the agent does not advertise support.
     /// Supplying `{}` means the agent supports forking sessions.
     #[cfg(feature = "unstable_session_fork")]
-    #[serde_as(deserialize_as = "DefaultOnError")]
-    #[schemars(extend("x-deserialize-default-on-error" = true))]
     #[serde(default)]
     pub fork: Option<SessionForkCapabilities>,
     /// The _meta property is reserved by ACP to allow clients and agents to attach additional
@@ -4573,16 +4519,12 @@ pub struct PromptCapabilities {
     ///
     /// Optional. Omitted or `null` both mean the agent does not advertise support.
     /// Supplying `{}` means the agent supports image content in prompts.
-    #[serde_as(deserialize_as = "DefaultOnError")]
-    #[schemars(extend("x-deserialize-default-on-error" = true))]
     #[serde(default)]
     pub image: Option<PromptImageCapabilities>,
     /// Agent supports [`ContentBlock::Audio`].
     ///
     /// Optional. Omitted or `null` both mean the agent does not advertise support.
     /// Supplying `{}` means the agent supports audio content in prompts.
-    #[serde_as(deserialize_as = "DefaultOnError")]
-    #[schemars(extend("x-deserialize-default-on-error" = true))]
     #[serde(default)]
     pub audio: Option<PromptAudioCapabilities>,
     /// Agent supports embedded context in `session/prompt` requests.
@@ -4592,8 +4534,6 @@ pub struct PromptCapabilities {
     ///
     /// Optional. Omitted or `null` both mean the agent does not advertise support.
     /// Supplying `{}` means the agent supports embedded context in prompts.
-    #[serde_as(deserialize_as = "DefaultOnError")]
-    #[schemars(extend("x-deserialize-default-on-error" = true))]
     #[serde(default)]
     pub embedded_context: Option<PromptEmbeddedContextCapabilities>,
     /// The _meta property is reserved by ACP to allow clients and agents to attach additional
@@ -4791,16 +4731,12 @@ pub struct McpCapabilities {
     ///
     /// Optional. Omitted or `null` both mean the agent does not advertise support.
     /// Supplying `{}` means the agent supports stdio MCP server transports.
-    #[serde_as(deserialize_as = "DefaultOnError")]
-    #[schemars(extend("x-deserialize-default-on-error" = true))]
     #[serde(default)]
     pub stdio: Option<McpStdioCapabilities>,
     /// Agent supports [`McpServer::Http`].
     ///
     /// Optional. Omitted or `null` both mean the agent does not advertise support.
     /// Supplying `{}` means the agent supports HTTP MCP server transports.
-    #[serde_as(deserialize_as = "DefaultOnError")]
-    #[schemars(extend("x-deserialize-default-on-error" = true))]
     #[serde(default)]
     pub http: Option<McpHttpCapabilities>,
     /// **UNSTABLE**
@@ -4812,8 +4748,6 @@ pub struct McpCapabilities {
     /// Optional. Omitted or `null` both mean the agent does not advertise support.
     /// Supplying `{}` means the agent supports ACP MCP server transports.
     #[cfg(feature = "unstable_mcp_over_acp")]
-    #[serde_as(deserialize_as = "DefaultOnError")]
-    #[schemars(extend("x-deserialize-default-on-error" = true))]
     #[serde(default)]
     pub acp: Option<McpAcpCapabilities>,
     /// The _meta property is reserved by ACP to allow clients and agents to attach additional
@@ -5591,10 +5525,74 @@ mod test_serialization {
     }
 
     #[test]
-    fn test_initialize_capabilities_default_on_malformed_values() {
+    fn test_initialize_rejects_malformed_handshake_payloads() {
+        drop(
+            serde_json::from_value::<InitializeRequest>(json!({
+                "protocolVersion": 2,
+                "capabilities": false,
+                "info": {
+                    "name": "client",
+                    "version": "1.0.0"
+                }
+            }))
+            .unwrap_err(),
+        );
+
+        drop(
+            serde_json::from_value::<InitializeRequest>(json!({
+                "protocolVersion": 2,
+                "capabilities": {},
+                "info": false
+            }))
+            .unwrap_err(),
+        );
+
+        drop(
+            serde_json::from_value::<InitializeResponse>(json!({
+                "protocolVersion": 2,
+                "capabilities": false,
+                "info": {
+                    "name": "agent",
+                    "version": "1.0.0"
+                }
+            }))
+            .unwrap_err(),
+        );
+
+        drop(
+            serde_json::from_value::<InitializeResponse>(json!({
+                "protocolVersion": 2,
+                "capabilities": {},
+                "authMethods": [false],
+                "info": {
+                    "name": "agent",
+                    "version": "1.0.0"
+                }
+            }))
+            .unwrap_err(),
+        );
+    }
+
+    #[test]
+    fn test_agent_capabilities_reject_malformed_nested_values() {
+        drop(
+            serde_json::from_value::<AgentCapabilities>(json!({
+                "session": false,
+                "auth": false
+            }))
+            .unwrap_err(),
+        );
+    }
+
+    #[test]
+    fn test_initialize_accepts_unknown_capability_keys() {
         let request: InitializeRequest = serde_json::from_value(json!({
             "protocolVersion": 2,
-            "capabilities": false,
+            "capabilities": {
+                "futureCapability": {
+                    "enabled": true
+                }
+            },
             "info": {
                 "name": "client",
                 "version": "1.0.0"
@@ -5605,7 +5603,11 @@ mod test_serialization {
 
         let response: InitializeResponse = serde_json::from_value(json!({
             "protocolVersion": 2,
-            "capabilities": false,
+            "capabilities": {
+                "futureCapability": {
+                    "enabled": true
+                }
+            },
             "info": {
                 "name": "agent",
                 "version": "1.0.0"
@@ -5613,18 +5615,6 @@ mod test_serialization {
         }))
         .unwrap();
         assert_eq!(response.capabilities, AgentCapabilities::default());
-    }
-
-    #[test]
-    fn test_agent_capabilities_default_on_malformed_values() {
-        let capabilities: AgentCapabilities = serde_json::from_value(json!({
-            "session": false,
-            "auth": false
-        }))
-        .unwrap();
-
-        assert!(capabilities.session.is_none());
-        assert_eq!(capabilities.auth, None);
     }
 
     #[test]
@@ -7133,11 +7123,12 @@ mod test_serialization {
             })
         );
 
-        let deserialized: AgentCapabilities = serde_json::from_value(json!({
-            "session": false
-        }))
-        .unwrap();
-        assert!(deserialized.session.is_none());
+        drop(
+            serde_json::from_value::<AgentCapabilities>(json!({
+                "session": false
+            }))
+            .unwrap_err(),
+        );
     }
 
     #[test]
@@ -7156,15 +7147,14 @@ mod test_serialization {
             })
         );
 
-        let deserialized: PromptCapabilities = serde_json::from_value(json!({
-            "image": null,
-            "audio": false,
-            "embeddedContext": {}
-        }))
-        .unwrap();
-        assert!(deserialized.image.is_none());
-        assert!(deserialized.audio.is_none());
-        assert!(deserialized.embedded_context.is_some());
+        drop(
+            serde_json::from_value::<PromptCapabilities>(json!({
+                "image": null,
+                "audio": false,
+                "embeddedContext": {}
+            }))
+            .unwrap_err(),
+        );
     }
 
     #[test]
@@ -7181,13 +7171,13 @@ mod test_serialization {
             })
         );
 
-        let deserialized: McpCapabilities = serde_json::from_value(json!({
-            "stdio": null,
-            "http": false
-        }))
-        .unwrap();
-        assert!(deserialized.stdio.is_none());
-        assert!(deserialized.http.is_none());
+        drop(
+            serde_json::from_value::<McpCapabilities>(json!({
+                "stdio": null,
+                "http": false
+            }))
+            .unwrap_err(),
+        );
     }
 
     #[cfg(feature = "unstable_mcp_over_acp")]
