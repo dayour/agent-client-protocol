@@ -197,7 +197,6 @@ fn root_schema_value() -> AppResult<serde_json::Value> {
     })
 }
 
-#[expect(clippy::too_many_lines)]
 fn write_schema(
     schema_value: &serde_json::Value,
     schema_dir: &Path,
