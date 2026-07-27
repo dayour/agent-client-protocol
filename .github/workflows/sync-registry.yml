@@ -9,10 +9,22 @@ on:
     - cron: "15 * * * *" # Every hour at :15
 
 jobs:
+  fork-sync-disabled:
+    name: Fork registry sync posture
+    runs-on: ubuntu-latest
+    if: ${{ github.repository != 'agentclientprotocol/agent-client-protocol' && github.event_name != 'workflow_dispatch' }}
+    steps:
+      - name: Explain fork registry sync posture
+        run: |
+          echo "Registry sync automation is disabled for scheduled fork runs."
+          echo "This fork tracks upstream ACP protocol content but is independently maintained for hardening work."
+          echo "To deliberately regenerate docs in a fork, run this workflow manually with workflow_dispatch and review the resulting changes before opening a PR."
+
   sync:
     name: Sync Registry Documentation
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    if: ${{ github.repository == 'agentclientprotocol/agent-client-protocol' || github.event_name == 'workflow_dispatch' }}
     permissions:
       contents: write
       pull-requests: write
@@ -27,20 +39,22 @@ jobs:
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             echo "enabled=true" >> "$GITHUB_OUTPUT"
-            echo "Manual dispatch enabled."
-            exit 0
-          fi
-          if [ "${{ github.repository_owner }}" != "agentclientprotocol" ]; then
-            echo "enabled=false" >> "$GITHUB_OUTPUT"
-            echo "Skipping registry sync outside the upstream repository owner."
+            if [ -n "$RELEASE_PLZ_APP_ID" ] && [ -n "$RELEASE_PLZ_APP_PRIVATE_KEY" ]; then
+              echo "has_app_token=true" >> "$GITHUB_OUTPUT"
+            else
+              echo "has_app_token=false" >> "$GITHUB_OUTPUT"
+            fi
+            echo "Manual dispatch enabled for deliberate regeneration."
             exit 0
           fi
           if [ -z "$RELEASE_PLZ_APP_ID" ] || [ -z "$RELEASE_PLZ_APP_PRIVATE_KEY" ]; then
             echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "has_app_token=false" >> "$GITHUB_OUTPUT"
             echo "Skipping registry sync because GitHub App secrets are not configured."
             exit 0
           fi
           echo "enabled=true" >> "$GITHUB_OUTPUT"
+          echo "has_app_token=true" >> "$GITHUB_OUTPUT"
 
       - name: Checkout repository
         if: steps.prereqs.outputs.enabled == 'true'
@@ -86,7 +100,7 @@ jobs:
         # Generating a GitHub token, so that PRs and tags created by
         # the action can trigger actions workflows.
       - name: Generate GitHub token
-        if: steps.prereqs.outputs.enabled == 'true' && steps.changes.outputs.changed == 'true' && secrets.RELEASE_PLZ_APP_ID != '' && secrets.RELEASE_PLZ_APP_PRIVATE_KEY != ''
+        if: steps.prereqs.outputs.enabled == 'true' && steps.changes.outputs.changed == 'true' && steps.prereqs.outputs.has_app_token == 'true'
         uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1
         id: generate-token
         with:
