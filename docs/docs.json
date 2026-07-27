@@ -245,6 +245,7 @@
               "rfds/session-delete",
               "rfds/model-config-category",
               "rfds/rust-sdk-v1",
+              "rfds/rust-runtime-boundary",
               "rfds/request-cancellation",
               "rfds/boolean-config-option",
               "rfds/elicitation"

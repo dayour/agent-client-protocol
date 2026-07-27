@@ -1,0 +1,119 @@
+---
+title: "Rust runtime package boundary"
+---
+
+Author(s): [dayour](https://github.com/dayour)
+
+## Elevator pitch
+
+> What are you proposing to change?
+
+Keep this repository schema-first and treat the external [`agent-client-protocol`](https://crates.io/crates/agent-client-protocol) crate as the Rust runtime boundary for ACP implementations.
+
+Concretely:
+
+- This repository continues to publish and validate `agent-client-protocol-schema` plus the generated JSON Schema artifacts.
+- Rust implementers who need transports, connection setup, and runtime traits start with the external `agent-client-protocol` crate from the [`agentclientprotocol/rust-sdk`](https://github.com/agentclientprotocol/rust-sdk) repository.
+- This repository adds executable round-trip tests at the JSON-RPC boundary so the schema surface remains verifiable without vendoring or re-implementing the runtime here.
+
+## Status quo
+
+> How do things work today and what problems does this cause? Why would we change things?
+
+Today this repository's Rust workspace contains only schema-oriented crates:
+
+- `agent-client-protocol-schema`
+- `schema/v1`
+- `schema/v2`
+- `schema-generator`
+
+That is the correct scope for this repository, but the boundary is easy to misunderstand because the external Rust runtime uses the same protocol family name.
+
+The currently published runtime crate, `agent-client-protocol` v2.0.0, depends on `agent-client-protocol-schema = "=1.5.0"`. This repository currently publishes `agent-client-protocol-schema` v1.6.0. As a result, any crate that directly depends on this repository's path schema crate and the published runtime crate at the same time resolves two distinct copies of the schema types. Those copies remain JSON-compatible, but Rust treats them as different types, so they are not directly interchangeable.
+
+That version skew means we should not pretend this repository already ships a runtime, and we should not wire the published runtime directly into a workspace crate here until the external runtime release catches up to schema `1.6.0`.
+
+## What we propose to do about it
+
+> What are you proposing to improve the situation?
+
+Choose Option B: depend on the external runtime from crates.io, while keeping this repository schema-first.
+
+This decision means:
+
+- No vendoring of the external runtime into this repository.
+- No fresh in-repo runtime implementation in this repository.
+- Clear documentation that `agent-client-protocol-schema` is the types crate and `agent-client-protocol` is the runtime crate.
+- Workspace-level version pinning for the runtime package so downstream in-repo test or example crates have one canonical version to reference once the version skew is gone.
+- Boundary verification focused on the schema side today: ACP JSON-RPC envelopes, request types, and notifications round-trip cleanly.
+
+## Shiny future
+
+> How will things will play out once this feature exists?
+
+Rust ACP work can move forward on a stable package boundary:
+
+- Protocol and schema changes continue landing here.
+- Runtime development continues in the dedicated Rust SDK repository.
+- Downstream ACP runtimes can adopt the external runtime crate instead of inheriting a vendored copy from this repository.
+- Once a published runtime release depends on schema `1.6.0` or later, a small opt-in interoperability crate can be added to this workspace without incurring duplicate schema types.
+
+This unblocks the Rust runtime roadmap by removing ambiguity about where runtime code belongs and by giving contributors a verifiable schema boundary to build against immediately.
+
+## Implementation details and plan
+
+> Tell me more about your implementation. What is your detailed implementation plan?
+
+Phase 1 in this repository:
+
+1. Document that this repository ships types, not the runtime.
+2. Record the package-boundary decision in this RFD.
+3. Add a Rust integration test that round-trips:
+   - `initialize`
+   - `session/new`
+   - `session/update`
+   through this repository's JSON-RPC envelope types.
+
+Phase 2 outside this repository:
+
+1. Publish or consume a runtime release whose workspace dependency on `agent-client-protocol-schema` is aligned with this repository's released version.
+2. Add an opt-in interoperability test crate that consumes both the external runtime and this repository's schema crate without resolving two schema versions.
+3. Build runtime-facing samples, transport adapters, and higher-level ACP integrations in the dedicated Rust SDK repository or downstream runtime consumers.
+
+## Frequently asked questions
+
+> What questions have arisen over the course of authoring this document or during subsequent discussions?
+
+## Why not vendor the external runtime into this repository?
+
+Vendoring would avoid the immediate duplicate-type problem, but it moves a large, fast-moving runtime codebase into a repository that is currently scoped around schemas and generated artifacts. That raises maintenance burden, increases CI cost, and creates a second place where Rust runtime fixes would need to land or be mirrored.
+
+## Why not write a fresh runtime in this repository?
+
+A fresh runtime would avoid upstream skew, but it is the highest-maintenance option and would duplicate a real external SDK that already exists and is actively released. It also creates a second long-term Rust runtime surface to support, which is the opposite of the boundary simplification this roadmap needs.
+
+## If the published runtime pins schema `=1.5.0`, why still choose the external runtime boundary?
+
+Because the boundary decision and the temporary version-skew blocker are different questions.
+
+The external runtime is still the right ownership boundary:
+
+- it already exists,
+- it already provides the transport and trait surface,
+- and its repository is the correct place for runtime evolution.
+
+The immediate action in this repository is to document the split truthfully and keep our proof surface on the schema side until the next compatible runtime release is published.
+
+## What alternative approaches did you consider, and why did you settle on this one?
+
+We considered exactly three approaches:
+
+1. Option A: vendor the external runtime into this workspace as a member.
+2. Option B: depend on the external runtime from crates.io while keeping this repo schema-first.
+3. Option C: write a fresh in-repo runtime.
+
+We settled on Option B because it has the lowest ongoing maintenance burden, keeps ownership aligned with the existing Rust SDK repository, and is reversible once the version skew between runtime `2.0.0` and schema `1.6.0` is resolved.
+
+## Revision history
+
+- 2026-07-27: Initial decision record for the Rust runtime package boundary.
