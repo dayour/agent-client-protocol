@@ -1787,8 +1787,12 @@ starting with '$/' it is free to ignore the notification."
         fn agent_method_doc(&self, method_name: &str) -> &String {
             match method_name {
                 "initialize" => self.agent.get("InitializeRequest").unwrap(),
-                "authenticate" => self.agent.get("AuthenticateRequest").unwrap(),
-                "auth/login" => self.agent.get("LoginAuthRequest").unwrap(),
+                "authenticate" => {
+                    lookup_side_doc(&self.agent, "AuthenticateRequest", method_name, "agent")
+                }
+                "auth/login" => {
+                    lookup_side_doc(&self.agent, "LoginAuthRequest", method_name, "agent")
+                }
                 "providers/list" => self.agent.get("ListProvidersRequest").unwrap(),
                 "providers/set" => self.agent.get("SetProviderRequest").unwrap(),
                 "providers/disable" => self.agent.get("DisableProviderRequest").unwrap(),
@@ -1862,6 +1866,19 @@ starting with '$/' it is free to ignore the notification."
         }
     }
 
+    fn lookup_side_doc<'a>(
+        docs: &'a HashMap<String, String>,
+        type_name: &str,
+        method_name: &str,
+        side: &str,
+    ) -> &'a String {
+        docs.get(type_name).unwrap_or_else(|| {
+            panic!(
+                "Missing {side} rustdoc entry {type_name} for method {method_name}; check schema-generator rustdoc path filtering"
+            )
+        })
+    }
+
     #[expect(clippy::too_many_lines)]
     fn extract_side_docs() -> SideDocs {
         let root = super::repo_root();
@@ -1891,7 +1908,8 @@ starting with '$/' it is free to ignore the notification."
 
         // Parse the JSON output
         let json_path = root.join("target/doc/agent_client_protocol_schema.json");
-        let json_content = fs::read_to_string(json_path).unwrap();
+        let json_content = fs::read_to_string(&json_path)
+            .unwrap_or_else(|e| panic!("Failed to read rustdoc JSON {}: {e}", json_path.display()));
         let doc: Value = serde_json::from_str(&json_content).unwrap();
 
         let mut side_docs = SideDocs::default();
@@ -1987,6 +2005,7 @@ starting with '$/' it is free to ignore the notification."
         let Some(filename) = item["span"]["filename"].as_str() else {
             return false;
         };
+        let filename = filename.replace('\\', "/");
 
         if cfg!(feature = "unstable_protocol_v2") {
             filename.starts_with("src/v2/")
@@ -1999,7 +2018,7 @@ starting with '$/' it is free to ignore the notification."
 
     #[cfg(test)]
     mod tests {
-        use super::MarkdownGenerator;
+        use super::{MarkdownGenerator, is_current_protocol_item};
         use serde_json::json;
 
         #[test]
@@ -2233,6 +2252,30 @@ starting with '$/' it is free to ignore the notification."
                     .output
                     .contains("| Content media type | `application/octet-stream` |")
             );
+        }
+
+        #[cfg(not(feature = "unstable_protocol_v2"))]
+        #[test]
+        fn current_protocol_item_accepts_windows_v1_paths() {
+            let item = json!({
+                "span": {
+                    "filename": r"agent-client-protocol-schema\src\v1\agent.rs"
+                }
+            });
+
+            assert!(is_current_protocol_item(&item));
+        }
+
+        #[cfg(feature = "unstable_protocol_v2")]
+        #[test]
+        fn current_protocol_item_accepts_windows_v2_paths() {
+            let item = json!({
+                "span": {
+                    "filename": r"agent-client-protocol-schema\src\v2\agent.rs"
+                }
+            });
+
+            assert!(is_current_protocol_item(&item));
         }
     }
 }

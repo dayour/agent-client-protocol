@@ -23,6 +23,7 @@ All paths in the protocol should be absolute
 - Run `npm run generate` and fix any issues that appear
 - Run `npm run check`
 - Update the example agents and clients in tests and examples in both libraries
+- On Windows, run npm-backed commands from a drive-backed working directory instead of a UNC current directory. `cmd.exe`/`npm` can fail before repository scripts start when the current directory is a UNC path such as `\\server\share\repo`.
 
 ## Schema rules
 

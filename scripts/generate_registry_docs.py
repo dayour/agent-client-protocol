@@ -221,12 +221,12 @@ def main() -> None:
     icons = _fetch_all_icons(agents)
 
     # Phase 2: Render and write — only reached if all fetches succeeded
-    template = TEMPLATE_PATH.read_text()
+    template = TEMPLATE_PATH.read_text(encoding="utf-8")
     cards = _render_agent_cards(agents, icons)
     output = template.replace(PLACEHOLDER, cards)
 
     # Write output
-    OUTPUT_PATH.write_text(output)
+    OUTPUT_PATH.write_text(output, encoding="utf-8")
     print(f"Generated {OUTPUT_PATH}")
 
 

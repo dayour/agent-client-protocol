@@ -8,3 +8,16 @@ We welcome contributions from the community!
 All contributors must adhere to our [Code of Conduct](./code-of-conduct).
 
 For questions and discussions, please use GitHub Discussions.
+
+## Windows development
+
+When working from a Windows network share, run npm-backed commands from a drive-backed
+working directory. `cmd.exe` and npm can fail before repository scripts start when the
+current directory is a UNC path such as `\\server\share\repo`.
+
+Schema generation and registry documentation generation can then be run with:
+
+```bash
+npm run generate
+npm run generate:registry
+```

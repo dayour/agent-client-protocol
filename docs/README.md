@@ -27,6 +27,9 @@ Before running the site locally you need to install Mint's CLI:
 npm i -g mint
 ```
 
+On Windows, use a drive-backed working directory for npm commands. Running from a
+UNC path can cause `cmd.exe` or npm to fail before the repository scripts start.
+
 ## Deployment
 
 The documentation site is updated every time changes get to `main`.
