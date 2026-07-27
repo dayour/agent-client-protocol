@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import contextlib
+import io
+import os
 import sys
 import tempfile
 import unittest
@@ -45,6 +48,77 @@ def _read_text(path: Path) -> str:
 
 
 class GenerateRegistryDocsTests(unittest.TestCase):
+    def test_main_help_exits_without_fetch_or_write(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output_path = Path(temp_dir) / "registry.mdx"
+            stdout_buffer = io.StringIO()
+            stderr_buffer = io.StringIO()
+
+            with (
+                mock.patch.dict(
+                    os.environ,
+                    {"REGISTRY_OUTPUT_PATH": str(output_path)},
+                    clear=False,
+                ),
+                mock.patch.object(
+                    registry_docs,
+                    "generate_registry_docs",
+                    side_effect=AssertionError("generate_registry_docs should not run"),
+                ) as generate_mock,
+                mock.patch.object(
+                    registry_docs,
+                    "_make_request",
+                    side_effect=AssertionError("_make_request should not run"),
+                ) as request_mock,
+                contextlib.redirect_stdout(stdout_buffer),
+                contextlib.redirect_stderr(stderr_buffer),
+            ):
+                with self.assertRaises(SystemExit) as exc:
+                    registry_docs.main(["--help"])
+
+            self.assertEqual(exc.exception.code, 0)
+            generate_mock.assert_not_called()
+            request_mock.assert_not_called()
+            self.assertFalse(output_path.exists())
+            self.assertIn("usage:", stdout_buffer.getvalue())
+            self.assertIn("--registry-url", stdout_buffer.getvalue())
+            self.assertEqual(stderr_buffer.getvalue(), "")
+
+    def test_main_unknown_flag_exits_without_fetch_or_write(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output_path = Path(temp_dir) / "registry.mdx"
+            stdout_buffer = io.StringIO()
+            stderr_buffer = io.StringIO()
+
+            with (
+                mock.patch.dict(
+                    os.environ,
+                    {"REGISTRY_OUTPUT_PATH": str(output_path)},
+                    clear=False,
+                ),
+                mock.patch.object(
+                    registry_docs,
+                    "generate_registry_docs",
+                    side_effect=AssertionError("generate_registry_docs should not run"),
+                ) as generate_mock,
+                mock.patch.object(
+                    registry_docs,
+                    "_make_request",
+                    side_effect=AssertionError("_make_request should not run"),
+                ) as request_mock,
+                contextlib.redirect_stdout(stdout_buffer),
+                contextlib.redirect_stderr(stderr_buffer),
+            ):
+                with self.assertRaises(SystemExit) as exc:
+                    registry_docs.main(["--unknown-flag"])
+
+            self.assertEqual(exc.exception.code, 2)
+            generate_mock.assert_not_called()
+            request_mock.assert_not_called()
+            self.assertFalse(output_path.exists())
+            self.assertEqual(stdout_buffer.getvalue(), "")
+            self.assertIn("unrecognized arguments: --unknown-flag", stderr_buffer.getvalue())
+
     def test_sanitize_svg_strips_active_content(self) -> None:
         svg = """
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">

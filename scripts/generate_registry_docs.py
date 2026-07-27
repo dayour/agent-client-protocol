@@ -17,6 +17,7 @@ Environment variables:
 
 from __future__ import annotations
 
+import argparse
 import json
 import os
 import re
@@ -644,20 +645,57 @@ def generate_registry_docs(
     print(f"Generated {output_path}")
 
 
-def main() -> None:
-    registry_url = os.environ.get("REGISTRY_URL", DEFAULT_REGISTRY_URL)
-    icon_base_url = os.environ.get("ICON_BASE_URL", DEFAULT_ICON_BASE_URL)
-    template_path = Path(
-        os.environ.get("REGISTRY_TEMPLATE_PATH", str(DEFAULT_TEMPLATE_PATH))
+def _build_arg_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        description=(
+            "Fetch ACP registry metadata, sanitize registry icons, and render "
+            "the registry documentation page from a template."
+        )
     )
-    output_path = Path(os.environ.get("REGISTRY_OUTPUT_PATH", str(DEFAULT_OUTPUT_PATH)))
+    parser.add_argument(
+        "--registry-url",
+        default=os.environ.get("REGISTRY_URL", DEFAULT_REGISTRY_URL),
+        help="Registry JSON URL. Defaults to REGISTRY_URL or the live CDN URL.",
+    )
+    parser.add_argument(
+        "--icon-base-url",
+        default=os.environ.get("ICON_BASE_URL", DEFAULT_ICON_BASE_URL),
+        help="Base URL or directory URI for icon SVG files. Defaults to ICON_BASE_URL.",
+    )
+    parser.add_argument(
+        "--template-path",
+        type=Path,
+        default=Path(os.environ.get("REGISTRY_TEMPLATE_PATH", str(DEFAULT_TEMPLATE_PATH))),
+        help=(
+            "Path to the MDX template file. Defaults to REGISTRY_TEMPLATE_PATH or "
+            "docs/get-started/_registry_agents.mdx."
+        ),
+    )
+    parser.add_argument(
+        "--output-path",
+        type=Path,
+        default=Path(os.environ.get("REGISTRY_OUTPUT_PATH", str(DEFAULT_OUTPUT_PATH))),
+        help=(
+            "Path to write the rendered MDX file. Defaults to REGISTRY_OUTPUT_PATH or "
+            "docs/get-started/registry.mdx."
+        ),
+    )
+    return parser
+
+
+def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
+    return _build_arg_parser().parse_args(argv)
+
+
+def main(argv: list[str] | None = None) -> None:
+    args = _parse_args(argv)
 
     try:
         generate_registry_docs(
-            registry_url=registry_url,
-            icon_base_url=icon_base_url,
-            template_path=template_path,
-            output_path=output_path,
+            registry_url=args.registry_url,
+            icon_base_url=args.icon_base_url,
+            template_path=args.template_path,
+            output_path=args.output_path,
         )
     except RegistryDocsError as exc:
         print(f"Error: {exc}", file=sys.stderr)
