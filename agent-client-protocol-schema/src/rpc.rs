@@ -239,8 +239,9 @@ mod tests {
     use super::*;
 
     use crate::v1::{
-        AgentNotification, CancelNotification, ClientNotification, ContentBlock, ContentChunk,
-        SessionId, SessionNotification, SessionUpdate, TextContent,
+        AGENT_METHOD_NAMES, AgentNotification, CLIENT_METHOD_NAMES, CancelNotification,
+        ClientNotification, ContentBlock, ContentChunk, SessionId, SessionNotification,
+        SessionUpdate, TextContent,
     };
     use serde_json::{Number, Value, json};
 
@@ -302,8 +303,9 @@ mod tests {
 
     #[test]
     fn batch_serialization_round_trips_non_empty_messages() {
+        let cancel_method = AGENT_METHOD_NAMES.session_cancel;
         let notification = JsonRpcMessage::wrap(Notification {
-            method: "cancel".into(),
+            method: cancel_method.into(),
             params: Some(ClientNotification::CancelNotification(CancelNotification {
                 session_id: SessionId("test-123".into()),
                 meta: None,
@@ -316,7 +318,7 @@ mod tests {
             serialized,
             json!([{
                 "jsonrpc": "2.0",
-                "method": "cancel",
+                "method": cancel_method,
                 "params": {
                     "sessionId": "test-123"
                 },
@@ -327,14 +329,20 @@ mod tests {
             serde_json::from_value::<JsonRpcBatch<Notification<ClientNotification>>>(serialized)
                 .unwrap();
         assert_eq!(deserialized.as_slice().len(), 1);
-        assert_eq!(deserialized.as_slice()[0].inner().method.as_ref(), "cancel");
+        assert_eq!(
+            deserialized.as_slice()[0].inner().method.as_ref(),
+            cancel_method
+        );
     }
 
     #[test]
     fn notification_wire_format() {
+        let cancel_method = AGENT_METHOD_NAMES.session_cancel;
+        let session_update_method = CLIENT_METHOD_NAMES.session_update;
+
         // Test client -> agent notification wire format
         let outgoing_msg = JsonRpcMessage::wrap(Notification {
-            method: "cancel".into(),
+            method: cancel_method.into(),
             params: Some(ClientNotification::CancelNotification(CancelNotification {
                 session_id: SessionId("test-123".into()),
                 meta: None,
@@ -346,7 +354,7 @@ mod tests {
             serialized,
             json!({
                 "jsonrpc": "2.0",
-                "method": "cancel",
+                "method": cancel_method,
                 "params": {
                     "sessionId": "test-123"
                 },
@@ -355,7 +363,7 @@ mod tests {
 
         // Test agent -> client notification wire format
         let outgoing_msg = JsonRpcMessage::wrap(Notification {
-            method: "sessionUpdate".into(),
+            method: session_update_method.into(),
             params: Some(AgentNotification::SessionNotification(
                 SessionNotification {
                     session_id: SessionId("test-456".into()),
@@ -378,7 +386,7 @@ mod tests {
             serialized,
             json!({
                 "jsonrpc": "2.0",
-                "method": "sessionUpdate",
+                "method": session_update_method,
                 "params": {
                     "sessionId": "test-456",
                     "update": {

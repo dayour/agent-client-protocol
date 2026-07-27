@@ -2405,7 +2405,8 @@ mod tests {
                 ),
                 "Choose a value",
             )));
-        assert_eq!(request.method(), "elicitation/create");
+        let create_method = CLIENT_METHOD_NAMES.elicitation_create;
+        assert_eq!(request.method(), create_method);
         let method = Arc::from(request.method());
         let request = crate::v2::JsonRpcMessage::wrap(crate::v2::Request {
             id: crate::v2::RequestId::Number(7),
@@ -2417,7 +2418,7 @@ mod tests {
             json!({
                 "jsonrpc": "2.0",
                 "id": 7,
-                "method": "elicitation/create",
+                "method": create_method,
                 "params": {
                     "mode": "form",
                     "sessionId": "sess_1",
@@ -2430,7 +2431,8 @@ mod tests {
         let notification = AgentNotification::CompleteElicitationNotification(Box::new(
             CompleteElicitationNotification::new("elic_1"),
         ));
-        assert_eq!(notification.method(), "elicitation/complete");
+        let complete_method = CLIENT_METHOD_NAMES.elicitation_complete;
+        assert_eq!(notification.method(), complete_method);
         let method = Arc::from(notification.method());
         let notification = crate::v2::JsonRpcMessage::wrap(crate::v2::Notification {
             method,
@@ -2440,7 +2442,7 @@ mod tests {
             serde_json::to_value(notification).unwrap(),
             json!({
                 "jsonrpc": "2.0",
-                "method": "elicitation/complete",
+                "method": complete_method,
                 "params": { "elicitationId": "elic_1" }
             })
         );
