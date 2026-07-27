@@ -2,3 +2,6 @@ CHANGELOG.md
 # CLAUDE.md is a symlink to AGENTS.md; AGENTS.md is checked directly and the
 # symlink stub must never be formatted on Windows checkouts with core.symlinks=false.
 CLAUDE.md
+# Machine-written conformance reports. Prettier only honours the root .gitignore,
+# not conformance/.gitignore, so running the suite would otherwise fail format:check.
+conformance/.artifacts/
