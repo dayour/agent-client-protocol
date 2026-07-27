@@ -222,6 +222,50 @@ class GenerateRegistryDocsTests(unittest.TestCase):
         self.assertNotIn(">{value}</text>", rendered)
         self.assertNotIn("&amp;#123;", rendered)
 
+    def test_sanitize_svg_preserves_tspan_and_tail_text(self) -> None:
+        svg = """
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
+          <text x="1" y="10">Hello <tspan x="4" dx="1" dy="2" font-size="8">W</tspan>orld</text>
+        </svg>
+        """
+
+        sanitized = registry_docs._sanitize_svg(svg)
+
+        self.assertIn("<text x=\"1\" y=\"10\">Hello ", sanitized)
+        self.assertIn(
+            "<tspan x=\"4\" dx=\"1\" dy=\"2\" fontSize=\"8\">W</tspan>orld</text>",
+            sanitized,
+        )
+
+    def test_sanitize_svg_escapes_braces_in_tail_text_for_jsx(self) -> None:
+        svg = """
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
+          <text x="1" y="10">Hello <tspan x="4">W</tspan>{orld}</text>
+        </svg>
+        """
+
+        sanitized = registry_docs._sanitize_svg(svg)
+        rendered = registry_docs._render_agent_cards(
+            [
+                {
+                    "id": "tspan-agent",
+                    "name": "Tspan Agent",
+                    "description": "desc",
+                    "version": "1.0.0",
+                    "website": "https://example.com",
+                    "repository": "https://github.com/example/tspan-agent",
+                }
+            ],
+            {"tspan-agent": sanitized},
+        )
+
+        self.assertIn(
+            "<text x=\"1\" y=\"10\">Hello <tspan x=\"4\">W</tspan>&#123;orld&#125;</text>",
+            rendered,
+        )
+        self.assertNotIn("<tspan x=\"4\">W</tspan>{orld}</text>", rendered)
+        self.assertNotIn("&amp;#123;orld", rendered)
+
     def test_validate_registry_rejects_javascript_urls(self) -> None:
         payload = {
             "agents": [

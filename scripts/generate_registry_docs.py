@@ -76,6 +76,7 @@ SVG_ALLOWED_ELEMENTS = {
     "stop",
     "use",
     "text",
+    "tspan",
     "title",
 }
 
@@ -127,6 +128,8 @@ SVG_ALLOWED_ATTRIBUTES = {
     "d",
     "x",
     "y",
+    "dx",
+    "dy",
     "x1",
     "y1",
     "x2",
@@ -169,7 +172,7 @@ SVG_DROP_ATTRIBUTES = {
 }
 
 SVG_INTERNAL_HREF_ELEMENTS = {"use", "linearGradient", "radialGradient"}
-SVG_TEXT_CONTENT_ELEMENTS = {"text", "title"}
+SVG_TEXT_CONTENT_ELEMENTS = {"text", "title", "tspan"}
 
 
 class RegistryDocsError(Exception):
@@ -370,6 +373,12 @@ def _is_safe_internal_svg_href(value: str) -> bool:
     return bool(INTERNAL_SVG_HREF_RE.fullmatch(value.strip()))
 
 
+def _validate_svg_text_content(text: str, *, context: str) -> str:
+    if CONTROL_CHAR_RE.search(text):
+        raise RegistryDocsError(f"icon SVG {context} contains control characters")
+    return text
+
+
 def _sanitize_svg_element(element: ET.Element, *, is_root: bool = False) -> ET.Element | None:
     tag_name = _local_name(element.tag)
     if tag_name not in SVG_ALLOWED_ELEMENTS:
@@ -412,9 +421,11 @@ def _sanitize_svg_element(element: ET.Element, *, is_root: bool = False) -> ET.E
 
     if element.text:
         if tag_name in SVG_TEXT_CONTENT_ELEMENTS:
-            if CONTROL_CHAR_RE.search(element.text):
-                raise RegistryDocsError(f"icon SVG <{tag_name}> text contains control characters")
-            sanitized.text = element.text
+            if element.text.strip():
+                sanitized.text = _validate_svg_text_content(
+                    element.text,
+                    context=f"<{tag_name}> text",
+                )
         elif element.text.strip():
             raise RegistryDocsError(
                 f"icon SVG element <{tag_name}> contains unsupported text content"
@@ -422,8 +433,34 @@ def _sanitize_svg_element(element: ET.Element, *, is_root: bool = False) -> ET.E
 
     for child in element:
         sanitized_child = _sanitize_svg_element(child)
+        if child.tail:
+            if tag_name in SVG_TEXT_CONTENT_ELEMENTS:
+                if child.tail.strip():
+                    validated_tail = _validate_svg_text_content(
+                        child.tail,
+                        context=f"<{tag_name}> tail text",
+                    )
+                else:
+                    validated_tail = None
+            elif child.tail.strip():
+                raise RegistryDocsError(
+                    f"icon SVG element <{tag_name}> contains unsupported text content"
+                )
+            else:
+                validated_tail = None
+        else:
+            validated_tail = None
+
         if sanitized_child is not None:
             sanitized.append(sanitized_child)
+            if validated_tail is not None:
+                sanitized_child.tail = validated_tail
+        elif validated_tail is not None and tag_name in SVG_TEXT_CONTENT_ELEMENTS:
+            if len(sanitized) > 0:
+                last_child = sanitized[-1]
+                last_child.tail = (last_child.tail or "") + validated_tail
+            else:
+                sanitized.text = (sanitized.text or "") + validated_tail
 
     return sanitized
 
