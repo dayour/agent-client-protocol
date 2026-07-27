@@ -8,14 +8,13 @@ use std::{path::PathBuf, sync::Arc};
 use derive_more::{Display, From};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
-use serde_with::{DefaultOnError, VecSkipError, serde_as, skip_serializing_none};
+use serde_with::{VecSkipError, serde_as, skip_serializing_none};
 
 use super::{
     CompleteElicitationNotification, CreateElicitationRequest, CreateElicitationResponse,
     ElicitationCapabilities,
 };
-use crate::serde_util::SkipListener;
-use crate::{IntoMaybeUndefined, IntoOption, MaybeUndefined};
+use crate::{DefaultOnError, IntoMaybeUndefined, IntoOption, MaybeUndefined, SkipListener};
 
 use super::{
     ContentBlock, EnvVariable, ExtNotification, ExtRequest, ExtResponse, Meta, Plan,
@@ -1730,15 +1729,21 @@ impl TerminalExitStatus {
 pub struct ClientCapabilities {
     /// File system capabilities supported by the client.
     /// Determines which file operations the agent can request.
+    #[serde_as(deserialize_as = "DefaultOnError")]
+    #[schemars(extend("x-deserialize-default-on-error" = true))]
     #[serde(default)]
     pub fs: FileSystemCapabilities,
     /// Whether the Client support all `terminal/*` methods.
+    #[serde_as(deserialize_as = "DefaultOnError")]
+    #[schemars(extend("x-deserialize-default-on-error" = true))]
     #[serde(default)]
     pub terminal: bool,
     /// Session-related capabilities supported by the client.
     ///
     /// Optional. Omitted or `null` both mean the client does not advertise any
     /// session-related extensions.
+    #[serde_as(deserialize_as = "DefaultOnError")]
+    #[schemars(extend("x-deserialize-default-on-error" = true))]
     #[serde(default)]
     pub session: Option<ClientSessionCapabilities>,
     /// **UNSTABLE**
@@ -1750,6 +1755,8 @@ pub struct ClientCapabilities {
     /// Optional. Omitted or `null` both mean the client does not advertise support.
     /// Supplying `{}` means the client can receive both update types.
     #[cfg(feature = "unstable_plan_operations")]
+    #[serde_as(deserialize_as = "DefaultOnError")]
+    #[schemars(extend("x-deserialize-default-on-error" = true))]
     #[serde(default)]
     pub plan: Option<PlanCapabilities>,
     /// **UNSTABLE**
@@ -1760,6 +1767,8 @@ pub struct ClientCapabilities {
     /// Determines which authentication method types the agent may include
     /// in its `InitializeResponse`.
     #[cfg(feature = "unstable_auth_methods")]
+    #[serde_as(deserialize_as = "DefaultOnError")]
+    #[schemars(extend("x-deserialize-default-on-error" = true))]
     #[serde(default)]
     pub auth: AuthCapabilities,
     /// Elicitation capabilities supported by the client.
@@ -1767,6 +1776,8 @@ pub struct ClientCapabilities {
     ///
     /// Optional. Omitted or `null` both mean the client does not advertise
     /// elicitation support.
+    #[serde_as(deserialize_as = "DefaultOnError")]
+    #[schemars(extend("x-deserialize-default-on-error" = true))]
     #[serde(default)]
     pub elicitation: Option<ElicitationCapabilities>,
     /// **UNSTABLE**
@@ -1778,6 +1789,8 @@ pub struct ClientCapabilities {
     /// Optional. Omitted or `null` both mean the client does not advertise any
     /// NES suggestion-kind extensions.
     #[cfg(feature = "unstable_nes")]
+    #[serde_as(deserialize_as = "DefaultOnError")]
+    #[schemars(extend("x-deserialize-default-on-error" = true))]
     #[serde(default)]
     pub nes: Option<ClientNesCapabilities>,
     /// **UNSTABLE**
@@ -1786,8 +1799,8 @@ pub struct ClientCapabilities {
     ///
     /// The position encodings supported by the client, in order of preference.
     #[cfg(feature = "unstable_nes")]
-    #[serde_as(deserialize_as = "VecSkipError<_, SkipListener>")]
-    #[schemars(extend("x-deserialize-skip-invalid-items" = true))]
+    #[serde_as(deserialize_as = "DefaultOnError<VecSkipError<_, SkipListener>>")]
+    #[schemars(extend("x-deserialize-default-on-error" = true, "x-deserialize-skip-invalid-items" = true))]
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub position_encodings: Vec<PositionEncodingKind>,
 
@@ -1912,6 +1925,8 @@ pub struct ClientSessionCapabilities {
     ///
     /// Omitted or `null` both mean the client does not advertise support for any
     /// config option extensions.
+    #[serde_as(deserialize_as = "DefaultOnError")]
+    #[schemars(extend("x-deserialize-default-on-error" = true))]
     #[serde(default)]
     pub config_options: Option<SessionConfigOptionsCapabilities>,
     /// The _meta property is reserved by ACP to allow clients and agents to attach additional
@@ -1971,6 +1986,8 @@ pub struct SessionConfigOptionsCapabilities {
     /// Supplying `{}` means agents may include `type: "boolean"` entries in
     /// `configOptions`, and the client may send `session/set_config_option`
     /// requests with `type: "boolean"` and a boolean `value`.
+    #[serde_as(deserialize_as = "DefaultOnError")]
+    #[schemars(extend("x-deserialize-default-on-error" = true))]
     #[serde(default)]
     pub boolean: Option<BooleanConfigOptionCapabilities>,
     /// The _meta property is reserved by ACP to allow clients and agents to attach additional
@@ -2074,6 +2091,8 @@ pub struct AuthCapabilities {
     /// Whether the client supports `terminal` authentication methods.
     ///
     /// When `true`, the agent may include `terminal` entries in its authentication methods.
+    #[serde_as(deserialize_as = "DefaultOnError")]
+    #[schemars(extend("x-deserialize-default-on-error" = true))]
     #[serde(default)]
     pub terminal: bool,
     /// The _meta property is reserved by ACP to allow clients and agents to attach additional
@@ -2128,9 +2147,13 @@ impl AuthCapabilities {
 #[non_exhaustive]
 pub struct FileSystemCapabilities {
     /// Whether the Client supports `fs/read_text_file` requests.
+    #[serde_as(deserialize_as = "DefaultOnError")]
+    #[schemars(extend("x-deserialize-default-on-error" = true))]
     #[serde(default)]
     pub read_text_file: bool,
     /// Whether the Client supports `fs/write_text_file` requests.
+    #[serde_as(deserialize_as = "DefaultOnError")]
+    #[schemars(extend("x-deserialize-default-on-error" = true))]
     #[serde(default)]
     pub write_text_file: bool,
     /// The _meta property is reserved by ACP to allow clients and agents to attach additional
@@ -2528,10 +2551,9 @@ mod tests {
             serde_json::from_value(json!({ "elicitation": null })).unwrap();
         assert!(null.elicitation.is_none());
 
-        drop(
-            serde_json::from_value::<ClientCapabilities>(json!({ "elicitation": false }))
-                .unwrap_err(),
-        );
+        let malformed: ClientCapabilities =
+            serde_json::from_value(json!({ "elicitation": false })).unwrap();
+        assert!(malformed.elicitation.is_none());
 
         let empty: ClientCapabilities =
             serde_json::from_value(json!({ "elicitation": {} })).unwrap();
@@ -2625,35 +2647,41 @@ mod tests {
     }
 
     #[test]
-    fn test_client_capabilities_reject_malformed_values() {
+    fn test_client_capabilities_default_on_malformed_values() {
         use serde_json::json;
 
-        drop(
-            serde_json::from_value::<ClientCapabilities>(json!({
-                "fs": {
-                    "readTextFile": "yes",
-                    "writeTextFile": true
-                },
-                "terminal": {}
-            }))
-            .unwrap_err(),
-        );
+        let capabilities: ClientCapabilities = serde_json::from_value(json!({
+            "fs": {
+                "readTextFile": "yes",
+                "writeTextFile": true
+            },
+            "terminal": {}
+        }))
+        .unwrap();
 
-        drop(
-            serde_json::from_value::<ClientCapabilities>(json!({
-                "fs": false
-            }))
-            .unwrap_err(),
-        );
+        assert!(!capabilities.fs.read_text_file);
+        assert!(capabilities.fs.write_text_file);
+        assert!(!capabilities.terminal);
+
+        let capabilities: ClientCapabilities = serde_json::from_value(json!({
+            "fs": false
+        }))
+        .unwrap();
+        assert_eq!(capabilities.fs, FileSystemCapabilities::default());
 
         #[cfg(feature = "unstable_auth_methods")]
         {
-            drop(
-                serde_json::from_value::<ClientCapabilities>(json!({
-                    "auth": false
-                }))
-                .unwrap_err(),
-            );
+            let capabilities: ClientCapabilities = serde_json::from_value(json!({
+                "auth": false
+            }))
+            .unwrap();
+            assert_eq!(capabilities.auth, AuthCapabilities::default());
+
+            let capabilities: AuthCapabilities = serde_json::from_value(json!({
+                "terminal": {}
+            }))
+            .unwrap();
+            assert!(!capabilities.terminal);
         }
     }
 

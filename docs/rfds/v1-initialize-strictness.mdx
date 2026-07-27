@@ -1,0 +1,118 @@
+---
+title: "v1 Initialize Strictness"
+---
+
+Author(s): [dayour](https://github.com/dayour)
+
+## Elevator pitch
+
+> What are you proposing to change?
+
+I propose tightening ACP v1 `initialize` decoding upstream so malformed present
+handshake values are rejected instead of being silently defaulted.
+
+This RFD does not propose landing that change in the DarbotLM fork immediately.
+The fork should keep v1 wire-compatible with upstream, keep the existing
+tolerant decode behavior, and make dropped malformed values observable.
+
+## Status quo
+
+> How do things work today and what problems does this cause? Why would we change things?
+
+ACP v1 currently uses tolerant `DefaultOnError` decoding across the initialize
+handshake surface:
+
+- `InitializeRequest.clientCapabilities`
+- `InitializeRequest.clientInfo`
+- `InitializeResponse.agentCapabilities`
+- `InitializeResponse.authMethods`
+- `InitializeResponse.agentInfo`
+- nested capability objects under those trees
+
+That keeps stable-wire interoperability with existing upstream implementers, but
+it also means a malformed present value can be silently discarded and replaced by
+an empty/default capability set. For `initialize`, that is risky because the
+handshake has no negotiated fallback: both peers may believe they are conformant
+while they actually negotiated against damaged state.
+
+ACP v2 already moved in the stricter direction. The existing v2 migration and
+enum-extension documents say malformed known variants should be rejected rather
+than demoted into future-compatibility fallbacks.
+
+## What we propose to do about it
+
+> What are you proposing to improve the situation?
+
+For v1:
+
+1. Keep the wire contract tolerant until upstream adopts a change.
+2. Make every tolerant default-on-error drop observable through ACP's shared
+   deserialization listener path, so implementations can detect malformed
+   handshake input instead of losing it silently.
+
+For a future upstream v1.x or v2 stabilization discussion:
+
+1. Evaluate whether `initialize` negotiation state should become strict.
+2. Document the interop impact explicitly before changing stable behavior.
+3. Coordinate client and agent implementations so the failure mode is
+   intentional rather than fork-specific.
+
+## Shiny future
+
+> How will things will play out once this feature exists?
+
+Short term, v1 implementations remain interoperable with upstream, but malformed
+present handshake data is no longer invisible during debugging or telemetry.
+
+Long term, upstream can review a focused proposal for strict `initialize`
+negotiation with the interop risk written down, rather than receiving a
+fork-local behavior change without protocol review.
+
+## Implementation details and plan
+
+> Tell me more about your implementation. What is your detailed implementation plan?
+
+Phase 1:
+
+- Keep the existing `DefaultOnError` wire contract in v1.
+- Route tolerant drops through the shared skip-listener/observability hook.
+- Restore v1 schema annotations so the stable schema remains upstream-aligned.
+
+Phase 2:
+
+- Gather real-world evidence about malformed initialize payloads.
+- Use that evidence to decide whether an upstream strictness change is worth the
+  compatibility cost.
+
+Phase 3:
+
+- If consensus forms, open an upstream protocol change that explicitly updates
+  both documentation and migration guidance.
+
+## Frequently asked questions
+
+> What questions have arisen over the course of authoring this document or during subsequent discussions?
+
+## Why not ship strict v1 decoding in the fork now?
+
+Because upstream v1 still tolerates these fields today. Tightening only the fork
+would create a stable-version interop split where an upstream client can send a
+payload it considers valid and a DarbotLM agent rejects the connection before
+negotiation completes.
+
+## Why is v2 different?
+
+Because v2 is still draft, and the repository already documents the stricter
+rule there: malformed known payloads should fail instead of hiding behind
+forward-compatibility fallbacks.
+
+## Why is observability enough for v1?
+
+The bug worth fixing immediately in v1 is silence. If implementations can see
+that a malformed present value was dropped, they can debug and surface the issue
+without changing stable-wire compatibility.
+
+## Revision history
+
+- 2026-07-27: Opened the RFD to record the v1/v2 split and the interop risk of
+  strict v1 initialize decoding.
