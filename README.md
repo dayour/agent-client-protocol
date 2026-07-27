@@ -8,6 +8,8 @@ The Agent Client Protocol (ACP) standardizes communication between _code editors
 
 Learn more at [agentclientprotocol.com](https://agentclientprotocol.com/).
 
+This repository is a DarbotLM hardening fork of the upstream [Agent Client Protocol project](https://github.com/agentclientprotocol/agent-client-protocol). DarbotLM tracks upstream ACP protocol content here while carrying local tooling and hardening changes. Releases from this fork are non-authoritative and must not be treated as the publisher of the upstream crates.io, npm, or schema release names.
+
 ## Rust: this repository ships types, not the runtime
 
 This repository's Rust crate is [`agent-client-protocol-schema`](https://crates.io/crates/agent-client-protocol-schema). It provides ACP wire types only: request, response, notification, JSON-RPC envelope, and protocol-version data structures.
