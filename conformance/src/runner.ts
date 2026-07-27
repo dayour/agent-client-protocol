@@ -52,6 +52,8 @@ export async function runSuite(target: TargetSpec, options: RunOptions = {}): Pr
         try {
           connection = await openConnection(preparedTarget, version);
           await testCase.run(connection, { target: preparedTarget, version });
+          await connection.settle();
+          connection.assertHealthy();
           const durationMs = Date.now() - started;
           results.push({
             id: testCase.id,

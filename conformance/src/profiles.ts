@@ -1,11 +1,13 @@
 import path from 'node:path';
 
+import { normalizeReferenceFaults } from './reference-agent.js';
 import type { ProtocolVersion, TargetSpec } from './types.js';
 import { packageRoot } from './utils.js';
 
 const DEFAULT_REQUEST_TIMEOUT_MS = 5_000;
 
 export function builtinProfile(profile: string, faults: string[] = []): TargetSpec {
+  const normalizedFaults = normalizeReferenceFaults(faults);
   const common = {
     requestedVersions: [1, 2] as ProtocolVersion[],
     cwd: packageRoot,
@@ -14,7 +16,7 @@ export function builtinProfile(profile: string, faults: string[] = []): TargetSp
 
   switch (profile) {
     case 'reference-stdio':
-      return referenceStdioTarget('reference-stdio', faults, common);
+      return referenceStdioTarget('reference-stdio', normalizedFaults, common);
     case 'reference-bad-stdio':
       return referenceStdioTarget('reference-bad-stdio', ['omit-v1-prompt-stop-reason', 'illegal-v2-fs-read-text-file'], common);
     case 'reference-in-process':
@@ -23,7 +25,7 @@ export function builtinProfile(profile: string, faults: string[] = []): TargetSp
         name: 'reference-in-process',
         driver: 'in-process',
         referenceMode: 'good',
-        faults,
+        faults: normalizedFaults,
       };
     default:
       throw new Error(`Unknown built-in profile: ${profile}`);
@@ -35,7 +37,7 @@ function referenceStdioTarget(
   faults: string[],
   common: { requestedVersions: ProtocolVersion[]; cwd: string; requestTimeoutMs: number },
 ): TargetSpec {
-  const normalizedFaults = [...new Set(faults)];
+  const normalizedFaults = normalizeReferenceFaults(faults);
   return {
     ...common,
     name,
@@ -51,6 +53,12 @@ function referenceStdioTarget(
 }
 
 export const referenceFaultProfiles: Array<{ name: string; reportPath: string; faults: string[]; expectedFailurePattern: RegExp }> = [
+  {
+    name: 'reference-fault-midturn-bad-update-v1',
+    reportPath: '.artifacts/reference-fault-midturn-bad-update-v1.json',
+    faults: ['midturn-bad-update-v1'],
+    expectedFailurePattern: /session\/update failed schema validation/i,
+  },
   {
     name: 'reference-fault-missing-session-id',
     reportPath: '.artifacts/reference-fault-missing-session-id.json',
@@ -68,5 +76,11 @@ export const referenceFaultProfiles: Array<{ name: string; reportPath: string; f
     reportPath: '.artifacts/reference-fault-timeout-session-new.json',
     faults: ['timeout-v1-session-new'],
     expectedFailurePattern: /No response within .*session\/new/i,
+  },
+  {
+    name: 'reference-fault-trailing-bad-update-v1',
+    reportPath: '.artifacts/reference-fault-trailing-bad-update-v1.json',
+    faults: ['trailing-bad-update-v1'],
+    expectedFailurePattern: /session\/update failed schema validation/i,
   },
 ];

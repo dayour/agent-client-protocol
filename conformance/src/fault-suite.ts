@@ -1,7 +1,9 @@
+import { spawn } from 'node:child_process';
 import fs from 'node:fs/promises';
 
 import { builtinProfile, referenceFaultProfiles } from './profiles.js';
 import { runSuite } from './runner.js';
+import { packageRoot } from './utils.js';
 
 async function main(): Promise<void> {
   let failures = 0;
@@ -39,9 +41,52 @@ async function main(): Promise<void> {
     console.log(`  report: ${summary.reportPath ?? 'missing'}`);
   }
 
+  const invalidFaultProbe = await runInvalidFaultProbe();
+  if (invalidFaultProbe.ok) {
+    console.log('PASS invalid fault name');
+    console.log(`  exit code: ${invalidFaultProbe.exitCode}`);
+  } else {
+    failures += 1;
+    console.log('FAIL invalid fault name');
+    console.log(`  exit code: ${invalidFaultProbe.exitCode ?? 'missing'}`);
+    console.log(`  output: ${invalidFaultProbe.output}`);
+  }
+
   if (failures > 0) {
     process.exitCode = 1;
   }
+}
+
+async function runInvalidFaultProbe(): Promise<{ ok: boolean; exitCode: number | null; output: string }> {
+  const output: string[] = [];
+  const child = spawn(
+    process.execPath,
+    ['--import', 'tsx', 'src/cli.ts', 'run', '--profile', 'reference-stdio', '--fault', 'this-name-does-not-exist'],
+    {
+      cwd: packageRoot,
+      stdio: ['ignore', 'pipe', 'pipe'],
+      shell: false,
+    },
+  );
+
+  child.stdout.on('data', (chunk) => {
+    output.push(String(chunk));
+  });
+  child.stderr.on('data', (chunk) => {
+    output.push(String(chunk));
+  });
+
+  const exitCode = await new Promise<number | null>((resolve) => {
+    child.on('exit', (code) => resolve(code));
+  });
+
+  const combined = output.join('');
+  const ok = exitCode !== 0 && /Unknown reference fault name\(s\): this-name-does-not-exist/i.test(combined) && /Valid faults:/i.test(combined);
+  return {
+    ok,
+    exitCode,
+    output: combined.trim(),
+  };
 }
 
 void main();

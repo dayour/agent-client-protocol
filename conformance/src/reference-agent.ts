@@ -10,12 +10,25 @@ import type {
 import { SchemaRegistry } from './schema.js';
 import { base64, firstTextBlock, isoNow, sleep } from './utils.js';
 
-export type ReferenceFault =
-  | 'illegal-v2-fs-read-text-file'
-  | 'omit-v1-prompt-stop-reason'
-  | 'omit-v1-session-new-session-id'
-  | 'timeout-v1-session-new'
-  | 'wrong-type-v1-session-new-session-id';
+export const REFERENCE_FAULTS = [
+  'illegal-v2-fs-read-text-file',
+  'midturn-bad-update-v1',
+  'omit-v1-prompt-stop-reason',
+  'omit-v1-session-new-session-id',
+  'timeout-v1-session-new',
+  'trailing-bad-update-v1',
+  'wrong-type-v1-session-new-session-id',
+] as const;
+
+export type ReferenceFault = (typeof REFERENCE_FAULTS)[number];
+
+export function normalizeReferenceFaults(faults: string[]): ReferenceFault[] {
+  const unknown = [...new Set(faults.filter((fault) => !REFERENCE_FAULTS.includes(fault as ReferenceFault)))];
+  if (unknown.length > 0) {
+    throw new Error(`Unknown reference fault name(s): ${unknown.join(', ')}. Valid faults: ${REFERENCE_FAULTS.join(', ')}`);
+  }
+  return [...new Set(faults)] as ReferenceFault[];
+}
 
 interface HistoryEntry {
   role: 'user' | 'agent';
@@ -86,7 +99,7 @@ export class ReferenceAgent {
     private readonly emitStdout: (line: string) => void,
     private readonly emitStderr: (line: string) => void,
   ) {
-    this.faults = new Set(faults.filter((fault): fault is ReferenceFault => this.isReferenceFault(fault)));
+    this.faults = new Set(normalizeReferenceFaults(faults));
   }
 
   async receive(line: string): Promise<void> {
@@ -493,15 +506,7 @@ export class ReferenceAgent {
         },
       },
     });
-    if (this.hasFault('omit-v1-prompt-stop-reason')) {
-      await this.emitMessage({
-        jsonrpc: '2.0',
-        id: context.v1RequestId!,
-        result: {},
-      });
-    } else {
-      await this.sendSuccess(context.v1RequestId!, 'session/prompt', { stopReason: 'end_turn' });
-    }
+    await this.respondV1Prompt(session.sessionId, context.v1RequestId!, 'end_turn');
   }
 
   private async runDefaultV2Prompt(session: SessionRecord, context: PromptContext, prompt: JsonValue[]): Promise<void> {
@@ -601,8 +606,13 @@ export class ReferenceAgent {
       ],
     });
 
+    if (this.hasFault('midturn-bad-update-v1')) {
+      await this.emitInvalidV1SessionUpdate(session.sessionId);
+      return;
+    }
+
     if ('error' in permissionResponse) {
-      await this.sendSuccess(context.v1RequestId!, 'session/prompt', { stopReason: 'cancelled' });
+      await this.respondV1Prompt(session.sessionId, context.v1RequestId!, 'cancelled');
       return;
     }
 
@@ -611,7 +621,7 @@ export class ReferenceAgent {
     const permissionState = outcome.outcome;
 
     if (scenario === 'v1-permission-cancel' || context.cancelled || permissionState === 'cancelled') {
-      await this.sendSuccess(context.v1RequestId!, 'session/prompt', { stopReason: 'cancelled' });
+      await this.respondV1Prompt(session.sessionId, context.v1RequestId!, 'cancelled');
       return;
     }
 
@@ -646,7 +656,7 @@ export class ReferenceAgent {
           },
         },
       });
-      await this.sendSuccess(context.v1RequestId!, 'session/prompt', { stopReason: 'end_turn' });
+      await this.respondV1Prompt(session.sessionId, context.v1RequestId!, 'end_turn');
       return;
     }
 
@@ -739,15 +749,7 @@ export class ReferenceAgent {
         },
       },
     });
-    if (this.hasFault('omit-v1-prompt-stop-reason')) {
-      await this.emitMessage({
-        jsonrpc: '2.0',
-        id: context.v1RequestId!,
-        result: {},
-      });
-    } else {
-      await this.sendSuccess(context.v1RequestId!, 'session/prompt', { stopReason: 'end_turn' });
-    }
+    await this.respondV1Prompt(session.sessionId, context.v1RequestId!, 'end_turn');
   }
 
   private async runV2ScenarioPrompt(
@@ -1030,6 +1032,32 @@ export class ReferenceAgent {
     this.emitStdout(JSON.stringify(message));
   }
 
+  private async respondV1Prompt(sessionId: string, requestId: string | number, stopReason: 'end_turn' | 'cancelled'): Promise<void> {
+    if (this.hasFault('omit-v1-prompt-stop-reason')) {
+      await this.emitMessage({
+        jsonrpc: '2.0',
+        id: requestId,
+        result: {},
+      });
+    } else {
+      await this.sendSuccess(requestId, 'session/prompt', { stopReason });
+    }
+
+    if (this.hasFault('trailing-bad-update-v1')) {
+      await this.emitInvalidV1SessionUpdate(sessionId);
+    }
+  }
+
+  private async emitInvalidV1SessionUpdate(sessionId: string): Promise<void> {
+    await this.emitMessage({
+      jsonrpc: '2.0',
+      method: 'session/update',
+      params: {
+        sessionId: 12345,
+      },
+    });
+  }
+
   private v1SessionNewResult(sessionId: string): Record<string, JsonValue> {
     if (this.hasFault('omit-v1-session-new-session-id')) {
       return {
@@ -1065,16 +1093,6 @@ export class ReferenceAgent {
 
   private hasFault(fault: ReferenceFault): boolean {
     return this.faults.has(fault);
-  }
-
-  private isReferenceFault(fault: string): fault is ReferenceFault {
-    return (
-      fault === 'illegal-v2-fs-read-text-file' ||
-      fault === 'omit-v1-prompt-stop-reason' ||
-      fault === 'omit-v1-session-new-session-id' ||
-      fault === 'timeout-v1-session-new' ||
-      fault === 'wrong-type-v1-session-new-session-id'
-    );
   }
 
   private knownMethodsForVersion(version: ProtocolVersion): Set<string> {

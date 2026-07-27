@@ -81,15 +81,20 @@ npm run test:in-process
 
 1. runs the original bundled non-conforming target
 2. runs three injectable fault profiles that prove the harness fails cleanly for:
+   - malformed mid-turn notifications while a request is still pending
    - missing required response fields
+   - malformed trailing notifications that arrive after the final assertion path
    - wrong scalar response types
    - requests that never receive a response
+   - unrecognized fault names, which must fail startup instead of being silently ignored
 
 Reports are written to `.artifacts/` and ignored by Git:
 
 - `.artifacts/reference-report.json`
 - `.artifacts/reference-bad-report.json`
 - `.artifacts/reference-fault-missing-session-id.json`
+- `.artifacts/reference-fault-midturn-bad-update-v1.json`
+- `.artifacts/reference-fault-trailing-bad-update-v1.json`
 - `.artifacts/reference-fault-wrong-type-session-id.json`
 - `.artifacts/reference-fault-timeout-session-new.json`
 - `.artifacts/reference-in-process-report.json`
@@ -136,7 +141,7 @@ These are valid extension methods under:
 
 The conformance assertions still operate on standard ACP traffic. The extension methods only select deterministic scenarios so the suite can prove the standard protocol flows.
 
-For explicit failure injection without source edits, the CLI also accepts repeated `--fault <name>` flags for the bundled reference target. The bundled negative suite uses this to inject schema-visible faults and timeout faults from the command line rather than by editing the reference implementation.
+For explicit failure injection without source edits, the CLI also accepts repeated `--fault <name>` flags for the bundled reference target. Unknown fault names are rejected at startup with the valid fault set so a typo cannot silently turn a negative test into a false green run. The bundled negative suite uses this to inject schema-visible faults and timeout faults from the command line rather than by editing the reference implementation.
 
 ## Intended downstream targets
 
@@ -170,6 +175,8 @@ Schema validation failures include:
 - raw message
 
 Timeout failures include the original method name and the request id so silent or wedged targets fail as bounded diagnostics rather than hanging the suite.
+
+Each case also includes a short post-assertion settle window before verdict. That window lets the harness validate late notifications and convert any transport-fatal condition into a case failure instead of recording a false pass.
 
 ## Adding a new test case
 

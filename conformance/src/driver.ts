@@ -19,7 +19,7 @@ import type {
   TranscriptEntry,
   TransportKind,
 } from './types.js';
-import { isoNow, packageRoot, resolveMaybeRelative } from './utils.js';
+import { isoNow, packageRoot, resolveMaybeRelative, sleep } from './utils.js';
 
 import { createReferenceInProcessTransport } from './reference-agent.js';
 
@@ -53,6 +53,8 @@ interface ResponseWaiter {
 export interface ExpectOptions {
   timeoutMs?: number;
 }
+
+const CASE_SETTLE_MS = 150;
 
 export class HarnessConnection {
   private readonly schema = new SchemaRegistry();
@@ -91,10 +93,21 @@ export class HarnessConnection {
     return [...this.transcript];
   }
 
-  async request(method: string, params: unknown, options: { raw?: boolean } = {}): Promise<JsonRpcSuccessResponse | JsonRpcErrorResponse> {
+  async settle(timeoutMs: number = CASE_SETTLE_MS): Promise<void> {
     this.throwIfFatal();
-    const pending = await this.requestWithId(method, params, options);
-    return pending.response;
+    await sleep(timeoutMs);
+    this.throwIfFatal();
+  }
+
+  assertHealthy(): void {
+    this.throwIfFatal();
+  }
+
+  request(method: string, params: unknown, options: { raw?: boolean } = {}): Promise<JsonRpcSuccessResponse | JsonRpcErrorResponse> {
+    this.throwIfFatal();
+    const response = this.requestWithId(method, params, options).then((pending) => pending.response);
+    void response.catch(() => {});
+    return response;
   }
 
   async requestWithId(
@@ -122,6 +135,7 @@ export class HarnessConnection {
       }, this.requestTimeoutMs);
       this.pendingResponses.set(id, { method, requestId: id, timeout, resolve, reject });
     });
+    void responsePromise.catch(() => {});
     try {
       await this.transport.sendLine(raw);
     } catch (error) {
@@ -204,7 +218,7 @@ export class HarnessConnection {
     if (existingIndex >= 0) {
       return this.queuedUnmatchedResponses.splice(existingIndex, 1)[0];
     }
-    return new Promise<JsonRpcSuccessResponse | JsonRpcErrorResponse>((resolve, reject) => {
+    const pending = new Promise<JsonRpcSuccessResponse | JsonRpcErrorResponse>((resolve, reject) => {
       const waiter: ResponseWaiter = { predicate, resolve, reject };
       this.responseWaiters.push(waiter);
       const timeoutMs = options.timeoutMs ?? 8_000;
@@ -226,6 +240,8 @@ export class HarnessConnection {
         originalReject(error);
       };
     });
+    void pending.catch(() => {});
+    return pending;
   }
 
   private async expectEvent(
@@ -237,7 +253,7 @@ export class HarnessConnection {
     if (existingIndex >= 0) {
       return this.queuedEvents.splice(existingIndex, 1)[0];
     }
-    return new Promise<JsonRpcRequest | JsonRpcNotification>((resolve, reject) => {
+    const pending = new Promise<JsonRpcRequest | JsonRpcNotification>((resolve, reject) => {
       const waiter: EventWaiter = { predicate, resolve, reject };
       this.waiters.push(waiter);
       const timeoutMs = options.timeoutMs ?? 8_000;
@@ -259,6 +275,8 @@ export class HarnessConnection {
         originalReject(error);
       };
     });
+    void pending.catch(() => {});
+    return pending;
   }
 
   async close(): Promise<void> {
