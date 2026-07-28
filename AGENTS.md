@@ -29,10 +29,31 @@ All paths in the protocol should be absolute
 
 - For any nullable field, explicitly define whether it is required or optional and whether `null` is equivalent to an omitted key before running schema generation.
 
+## Generated TypeScript types
+
+- `npm run generate` emits TypeScript declaration files under `typescript/`
+  (`v1/schema.d.ts`, `v1/schema.unstable.d.ts`, `v2/schema.d.ts`,
+  `v2/schema.unstable.d.ts`). They are produced by `typescript/generate-types.mjs`
+  directly from the JSON Schema in the same `generate` run, so the types cannot
+  drift from the schema.
+- These files are generated, never hand-edited. To change a type, change the
+  Rust source and regenerate. CI runs `npm run generate` followed by
+  `git diff --exit-code`, so any manual edit or stale output fails the build.
+- There is no generated zod (or other runtime-validator) schema in this
+  repository. Consumers that need runtime validation should validate against the
+  published JSON Schema under `schema/` with a standard JSON Schema validator
+  (for example `ajv`), which is the source of truth the `.d.ts` types are
+  derived from.
+
 ## Updating existing methods, their params, or output
 
 - Update the mintlify docs and guides in the `docs` directory
-- Run `npm run check` to make sure the json and zod schemas gets generated properly
+- Run `npm run generate` to regenerate the JSON Schema and the TypeScript
+  declaration types, then run `npm run check` to lint, format-check, spellcheck,
+  and test. `npm run generate` writes the schema artifacts under `schema/`, the
+  markdown docs under `docs/protocol/`, and the `.d.ts` types under
+  `typescript/`; `npm run check` does not regenerate them, so run `generate`
+  first whenever you change methods, params, or output.
 
 Never write readme files related to the conversation unless explicitly asked to.
 
