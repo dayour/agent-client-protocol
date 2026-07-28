@@ -39,3 +39,20 @@ semver_check = false
 name = "schema-generator"
 publish = false
 release = false
+
+[[package]]
+# In-repo runtime and the v1/v2 bridge built on it. Both are deliberately
+# unpublished: `docs/rfds/rust-runtime-boundary.mdx` keeps this repository
+# schema-first and treats the external `agent-client-protocol` crate as the
+# Rust runtime boundary. They exist so the protocol has an executable proof
+# surface in-tree (see the `reference-launch` CI job), not as shipping
+# artifacts. `release = false` also keeps release-plz from tagging and
+# version-bumping crates that have no consumers outside this repository.
+name = "agent-client-protocol-rt"
+publish = false
+release = false
+
+[[package]]
+name = "agent-client-protocol-bridge"
+publish = false
+release = false

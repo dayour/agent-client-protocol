@@ -13,6 +13,14 @@ categories = ["development-tools", "api-bindings", "asynchronous"]
 readme = "../README.md"
 rust-version = "1.88.0"
 
+# Not published to crates.io. `docs/rfds/rust-runtime-boundary.mdx` is an
+# accepted decision to keep this repository schema-first and treat the external
+# `agent-client-protocol` crate as the Rust runtime boundary, so publishing a
+# runtime from here would contradict it and claim a public crate name nobody
+# agreed to claim. Without this key `publish` defaults to true and release-plz
+# would publish on the next release to `main`, which cannot be undone.
+publish = false
+
 [package.metadata.docs.rs]
 all-features = true
 rustdoc-args = ["--cfg", "docsrs"]
