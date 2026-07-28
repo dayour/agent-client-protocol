@@ -22,3 +22,7 @@ typescript/docs/
 
 # Local CI gate logs (scripts/ci-local.ps1)
 .ci-local/
+
+# Python bytecode cache from scripts/generate_registry_docs.py
+__pycache__/
+*.pyc
