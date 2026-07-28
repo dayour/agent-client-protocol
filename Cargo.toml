@@ -2,6 +2,7 @@
 default-members = [
     "agent-client-protocol-schema",
     "agent-client-protocol-rt",
+    "examples",
     "schema/v1",
     "schema/v2",
     "schema-generator",
@@ -9,6 +10,7 @@ default-members = [
 members = [
     "agent-client-protocol-schema",
     "agent-client-protocol-rt",
+    "examples",
     "schema/v1",
     "schema/v2",
     "schema-generator",
