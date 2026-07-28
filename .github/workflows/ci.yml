@@ -153,6 +153,55 @@ jobs:
       - name: Run negative conformance suite
         run: npm run test:conformance:negative
 
+  reference-launch:
+    name: Reference agent/client launch (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+        with:
+          persist-credentials: false
+
+      - name: Setup Rust
+        uses: actions-rust-lang/setup-rust-toolchain@166cdcfd11aee3cb47222f9ddb555ce30ddb9659
+        with:
+          toolchain: stable
+
+      - name: Build reference binaries
+        run: cargo build -p acp-examples
+
+      # `cargo build` succeeding proves only that the code compiles. This step
+      # runs the reference client, which spawns the reference agent as a real
+      # child process over OS pipes and requires a full
+      # initialize -> session/new -> session/prompt exchange to complete. The
+      # job timeout is the backstop against a handshake that hangs instead of
+      # failing.
+      - name: Launch reference client against reference agent
+        run: cargo run -q -p acp-examples --bin acp-client
+
+      # A launch test that only ever asserts success cannot detect a regression
+      # that makes the client swallow errors, which would look identical to a
+      # healthy run. The agent's --malformed mode returns a response missing a
+      # required field; the client must surface that as exit 2.
+      - name: Malformed response must be surfaced, not swallowed
+        run: |
+          set +e
+          cargo run -q -p acp-examples --bin acp-client -- --malformed
+          code=$?
+          set -e
+          if [ "$code" -ne 2 ]; then
+            echo "expected exit 2 (error surfaced), got $code"
+            exit 1
+          fi
+
   typos:
     name: Typos
     runs-on: ubuntu-latest

@@ -276,6 +276,48 @@ $gates = @(
         Run  = { Invoke-Gate -LogName 'spellcheck' -Body { npm run spellcheck } }
     }
     @{
+        Name = 'type-check'
+        Desc = 'tsc over generated .d.ts and type-usage tests'
+        Slow = $false
+        Run  = {
+            # The type tests use `@ts-expect-error` deliberately: if a generated
+            # type degrades to `any`, those directives become unused and tsc
+            # fails with TS2578. The gate therefore detects type loosening, not
+            # just outright breakage.
+            Invoke-Gate -LogName 'type-check' -Body { npm run test:types }
+        }
+    }
+    @{
+        Name = 'reference-launch'
+        Desc = 'spawn reference agent and client as real processes'
+        Slow = $false
+        Run  = {
+            # `build` only proves the binaries compile. This gate requires a
+            # full initialize -> session/new -> session/prompt exchange between
+            # two real OS processes over real pipes, then requires the
+            # --malformed run to surface an error as exit 2 rather than
+            # reporting success.
+            $code = Invoke-Gate -LogName 'reference-launch' -Body {
+                cargo build -q -p acp-examples
+                if ($LASTEXITCODE -ne 0) { return }
+                cargo run -q -p acp-examples --bin acp-client
+            }
+            if ($code -ne 0) { return $code }
+
+            Invoke-Gate -LogName 'reference-launch-malformed' -Body {
+                cargo run -q -p acp-examples --bin acp-client -- --malformed
+                $observed = $LASTEXITCODE
+                if ($observed -eq 2) {
+                    Write-Host 'malformed response correctly surfaced (exit 2)'
+                    $global:LASTEXITCODE = 0
+                } else {
+                    Write-Host "expected exit 2 (error surfaced), got $observed"
+                    $global:LASTEXITCODE = 1
+                }
+            }
+        }
+    }
+    @{
         Name = 'conformance'
         Desc = 'ACP conformance suite (positive)'
         Slow = $false
@@ -430,6 +472,44 @@ if ($List) {
 if (-not $selected) {
     Write-Error 'No gates matched the given -Only/-Skip filters. Use -List to see gate names.'
     exit 2
+}
+
+# Preflight: node dependencies.
+#
+# `-Only` skips the `npm-install` gate, and `node_modules` is gitignored and
+# per-worktree. Without this check the first node-dependent gate fails with
+# "'prettier' is not recognized", which reads like a script defect rather than a
+# missing install. Worse, `npm run generate` gets far enough to rewrite the
+# committed schema/docs artifacts before its final format step dies, leaving a
+# dirty tree that has to be restored by hand. Two separate agents were misled by
+# exactly this, so fail fast and say what to run.
+$nodeGates = @(
+    'generated-artifacts', 'format', 'spellcheck', 'type-check',
+    'conformance', 'conformance-negative', 'registry-generator'
+)
+$needsNode = $selected | Where-Object { $nodeGates -contains $_.Name }
+$installSelected = $selected | Where-Object { $_.Name -eq 'npm-install' }
+
+if ($needsNode -and -not $installSelected) {
+    $missing = @()
+    if (-not (Test-Path (Join-Path $repoRoot 'node_modules'))) {
+        $missing += 'npm ci'
+    }
+    $needsConformance = $needsNode | Where-Object { $_.Name -like 'conformance*' }
+    if ($needsConformance -and -not (Test-Path (Join-Path $repoRoot 'conformance\node_modules'))) {
+        $missing += 'npm ci --prefix conformance'
+    }
+
+    if ($missing) {
+        Write-Host ''
+        Write-Host 'Node dependencies are not installed, and the npm-install gate is not selected.' -ForegroundColor Red
+        Write-Host "  gates needing node: $(($needsNode | ForEach-Object { $_.Name }) -join ', ')"
+        Write-Host '  run first:'
+        foreach ($m in $missing) { Write-Host "    $m" }
+        Write-Host '  or include npm-install in -Only.'
+        Write-Host ''
+        exit 2
+    }
 }
 
 # ---------------------------------------------------------------------------

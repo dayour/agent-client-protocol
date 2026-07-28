@@ -21,34 +21,3 @@ workspace = true
 agent-client-protocol-schema = { path = "../agent-client-protocol-schema", version = "1.6.0", features = [
     "unstable_protocol_v2",
 ] }
-
-# Standalone workspace root.
-#
-# This crate is developed during the fleet wave without being a member of the
-# repository-root workspace, because a different agent owns the root
-# `Cargo.toml` this wave. Declaring an in-file `[workspace]` table detaches this
-# directory from the parent workspace so `cargo` commands run from this
-# directory build and lint only this crate against a path dependency on the
-# schema crate.
-#
-# INTEGRATION: delete this entire `[workspace]` block (through the end of the
-# file) and add "agent-client-protocol-bridge" to the root `[workspace]`
-# members. `[lints] workspace = true` then resolves to the identical root
-# `[workspace.lints]`, so lint behaviour is unchanged.
-[workspace]
-members = ["."]
-
-[workspace.lints.rust]
-future_incompatible = { level = "warn", priority = -1 }
-let-underscore = "warn"
-missing_debug_implementations = "warn"
-missing_docs = "warn"
-nonstandard_style = { level = "warn", priority = -1 }
-rust_2018_idioms = { level = "warn", priority = -1 }
-unused = { level = "warn", priority = -1 }
-
-[workspace.lints.clippy]
-cargo = "warn"
-exhaustive_enums = "warn"
-exhaustive_structs = "warn"
-pedantic = "warn"
