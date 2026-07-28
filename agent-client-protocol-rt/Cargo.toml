@@ -1,0 +1,64 @@
+[package]
+name = "agent-client-protocol-rt"
+authors = ["DarbotLM maintainers"]
+version = "0.1.0"
+edition = "2021"
+license = "Apache-2.0"
+description = "In-repo async runtime (JSON-RPC transport, Connection, and Agent/Client traits) for the Agent Client Protocol schema crate"
+repository = "https://github.com/DarbotLM/agent-client-protocol"
+homepage = "https://github.com/DarbotLM/agent-client-protocol"
+documentation = "https://github.com/DarbotLM/agent-client-protocol/tree/main/docs"
+keywords = ["agent", "client", "protocol", "jsonrpc", "runtime"]
+categories = ["development-tools", "api-bindings", "asynchronous"]
+readme = "../README.md"
+rust-version = "1.88.0"
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
+
+[lints]
+workspace = true
+
+[features]
+# Mirror the schema crate's feature convention so this runtime can be built
+# against the same protocol surface. Each flag simply forwards to the matching
+# schema feature; the runtime routes by wire method name and does not need
+# feature-specific code paths.
+default = []
+unstable = ["agent-client-protocol-schema/unstable"]
+unstable_protocol_v2 = ["agent-client-protocol-schema/unstable_protocol_v2"]
+unstable_auth_methods = ["agent-client-protocol-schema/unstable_auth_methods"]
+unstable_llm_providers = ["agent-client-protocol-schema/unstable_llm_providers"]
+unstable_mcp_over_acp = ["agent-client-protocol-schema/unstable_mcp_over_acp"]
+unstable_nes = ["agent-client-protocol-schema/unstable_nes"]
+unstable_plan_operations = ["agent-client-protocol-schema/unstable_plan_operations"]
+unstable_session_fork = ["agent-client-protocol-schema/unstable_session_fork"]
+unstable_end_turn_token_usage = [
+    "agent-client-protocol-schema/unstable_end_turn_token_usage",
+]
+unstable_tool_call_name = ["agent-client-protocol-schema/unstable_tool_call_name"]
+tracing = ["agent-client-protocol-schema/tracing"]
+
+[dependencies]
+agent-client-protocol-schema = { workspace = true }
+async-trait = { workspace = true }
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1", features = ["raw_value"] }
+tokio = { workspace = true, features = [
+    "rt",
+    "macros",
+    "io-util",
+    "io-std",
+    "sync",
+    "process",
+    "time",
+] }
+
+[dev-dependencies]
+tokio = { workspace = true, features = [
+    "rt-multi-thread",
+    "macros",
+    "io-util",
+    "time",
+] }

@@ -1,12 +1,14 @@
 [workspace]
 default-members = [
     "agent-client-protocol-schema",
+    "agent-client-protocol-rt",
     "schema/v1",
     "schema/v2",
     "schema-generator",
 ]
 members = [
     "agent-client-protocol-schema",
+    "agent-client-protocol-rt",
     "schema/v1",
     "schema/v2",
     "schema-generator",
@@ -20,6 +22,13 @@ resolver = "3"
 # or we will resolve duplicate schema types. See `docs/rfds/rust-runtime-boundary.mdx`.
 agent-client-protocol = "2.0.0"
 agent-client-protocol-schema = { path = "agent-client-protocol-schema", version = "1.6.0" }
+
+# In-repo async runtime dependencies. `tokio` provides the async I/O, task,
+# and process primitives the runtime crate and reference binaries build on;
+# `async-trait` lets the public `Agent`/`Client` traits expose `async fn`
+# without tripping the `async_fn_in_trait` lint under `-D warnings`.
+tokio = { version = "1", default-features = false }
+async-trait = "0.1"
 
 [workspace.lints.rust]
 future_incompatible = { level = "warn", priority = -1 }
