@@ -175,6 +175,13 @@
               "libraries/typescript",
               "libraries/community"
             ]
+          },
+          {
+            "group": "Guides",
+            "pages": [
+              "guides/rust-implementer-guide",
+              "guides/typescript-implementer-guide"
+            ]
           }
         ]
       },
