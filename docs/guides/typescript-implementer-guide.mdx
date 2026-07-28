@@ -85,6 +85,11 @@ message as a single line followed by a newline. This mirrors the transport in
 ```ts
 import readline from "node:readline";
 
+// Connection-scoped state. The protocol version negotiated during `initialize`
+// is recorded here and read by later handlers. It is `undefined` until the
+// initialize handshake selects a version.
+let version: 1 | 2 | undefined;
+
 const rl = readline.createInterface({ input: process.stdin });
 
 rl.on("line", (line: string) => {
@@ -98,7 +103,8 @@ function send(message: unknown): void {
 
 The conformance harness uses exactly this framing: it spawns your process, reads
 its stdout with a `readline` interface one line per message, and writes each
-request to your stdin with a trailing `\n`.
+request to your stdin with a trailing `\n`. The module-level `version` binding is
+the connection state that `handleInitialize` sets below.
 
 ## Dispatching incoming messages
 
@@ -141,6 +147,15 @@ async function handleLine(line: string): Promise<void> {
   await handleResponse(message);
 }
 ```
+
+In this skeleton, `handleRequest` and `handleResponse` are functions you write:
+`handleRequest` switches on `message.method` and dispatches to the specific
+handlers shown in the following sections (for example, routing `"initialize"` to
+`handleInitialize`), while `handleResponse` correlates replies by `id` back to
+the requests your peer sent. `handleLine`, `handleInitialize`, and
+`handleNotification` are given in full in this guide; `handleRequest` and
+`handleResponse` are intentionally left as scaffolding for you to fill in around
+your own routing table.
 
 ## The initialize handshake and version negotiation
 
