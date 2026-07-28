@@ -1,0 +1,54 @@
+[package]
+name = "agent-client-protocol-bridge"
+version = "0.1.0"
+authors = ["DarbotLM maintainers"]
+edition = "2024"
+rust-version = "1.88.0"
+license = "Apache-2.0"
+description = "Stateful v1 to v2 bridge for the Agent Client Protocol, mediating the protocol shapes that the stateless conversion layer cannot represent."
+repository = "https://github.com/DarbotLM/agent-client-protocol"
+homepage = "https://github.com/DarbotLM/agent-client-protocol"
+documentation = "https://github.com/DarbotLM/agent-client-protocol/tree/main/docs"
+keywords = ["agent", "client", "protocol", "ai", "bridge"]
+categories = ["development-tools", "api-bindings"]
+readme = "README.md"
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+agent-client-protocol-schema = { path = "../agent-client-protocol-schema", version = "1.6.0", features = [
+    "unstable_protocol_v2",
+] }
+
+# Standalone workspace root.
+#
+# This crate is developed during the fleet wave without being a member of the
+# repository-root workspace, because a different agent owns the root
+# `Cargo.toml` this wave. Declaring an in-file `[workspace]` table detaches this
+# directory from the parent workspace so `cargo` commands run from this
+# directory build and lint only this crate against a path dependency on the
+# schema crate.
+#
+# INTEGRATION: delete this entire `[workspace]` block (through the end of the
+# file) and add "agent-client-protocol-bridge" to the root `[workspace]`
+# members. `[lints] workspace = true` then resolves to the identical root
+# `[workspace.lints]`, so lint behaviour is unchanged.
+[workspace]
+members = ["."]
+
+[workspace.lints.rust]
+future_incompatible = { level = "warn", priority = -1 }
+let-underscore = "warn"
+missing_debug_implementations = "warn"
+missing_docs = "warn"
+nonstandard_style = { level = "warn", priority = -1 }
+rust_2018_idioms = { level = "warn", priority = -1 }
+unused = { level = "warn", priority = -1 }
+
+[workspace.lints.clippy]
+cargo = "warn"
+exhaustive_enums = "warn"
+exhaustive_structs = "warn"
+pedantic = "warn"
