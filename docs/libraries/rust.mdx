@@ -16,6 +16,18 @@ runtime crate from the
 [`agentclientprotocol/rust-sdk`](https://github.com/agentclientprotocol/rust-sdk)
 repository.
 
+This repository publishes `agent-client-protocol-schema` at `1.6.0`, while the
+currently published `agent-client-protocol` runtime crate pins
+`agent-client-protocol-schema = "=1.5.0"`. The two therefore cannot be combined
+in a single dependency graph without resolving two incompatible copies of the
+schema types, so the published runtime crate cannot be consumed in-tree against
+this repository's schema version today. The full rationale is recorded in
+[Rust runtime package boundary](../rfds/rust-runtime-boundary).
+
+To build an agent or client directly on the schema types in this repository,
+without the external runtime, follow the
+[Rust implementer guide](../guides/rust-implementer-guide).
+
 To get started with the runtime crate, add it to your project's `Cargo.toml`:
 
 ```bash
