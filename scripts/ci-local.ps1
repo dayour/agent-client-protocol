@@ -289,12 +289,19 @@ $gates = @(
     }
     @{
         Name = 'docs-rs'
-        Desc = 'docs.rs documentation build'
+        Desc = 'docs.rs documentation build (nightly)'
         Slow = $false
         Run  = {
+            # Must match CI: nightly, --cfg docsrs, and no -D warnings. The crate enables
+            # a nightly `#![feature]` under the docsrs cfg, so stable fails with E0554.
+            $installed = (& rustup toolchain list 2>$null) -join "`n"
+            if ($installed -notmatch 'nightly') {
+                Write-Host '      skipped: nightly not installed (rustup toolchain install nightly)' -ForegroundColor DarkGray
+                return 0
+            }
             Invoke-Gate -LogName 'docs-rs' -Body {
-                $env:RUSTDOCFLAGS = '--cfg docsrs -D warnings'
-                cargo doc --no-deps --all-features -p agent-client-protocol-schema
+                $env:RUSTDOCFLAGS = '--cfg docsrs'
+                cargo +nightly doc -p agent-client-protocol-schema --all-features --no-deps
             }
         }
     }
@@ -303,9 +310,15 @@ $gates = @(
         Desc = 'Check against the minimum supported Rust version'
         Slow = $true
         Run  = {
-            $manifest = Get-Content (Join-Path $repoRoot 'Cargo.toml') -Raw
-            if ($manifest -notmatch 'rust-version\s*=\s*"([^"]+)"') {
-                Write-Host '      skipped: no rust-version in Cargo.toml' -ForegroundColor DarkGray
+            # CI reads rust-version from the crate manifest, not the workspace root.
+            $manifestPath = Join-Path $repoRoot 'agent-client-protocol-schema' 'Cargo.toml'
+            if (-not (Test-Path $manifestPath)) {
+                Write-Host '      skipped: crate manifest not found' -ForegroundColor DarkGray
+                return 0
+            }
+            $manifest = Get-Content $manifestPath -Raw
+            if ($manifest -notmatch '(?m)^rust-version\s*=\s*"([^"]+)"') {
+                Write-Host '      skipped: no rust-version in the crate manifest' -ForegroundColor DarkGray
                 return 0
             }
             $msrv = $Matches[1]
@@ -316,7 +329,7 @@ $gates = @(
             }
             Write-Host "      MSRV $msrv" -ForegroundColor DarkGray
             Invoke-Gate -LogName 'msrv' -Body {
-                cargo "+$msrv" check --workspace --all-features
+                cargo "+$msrv" check --all-targets --all-features --locked
             }
         }
     }
