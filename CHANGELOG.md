@@ -10,6 +10,13 @@
 - *(ci)* Conformance suite job on the ubuntu, windows, and macOS matrix, running both the positive and negative suites.
 - *(ci)* Cross-platform build, lint, and test matrix, a generated-artifact drift gate on all three operating systems, a minimum-supported-Rust-version job, a feature-powerset check, and supply-chain auditing via `cargo-deny`.
 - *(rust)* Round-trip tests proving the schema types serialize through the JSON-RPC envelope types for `initialize`, `session/new`, and `session/update`.
+- *(rust)* `agent-client-protocol-rt`, an in-repo async runtime: a JSON-RPC 2.0 codec, a transport-agnostic bidirectional `Connection` generic over `AsyncRead`/`AsyncWrite`, `Agent` and `Client` traits over the local schema types, a stdio transport, request correlation, cancellation, and graceful shutdown on EOF. Not published; see the note under Fixed.
+- *(examples)* Reference `acp-agent` and `acp-client` binaries. The client spawns the agent as a real child process over OS pipes and completes an `initialize` -> `session/new` -> `session/prompt` -> `session/update` exchange. The agent's `--malformed` mode returns a response missing a required field so the client's error handling can be exercised end to end.
+- *(ci)* `reference-launch` job on the ubuntu, windows, and macOS matrix. A passing `cargo build` proves only that the binaries compile, so this job runs them: the handshake must complete, and the `--malformed` run must exit 2. Without the second assertion, a regression that made the client swallow errors would be indistinguishable from a healthy run.
+- *(rust)* `agent-client-protocol-bridge`, a v1/v2 translation layer. Mappings that cannot be made faithfully are typed refusals rather than plausible guesses; one returns `Result<Infallible, _>`, so an unsound conversion is unrepresentable rather than merely discouraged. Not published.
+- *(schema)* Golden-file wire-compatibility tests over `schema/**/*.json`, reduced to a canonical structural surface, that fail on a removed field, renamed variant, retyped field, or newly required field. The bless path refuses to weaken a stable v1 golden, so a v1 wire break cannot be erased by re-blessing; draft surfaces remain re-blessable.
+- *(typescript)* Generated `.d.ts` type definitions wired into `npm run generate`, with type-usage tests run by `npm run test:types` and the `type-check` gate. The tests use `@ts-expect-error` deliberately: if a generated type degrades to `any` the directives become unused and `tsc` fails, so the suite detects type loosening and not only outright breakage.
+- *(tooling)* `scripts/ci-local.ps1`, a local runner mirroring all CI gates. Workflows are disabled on forks and there is no public API to enable them, so this is currently the only way to run the gates against this repository.
 
 ### Changed
 
@@ -17,6 +24,7 @@
 - *(schema)* Stable v1 keeps upstream-compatible tolerant decoding, but tolerance is now observable. Every tolerant v1 field routes malformed values through a shared skip listener, so a dropped value can be inspected rather than vanishing silently. The generated v1 schema is byte-for-byte unchanged in meaning: all 242 `x-deserialize-default-on-error` annotations are retained. Measured cost of the observable decoder is 1.16x on a tolerant-field-heavy struct.
 - *(schema-generator)* Removed the artifact equivalence and skip subsystem. It compared generated markdown with all whitespace stripped, so a structural change such as joining two list items onto one line was judged equivalent and the write was skipped, leaving a corrupted artifact in place while reporting success. Generation now always writes; `npm run generate` already ends in `npm run format`, which produces the committed bytes.
 - *(tooling)* Removed the prettier wrapper fallback so the pinned prettier version in the lockfile is always the one that runs.
+- *(docs)* Corrected two false claims in `AGENTS.md`: that zod schemas are generated, and that `npm run check` generates schemas. Neither was true. Generating zod validators was evaluated and rejected rather than implemented: `json-schema-to-zod` reduces the 242 KB, 168-definition v1 schema to roughly 2 KB in which every reference collapses to `z.any()`, including the top-level union. A validator that accepts everything is worse than none, because it manufactures assurance that does not exist.
 
 ### Fixed
 
@@ -31,6 +39,9 @@
 - *(tooling)* Exclude `CLAUDE.md` from prettier. It is a symlink to `AGENTS.md`; formatting it on a Windows checkout with `core.symlinks=false` rewrites the symlink target and breaks the link on Linux and macOS.
 - *(tooling)* Exclude `conformance/.artifacts` from prettier. Prettier only honors the root `.gitignore`, so running the conformance suite left machine-written reports that failed `format:check`.
 - *(schema)* Restore prettier formatting to generated schema and documentation artifacts so the generated-artifact drift gate reproduces the committed bytes.
+- *(release)* Mark `agent-client-protocol-rt` and `agent-client-protocol-bridge` as unpublished. The runtime crate had no `publish` key, which defaults to true, and no release-plz entry, so the next release would have published a new runtime crate to crates.io. That contradicts the accepted runtime-boundary RFD, which keeps this repository schema-first, and a crates.io release cannot be undone. Verified with `cargo publish --dry-run`: the runtime, bridge, and examples crates are refused while `agent-client-protocol-schema` still resolves as publishable.
+- *(tooling)* Bind the local gate runner to its own repository instead of the caller's working directory. Invoked from a sibling worktree it gated that sibling and reported success, so it could pass while testing a tree other than the one under test. It now resolves the repository from the script's own location and prints a notice when the two disagree rather than silently correcting.
+- *(tooling)* Fail fast when node dependencies are missing and the `npm-install` gate is not selected. `-Only` skips that gate and `node_modules` is per-worktree, so the first node-dependent gate failed with `'prettier' is not recognized`, which reads as a defect in the runner. `npm run generate` also got far enough to rewrite committed schema and documentation artifacts before its final format step aborted, leaving a dirty tree.
 
 ### Documentation
 
@@ -39,6 +50,7 @@
 - *(rfd)* Record the Rust runtime package boundary decision, including the version constraint that keeps the runtime out of this workspace: published runtime `v2.0.0` pins `agent-client-protocol-schema = "=1.5.0"` while this workspace is at `1.6.0`, so consuming it in-tree would resolve two incompatible copies of the schema types.
 - *(rfd)* Add an RFD proposing that stable v1 `initialize` decoding be tightened upstream, rather than diverging in this fork.
 - Clarify fork provenance in the README.
+- *(guides)* Rust and TypeScript implementer guides covering the connection lifecycle, version negotiation, session updates, cancellation, and error handling. Every Rust sample in the guides compiles against the schema crate, and the TypeScript samples type-check under `strict` when concatenated in document order.
 
 
 ## [1.6.0](https://github.com/agentclientprotocol/agent-client-protocol/compare/v1.5.0...v1.6.0) - 2026-07-21
