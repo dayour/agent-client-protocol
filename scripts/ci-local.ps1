@@ -56,12 +56,33 @@ $ErrorActionPreference = 'Stop'
 # Repository root and environment preconditions
 # ---------------------------------------------------------------------------
 
-$repoRoot = (& git rev-parse --show-toplevel 2>$null)
+# Resolve the repository from THIS SCRIPT's own location, never from the caller's
+# working directory. With several worktrees checked out side by side, deriving the root
+# from the cwd means `pwsh -File <worktreeA>\scripts\ci-local.ps1` launched from
+# worktreeB silently gates worktreeB and reports a pass that says nothing about the tree
+# the caller named. A gate runner that tests a different tree than the one it was invoked
+# from is a false-pass generator, so bind the root to the script instead.
+$scriptRepo = Split-Path -Parent $PSScriptRoot
+$repoRoot = (& git -C $scriptRepo rev-parse --show-toplevel 2>$null)
 if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($repoRoot)) {
-    Write-Error 'Not inside a git repository. Run this from a checkout of the ACP schema repo.'
+    Write-Error "Not inside a git repository: $scriptRepo. Run scripts/ci-local.ps1 from a checkout of the ACP schema repo."
     exit 2
 }
 $repoRoot = $repoRoot.Trim() -replace '/', [IO.Path]::DirectorySeparatorChar
+
+# Surface the mismatch rather than silently correcting it, so a caller who believed they
+# were gating the tree they were standing in learns otherwise.
+$callerRoot = (& git rev-parse --show-toplevel 2>$null)
+if ($LASTEXITCODE -eq 0 -and -not [string]::IsNullOrWhiteSpace($callerRoot)) {
+    $callerRoot = $callerRoot.Trim() -replace '/', [IO.Path]::DirectorySeparatorChar
+    if ($callerRoot -ne $repoRoot) {
+        Write-Host ''
+        Write-Host 'NOTE: gating the script''s own repository, not the current directory.' -ForegroundColor Yellow
+        Write-Host "  current directory repo: $callerRoot"
+        Write-Host "  gating instead:         $repoRoot"
+    }
+}
+
 Set-Location $repoRoot
 
 # npm and cargo resolve their working directory through cmd.exe on Windows, which cannot
