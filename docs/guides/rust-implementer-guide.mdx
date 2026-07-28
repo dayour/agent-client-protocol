@@ -1,0 +1,412 @@
+---
+title: "Rust Implementer Guide"
+description: "Build an ACP agent or client in Rust on top of the agent-client-protocol-schema crate"
+---
+
+This guide takes you from an empty project to a working Agent Client Protocol
+(ACP) peer in Rust, using only the artifact this repository ships: the
+[`agent-client-protocol-schema`](/libraries/rust) crate.
+
+It is written for engineers who want to implement an ACP **agent** (a program
+that answers prompts) or an ACP **client** (an editor or host that drives an
+agent), and who want to understand the wire contract rather than rely on a
+higher-level runtime.
+
+## What this repository gives you, and what it does not
+
+This repository is deliberately schema-first. The `agent-client-protocol-schema`
+crate provides the strongly typed request, response, and notification structs,
+the JSON-RPC envelope types, and serde plumbing. It does **not** provide a
+transport, a connection event loop, or ready-made `Agent` and `Client` traits.
+
+The runtime pieces live in the external
+[`agent-client-protocol`](https://crates.io/crates/agent-client-protocol) crate.
+Because that published runtime currently pins
+`agent-client-protocol-schema = "=1.5.0"` while this workspace publishes
+`1.6.0`, the two cannot be combined in a single dependency graph without
+resolving two incompatible copies of the schema types. The full rationale is in
+[Rust runtime package boundary](/rfds/rust-runtime-boundary).
+
+The practical consequence: this guide shows you how to build a peer directly on
+the schema types plus a JSON-RPC loop you write yourself. This is the honest,
+verifiable path today. If you only need to talk to an existing agent from an
+external project and do not need this repository's `1.6.0` types, prefer the
+external runtime crate as described in [the Rust library page](/libraries/rust).
+
+## Add the dependency
+
+For a standalone project, add the schema crate:
+
+```bash
+cargo add agent-client-protocol-schema
+cargo add serde_json
+```
+
+The crate exposes stable protocol version 1 types under the `v1` module and the
+JSON-RPC envelope types under `rpc`. Protocol version 2 is an unstable draft and
+is gated behind an explicit feature that is intentionally not part of the
+`unstable` umbrella:
+
+```toml
+[dependencies]
+agent-client-protocol-schema = { version = "1.6.0", features = [
+  "unstable_protocol_v2",
+] }
+```
+
+Enabling `unstable_protocol_v2` also removes the `ProtocolVersion::LATEST`
+shorthand, forcing your code to choose `V1` or `V2` explicitly.
+
+## The message model
+
+Every ACP message is a JSON-RPC 2.0 request, response, or notification. The
+`rpc` module models the envelopes generically over the method-specific payload:
+
+- `Request<Params>` carries an `id`, a `method` name, and optional `params`.
+- `Response<Result, Error>` is either a `Result` or an `Error`, both correlated
+  by `id`.
+- `Notification<Params>` carries a `method` and optional `params`, with no `id`,
+  and never receives a response.
+- `RequestId` is `Null`, a `Number(i64)`, or a `Str(String)`.
+- `JsonRpcMessage<M>` wraps any of the above with the required
+  `"jsonrpc": "2.0"` field.
+
+The `v1` module re-exports these and defines a convenience alias
+`v1::Response<Result>` that fills in this protocol version's `Error` type.
+
+## The initialize handshake and version negotiation
+
+The connection always begins with the client sending an `initialize` request.
+The client advertises the latest protocol version it supports; the agent replies
+with the version it selected and its capabilities.
+
+Build and serialize the request exactly as the crate's own boundary test does:
+
+```rust
+use agent_client_protocol_schema::{
+    ProtocolVersion,
+    rpc::JsonRpcMessage,
+    v1::{AGENT_METHOD_NAMES, Implementation, InitializeRequest, Request, RequestId},
+};
+
+let initialize = JsonRpcMessage::wrap(Request {
+    id: RequestId::from(String::from("initialize-1")),
+    method: AGENT_METHOD_NAMES.initialize.into(),
+    params: Some(
+        InitializeRequest::new(ProtocolVersion::V1)
+            .client_info(Implementation::new("my-acp-client", "0.1.0")),
+    ),
+});
+
+let line = serde_json::to_string(&initialize)?;
+// `line` is one newline-delimited JSON-RPC message to write to the transport.
+```
+
+`AGENT_METHOD_NAMES` is a public constant holding every agent-handled method
+name, so you never have to hardcode the `"initialize"` string. The individual
+per-method name constants are crate-private; reach them through
+`AGENT_METHOD_NAMES` instead.
+
+On the agent side, deserialize the params and answer with an
+`InitializeResponse`. `ProtocolVersion` is an ordered `u16` newtype with `V0`,
+`V1`, and (under the v2 feature) `V2` constants, so you can compare the
+requested version and decide what to return:
+
+```rust
+use agent_client_protocol_schema::{
+    ProtocolVersion,
+    v1::{AgentCapabilities, InitializeResponse},
+};
+
+fn negotiate(requested: ProtocolVersion) -> InitializeResponse {
+    // Return the client's version if you support it, otherwise your latest.
+    let selected = if requested >= ProtocolVersion::V1 {
+        ProtocolVersion::V1
+    } else {
+        requested
+    };
+    InitializeResponse::new(selected).agent_capabilities(AgentCapabilities::default())
+}
+```
+
+The response's `protocol_version` tells the client what to speak for the rest of
+the connection. If the client does not support the returned version, it should
+disconnect.
+
+## Reading incoming messages
+
+The schema crate does not choose a transport for you. The reference conformance
+target uses newline-delimited JSON-RPC over stdio, and that is the simplest
+transport to start with: one JSON object per line on stdin and stdout.
+
+Because you must read the `method` before you know which typed `params` to
+expect, deserialize the envelope with `serde_json::Value` params first, then
+dispatch:
+
+```rust
+use agent_client_protocol_schema::{
+    rpc::JsonRpcMessage,
+    v1::{Request, RequestId},
+};
+
+fn method_and_id(line: &str) -> serde_json::Result<(String, RequestId, serde_json::Value)> {
+    let message: JsonRpcMessage<Request<serde_json::Value>> = serde_json::from_str(line)?;
+    let request = message.into_inner();
+    let params = request.params.unwrap_or(serde_json::Value::Null);
+    Ok((request.method.to_string(), request.id, params))
+}
+```
+
+Once you know the method, deserialize the params into the concrete type, for
+example `serde_json::from_value::<InitializeRequest>(params)` for `initialize`
+or `serde_json::from_value::<PromptRequest>(params)` for `session/prompt`.
+
+## Session lifecycle
+
+After initialization, the client creates a session with `session/new`. A session
+is an independent conversation with its own history and state, identified by a
+`SessionId`.
+
+```rust
+use std::path::PathBuf;
+
+use agent_client_protocol_schema::{
+    rpc::JsonRpcMessage,
+    v1::{AGENT_METHOD_NAMES, NewSessionRequest, Request, RequestId},
+};
+
+let new_session = JsonRpcMessage::wrap(Request {
+    id: RequestId::from(String::from("session-new-1")),
+    method: AGENT_METHOD_NAMES.session_new.into(),
+    params: Some(NewSessionRequest::new(PathBuf::from("/absolute/project/path"))),
+});
+```
+
+`NewSessionRequest::new` takes the session's working directory, which must be an
+absolute path. The agent answers with a `NewSessionResponse` whose `session_id`
+you use in every subsequent request for that conversation.
+
+Other session methods (`session/load`, `session/list`, `session/resume`,
+`session/delete`, `session/close`) are only available when the agent advertises
+the matching capability during initialization. Do not call them unconditionally.
+
+## Sending and receiving prompts and session updates
+
+A prompt turn is driven by `session/prompt`. The client sends the user's message
+as a list of `ContentBlock`s; the agent streams progress as `session/update`
+notifications and finally answers the original request with a `StopReason`.
+
+Build a prompt. A string converts directly into a text `ContentBlock`:
+
+```rust
+use agent_client_protocol_schema::v1::{ContentBlock, PromptRequest, SessionId};
+
+let prompt = PromptRequest::new(
+    SessionId::new("sess_ref_0001"),
+    vec![ContentBlock::from("Summarize the open TODOs in this project.")],
+);
+```
+
+While the turn runs, the agent emits `session/update` notifications. An
+assistant text chunk looks like this:
+
+```rust
+use agent_client_protocol_schema::{
+    rpc::JsonRpcMessage,
+    v1::{
+        CLIENT_METHOD_NAMES, ContentBlock, ContentChunk, Notification, SessionId,
+        SessionNotification, SessionUpdate, TextContent,
+    },
+};
+
+let update = JsonRpcMessage::wrap(Notification {
+    method: CLIENT_METHOD_NAMES.session_update.into(),
+    params: Some(SessionNotification::new(
+        SessionId::new("sess_ref_0001"),
+        SessionUpdate::AgentMessageChunk(ContentChunk::new(ContentBlock::Text(
+            TextContent::new("Hello"),
+        ))),
+    )),
+});
+```
+
+That value serializes to the following wire message, which the client parses as
+it streams:
+
+```json
+{
+  "jsonrpc": "2.0",
+  "method": "session/update",
+  "params": {
+    "sessionId": "sess_ref_0001",
+    "update": {
+      "sessionUpdate": "agent_message_chunk",
+      "content": { "type": "text", "text": "Hello" }
+    }
+  }
+}
+```
+
+When the turn is finished, answer the `session/prompt` request with a
+`PromptResponse`. Construct the JSON-RPC response with `Response::new`, which
+accepts a Rust `Result`:
+
+```rust
+use agent_client_protocol_schema::v1::{PromptResponse, RequestId, Response, StopReason};
+
+let response: Response<PromptResponse> = Response::new(
+    RequestId::from(String::from("prompt-1")),
+    Ok(PromptResponse::new(StopReason::EndTurn)),
+);
+```
+
+`StopReason` tells the client why the turn ended. The variants are `EndTurn`
+(completed normally), `MaxTokens`, `MaxTurnRequests`, `Refusal`, and
+`Cancelled`.
+
+## Cancellation
+
+Cancellation is a one-way `session/cancel` notification from the client. Send it
+with a `CancelNotification`:
+
+```rust
+use agent_client_protocol_schema::{
+    rpc::JsonRpcMessage,
+    v1::{AGENT_METHOD_NAMES, CancelNotification, Notification, SessionId},
+};
+
+let cancel = JsonRpcMessage::wrap(Notification {
+    method: AGENT_METHOD_NAMES.session_cancel.into(),
+    params: Some(CancelNotification::new(SessionId::new("sess_ref_0001"))),
+});
+```
+
+On receipt, the agent should stop model requests and tool calls as soon as
+possible, flush any pending `session/update` notifications, and then answer the
+original `session/prompt` request with `StopReason::Cancelled`. The crate
+documents that this stop reason MUST be returned even if the cancellation caused
+underlying operations to error; catch those errors and report a clean
+`Cancelled` instead.
+
+## Error handling
+
+Every method call resolves to a `result` or an `error`. Notifications never
+receive a response, success or error.
+
+The `v1::Error` type follows the JSON-RPC 2.0 error object: a numeric `code`, a
+`message`, and optional `data`. The crate provides constructors for the standard
+codes, so you rarely write raw numbers:
+
+```rust
+use agent_client_protocol_schema::v1::{Error, PromptResponse, RequestId, Response};
+
+// A method your peer does not implement:
+let unknown: Response<PromptResponse> =
+    Response::new(RequestId::from(String::from("bad-1")), Err(Error::method_not_found()));
+
+// Bad parameters, with extra context attached:
+let bad_params = Error::invalid_params().data(serde_json::json!({ "field": "sessionId" }));
+```
+
+The predefined `ErrorCode` values and their numeric codes are:
+
+| Constructor                      | Code     | Meaning                                |
+| -------------------------------- | -------- | -------------------------------------- |
+| `Error::parse_error()`           | `-32700` | Invalid JSON was received              |
+| `Error::invalid_request()`       | `-32600` | The JSON is not a valid Request object |
+| `Error::method_not_found()`      | `-32601` | The method does not exist              |
+| `Error::invalid_params()`        | `-32602` | Invalid method parameters              |
+| `Error::internal_error()`        | `-32603` | Internal error                         |
+| `Error::request_cancelled()`     | `-32800` | A request was cancelled                |
+| `Error::auth_required()`         | `-32000` | Authentication is required first       |
+| `Error::resource_not_found(uri)` | `-32002` | A resource such as a file was missing  |
+
+Two rules matter most for a robust peer:
+
+- **Unknown method.** If a peer receives a request for a method it does not
+  recognize, it must answer that request with a `-32601` method-not-found error
+  rather than closing the connection. The reference agent bundled with the
+  conformance suite answers unknown post-initialization methods with `-32601`,
+  and treats any request that arrives before `initialize` as an invalid request
+  (`-32600`). Unknown **notifications** are simply ignored, because
+  notifications never receive a reply.
+- **Malformed message.** If a peer receives a line that is not valid JSON, it
+  must answer with a `-32700` parse error whose `id` is `null`, because the id
+  could not be recovered. If the JSON parses but the params fail type
+  validation, answer the offending request with `-32602`.
+
+The crate also converts a `serde_json::Error` into `Error::invalid_params()`
+automatically, so deserializing untrusted params with the `?` operator yields
+the correct JSON-RPC error for free.
+
+## Choosing v1 versus v2
+
+Protocol version 1 is the current stable version and is what
+`ProtocolVersion::LATEST` resolves to. Build against v1 unless you are
+specifically iterating on the draft.
+
+Protocol version 2 is an unstable draft used for protocol iteration. It lives in
+a separate `v2` module and is only compiled when you enable the
+`unstable_protocol_v2` feature, which you must opt into explicitly. Its wire
+surface differs from v1: for example, v1 exposes client-side filesystem and
+`terminal/*` request methods that v2 deliberately does not, and the two report
+capabilities under different shapes during initialization. Because v2 may change
+at any time, do not depend on it for production peers. If you support both,
+negotiate the version in `initialize` and branch on the result.
+
+For a structured comparison, see the [v2 overview](/protocol/v2/overview) and
+the [v2 migration notes](/protocol/v2/migration).
+
+## Validate against the conformance suite
+
+This repository ships an executable conformance suite under `conformance/` that
+drives real JSON-RPC traffic against your implementation over a real stdio
+subprocess and validates every message against the generated schema in
+`schema/v1/schema.json` and `schema/v2/schema.json`.
+
+Point it at your compiled agent binary. The runner spawns your
+`--target-command` with any `--arg` values, negotiates the version you pass with
+`--version`, and writes a JSON report:
+
+```powershell
+cd conformance
+npm install
+node --import tsx src/cli.ts run `
+  --driver stdio `
+  --target-command E:\path\to\your-agent.exe `
+  --version 1 `
+  --report .artifacts\my-agent-v1.json
+```
+
+To keep a build artifact honest, the runner also accepts staleness-protection
+flags. If your binary is older than any declared source file, the runner rebuilds
+it with `--build-command` and refuses to run a stale artifact:
+
+```powershell
+node --import tsx src/cli.ts run `
+  --driver stdio `
+  --target-command target\debug\your-agent.exe `
+  --version 1 `
+  --build-command "cargo build" `
+  --build-output target\debug\your-agent.exe `
+  --build-source "src/**/*.rs" `
+  --report .artifacts\my-agent-v1.json
+```
+
+The suite exercises exactly the flows in this guide: initialize negotiation and
+forward-compatible unknown-capability tolerance, session lifecycle, streaming
+`session/update` ordering, cancellation through both `session/cancel` and
+`$/cancel_request`, and error handling for malformed JSON, unknown methods, and
+wrong parameter types. Read `conformance/README.md` for the full list of covered
+behaviors and current gaps.
+
+## Where to go next
+
+- [Rust library reference](/libraries/rust) for the crate boundary and links to
+  the external runtime crate.
+- [Rust runtime package boundary](/rfds/rust-runtime-boundary) for why this
+  repository stays schema-first.
+- [Protocol v1 overview](/protocol/v1/overview),
+  [initialization](/protocol/v1/initialization),
+  [prompt turn](/protocol/v1/prompt-turn), and
+  [cancellation](/protocol/v1/cancellation) for the normative specification.

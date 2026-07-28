@@ -1,0 +1,472 @@
+---
+title: "TypeScript Implementer Guide"
+description: "Build an ACP agent or client in TypeScript against the ACP wire format and JSON schemas"
+---
+
+This guide takes you from an empty project to a working Agent Client Protocol
+(ACP) peer in TypeScript. It targets engineers implementing an ACP **agent** (a
+program that answers prompts) or an ACP **client** (an editor or host that drives
+an agent).
+
+## What this repository gives you
+
+This repository is schema-first. For TypeScript it ships two things you can build
+against directly:
+
+- The generated JSON Schemas in `schema/v1/schema.json` and
+  `schema/v2/schema.json`, which describe every request, response, and
+  notification on the wire.
+- An executable conformance suite under `conformance/`, itself written in
+  TypeScript, which is a complete, readable, in-tree example of both driving an
+  agent and implementing one over a real transport.
+
+This repository does not vendor a published TypeScript SDK. The
+[`@agentclientprotocol/sdk`](/libraries/typescript) package is developed and
+published separately. The code in this guide therefore works at the JSON-RPC wire
+level, mirroring the conformance suite. Every snippet below is adapted from real,
+in-tree files in `conformance/src`, and the file it derives from is called out so
+you can read the original.
+
+## Project setup
+
+ACP is transport-agnostic, but the reference transport is newline-delimited
+JSON-RPC 2.0 over stdio: one JSON object per line on stdin and stdout. That is
+the simplest transport to implement first, and it is what the conformance suite
+uses by default.
+
+Create a project and add a JSON Schema validator. The conformance suite validates
+with `ajv`, and you should too:
+
+```bash
+npm init -y
+npm install ajv ajv-formats
+npm install --save-dev typescript tsx @types/node
+```
+
+## The message model
+
+Three envelope shapes cover the whole protocol. They are plain JSON objects, each
+carrying the required `"jsonrpc": "2.0"` field:
+
+```ts
+type JsonRpcRequest = {
+  jsonrpc: "2.0";
+  id: string | number;
+  method: string;
+  params?: unknown;
+};
+
+type JsonRpcNotification = {
+  jsonrpc: "2.0";
+  method: string;
+  params?: unknown;
+};
+
+type JsonRpcResponse =
+  | { jsonrpc: "2.0"; id: string | number | null; result: unknown }
+  | {
+      jsonrpc: "2.0";
+      id: string | number | null;
+      error: { code: number; message: string; data?: unknown };
+    };
+```
+
+A request expects a response correlated by `id`. A notification has no `id` and
+never receives a response. Object property keys defined by ACP use `camelCase`;
+string values carried by discriminator fields (such as `sessionUpdate`) use
+`snake_case`.
+
+## A minimal stdio transport
+
+Read one line at a time from stdin, parse each as JSON, and write each outgoing
+message as a single line followed by a newline. This mirrors the transport in
+`conformance/src/driver.ts`:
+
+```ts
+import readline from "node:readline";
+
+const rl = readline.createInterface({ input: process.stdin });
+
+rl.on("line", (line: string) => {
+  void handleLine(line);
+});
+
+function send(message: unknown): void {
+  process.stdout.write(`${JSON.stringify(message)}\n`);
+}
+```
+
+The conformance harness uses exactly this framing: it spawns your process, reads
+its stdout with a `readline` interface one line per message, and writes each
+request to your stdin with a trailing `\n`.
+
+## Dispatching incoming messages
+
+Parse the line, then branch on its shape. A message with a `method` and an `id`
+is a request; a message with a `method` and no `id` is a notification; anything
+else is a response to a request you sent. This is the same three-way split the
+reference agent uses in `conformance/src/reference-agent.ts`:
+
+```ts
+async function handleLine(line: string): Promise<void> {
+  let message: {
+    id?: string | number | null;
+    method?: string;
+    params?: unknown;
+  };
+  try {
+    message = JSON.parse(line);
+  } catch {
+    // Malformed input: reply with a parse error and a null id, because the
+    // id could not be recovered.
+    send({
+      jsonrpc: "2.0",
+      id: null,
+      error: { code: -32700, message: "Parse error" },
+    });
+    return;
+  }
+
+  if (typeof message.method === "string") {
+    if (message.id !== undefined) {
+      await handleRequest(
+        message as { id: string | number; method: string; params?: unknown },
+      );
+    } else {
+      await handleNotification(message as { method: string; params?: unknown });
+    }
+    return;
+  }
+
+  await handleResponse(message);
+}
+```
+
+## The initialize handshake and version negotiation
+
+The client opens the connection by sending `initialize`, advertising the latest
+protocol version it supports. The agent replies with the version it selected and
+its capabilities. As a client:
+
+```ts
+send({
+  jsonrpc: "2.0",
+  id: 1,
+  method: "initialize",
+  params: {
+    protocolVersion: 1,
+    clientCapabilities: {},
+    clientInfo: { name: "my-acp-client", version: "0.1.0" },
+  },
+});
+```
+
+As an agent, validate the requested version, remember it for the rest of the
+connection, and answer with your selected version and capabilities. The reference
+agent accepts `1` or `2`, rejects anything else with `-32602`, and returns a
+version-specific capabilities shape:
+
+```ts
+async function handleInitialize(request: {
+  id: string | number;
+  params?: unknown;
+}): Promise<void> {
+  const requestedVersion = (
+    request.params as { protocolVersion?: number } | undefined
+  )?.protocolVersion;
+  if (requestedVersion !== 1 && requestedVersion !== 2) {
+    send({
+      jsonrpc: "2.0",
+      id: request.id,
+      error: { code: -32602, message: "Invalid params" },
+    });
+    return;
+  }
+
+  version = requestedVersion;
+  const result =
+    requestedVersion === 1
+      ? {
+          protocolVersion: 1,
+          agentCapabilities: {
+            loadSession: true,
+            promptCapabilities: { embeddedContext: true },
+          },
+          agentInfo: { name: "my-acp-agent", version: "0.1.0" },
+          authMethods: [],
+        }
+      : {
+          protocolVersion: 2,
+          capabilities: { session: { prompt: { embeddedContext: {} } } },
+          info: { name: "my-acp-agent", version: "0.1.0" },
+          authMethods: [],
+        };
+  send({ jsonrpc: "2.0", id: request.id, result });
+}
+```
+
+The `protocolVersion` in the response tells the client what to speak. If the
+client does not support the returned version, it should disconnect. Unknown
+capability fields must be tolerated for forward compatibility: an agent that sees
+a capability it does not understand should ignore it rather than fail.
+
+## Session lifecycle
+
+After initialization, the client creates a session with `session/new`, passing an
+absolute working directory. The agent returns a `sessionId` used by every
+subsequent request for that conversation:
+
+```ts
+// Client sends:
+send({
+  jsonrpc: "2.0",
+  id: 2,
+  method: "session/new",
+  params: { cwd: "/absolute/project/path", mcpServers: [] },
+});
+
+// Agent replies:
+send({ jsonrpc: "2.0", id: 2, result: { sessionId: "sess_ref_0001" } });
+```
+
+Methods such as `session/load`, `session/list`, `session/resume`, and
+`session/delete` are only available when the agent advertised the matching
+capability during initialization. Do not call them unconditionally.
+
+## Sending and receiving prompts and session updates
+
+A prompt turn runs through `session/prompt`. The client sends the user message as
+a list of content blocks; the agent streams progress as `session/update`
+notifications, then answers the original request with a stop reason.
+
+The client sends:
+
+```ts
+send({
+  jsonrpc: "2.0",
+  id: 3,
+  method: "session/prompt",
+  params: {
+    sessionId: "sess_ref_0001",
+    prompt: [
+      { type: "text", text: "Summarize the open TODOs in this project." },
+    ],
+  },
+});
+```
+
+While the turn runs, the agent streams assistant output as `session/update`
+notifications. A streamed text chunk is:
+
+```ts
+send({
+  jsonrpc: "2.0",
+  method: "session/update",
+  params: {
+    sessionId: "sess_ref_0001",
+    update: {
+      sessionUpdate: "agent_message_chunk",
+      content: { type: "text", text: "Hello" },
+    },
+  },
+});
+```
+
+How the turn completes differs by version, and this is the most important v1
+versus v2 distinction to get right:
+
+- In **v1**, the agent answers the `session/prompt` request directly with a
+  `stopReason`:
+
+  ```ts
+  send({ jsonrpc: "2.0", id: 3, result: { stopReason: "end_turn" } });
+  ```
+
+- In **v2**, prompt completion is delivered through a `session/update` state
+  notification rather than only in the response body. The reference agent emits a
+  `state_update` carrying the `stopReason`:
+
+  ```ts
+  send({
+    jsonrpc: "2.0",
+    method: "session/update",
+    params: {
+      sessionId: "sess_ref_0001",
+      update: {
+        sessionUpdate: "state_update",
+        state: "idle",
+        stopReason: "end_turn",
+      },
+    },
+  });
+  ```
+
+The stop reason values are `end_turn`, `max_tokens`, `max_turn_requests`,
+`refusal`, and `cancelled`.
+
+## Cancellation
+
+Cancellation of a prompt turn is a one-way `session/cancel` notification from the
+client:
+
+```ts
+send({
+  jsonrpc: "2.0",
+  method: "session/cancel",
+  params: { sessionId: "sess_ref_0001" },
+});
+```
+
+On receipt, the agent should stop model requests and tool calls, flush any
+pending `session/update` notifications, and then answer the in-flight
+`session/prompt` request with `stopReason: "cancelled"`. Returning `cancelled` is
+required even if the cancellation caused underlying operations to error; catch
+those and report a clean cancellation.
+
+Cancellation is a notification, so the agent never sends a response to the
+`session/cancel` message itself.
+
+There is also a lower-level, request-scoped cancellation, `$/cancel_request`,
+which carries the `requestId` of a specific in-flight request. The reference
+agent, on receiving it, aborts the pending request and answers that request's
+`id` with a `-32800` request-cancelled error. Use `session/cancel` for prompt
+turns; `$/cancel_request` is for cancelling an individual outstanding call.
+
+## Error handling
+
+Every request resolves to a `result` or an `error`. Notifications never receive a
+response, success or error. ACP follows the JSON-RPC 2.0 error object: a numeric
+`code`, a `message`, and optional `data`.
+
+The codes a robust peer must handle:
+
+| Code     | Meaning                                                   |
+| -------- | --------------------------------------------------------- |
+| `-32700` | Parse error: the line was not valid JSON                  |
+| `-32600` | Invalid request: the JSON is not a valid Request object   |
+| `-32601` | Method not found: the method is unknown or unavailable    |
+| `-32602` | Invalid params: parameters were missing or the wrong type |
+| `-32603` | Internal error                                            |
+| `-32800` | Request cancelled                                         |
+| `-32000` | Authentication required before this operation             |
+| `-32002` | Resource not found                                        |
+
+Two behaviors are the ones most often gotten wrong:
+
+- **Unknown method.** When a peer receives a request for a method it does not
+  recognize, it must answer that request with a `-32601` error rather than
+  dropping it or closing the connection. The reference agent answers unknown
+  post-initialization methods with `-32601`, and treats any request that arrives
+  before `initialize` as an invalid request (`-32600`). An unknown
+  **notification** is silently ignored, because notifications never receive a
+  reply:
+
+  ```ts
+  async function handleNotification(message: {
+    method: string;
+    params?: unknown;
+  }): Promise<void> {
+    switch (message.method) {
+      case "session/cancel":
+        markCancelled((message.params as { sessionId: string }).sessionId);
+        return;
+      default:
+        // Unknown notification: ignore it. Do not send a response.
+        return;
+    }
+  }
+  ```
+
+- **Malformed message.** If a line is not valid JSON, answer with a `-32700` parse
+  error whose `id` is `null`, because the id could not be recovered (see the
+  `handleLine` snippet above). If the JSON parses but the params fail schema
+  validation, answer the offending request with `-32602`.
+
+## Validating messages against the schema
+
+To catch shape mismatches before they reach a peer, validate every message
+against the generated JSON Schema. The conformance suite does this with `ajv`
+loaded from `schema/v{1,2}/schema.json`, using the 2020 dialect; you can do the
+same in your own peer:
+
+```ts
+import fs from "node:fs";
+import Ajv2020 from "ajv/dist/2020.js";
+import addFormats from "ajv-formats";
+
+const schema = JSON.parse(fs.readFileSync("schema/v1/schema.json", "utf8"));
+const ajv = new Ajv2020({
+  allErrors: true,
+  strict: false,
+  allowUnionTypes: true,
+});
+addFormats(ajv);
+for (const format of ["uint16", "uint32", "uint64", "int32"]) {
+  ajv.addFormat(format, true);
+}
+ajv.addSchema(schema, "acp-v1");
+```
+
+The schema uses integer formats such as `uint16` and `int32` that `ajv-formats`
+does not define, so register them as permissive no-op formats exactly as the
+suite does, or validation will reject valid messages.
+
+## Choosing v1 versus v2
+
+Protocol version 1 is the current stable version; build against it unless you are
+specifically iterating on the draft. Protocol version 2 is an unstable draft that
+may change at any time. Beyond the prompt-completion difference shown above, v2
+reports capabilities under a different shape (a nested `capabilities.session`
+object rather than v1's flat `agentCapabilities`), and it deliberately does not
+expose the v1 client-side filesystem (`fs/read_text_file`, `fs/write_text_file`)
+or `terminal/*` request methods. If you support both, negotiate in `initialize`
+and branch on the selected version. See the [v2 overview](/protocol/v2/overview)
+and the [v2 migration notes](/protocol/v2/migration).
+
+## Validate against the conformance suite
+
+Point the in-tree conformance suite at your compiled agent. It launches your
+process as a real subprocess, exchanges newline-delimited JSON-RPC over stdio,
+and validates every message against the generated schema:
+
+```powershell
+cd conformance
+npm install
+node --import tsx src/cli.ts run `
+  --driver stdio `
+  --target-command node `
+  --arg E:\path\to\dist\agent.js `
+  --version 1 `
+  --report .artifacts\my-agent-v1.json
+```
+
+Because a TypeScript agent needs a build step, use the staleness-protection flags
+so the runner rebuilds and refuses to run a stale artifact:
+
+```powershell
+node --import tsx src/cli.ts run `
+  --driver stdio `
+  --target-command node `
+  --arg E:\path\to\dist\agent.js `
+  --version 2 `
+  --build-command "npm run build" `
+  --build-output dist\agent.js `
+  --build-source "src\**\*.ts" `
+  --report .artifacts\my-agent-v2.json
+```
+
+The suite exercises exactly the flows in this guide: initialize negotiation and
+forward-compatible unknown-capability tolerance, session lifecycle, streaming
+`session/update` ordering, cancellation through both `session/cancel` and
+`$/cancel_request`, and error handling for malformed JSON, unknown methods, and
+wrong parameter types. Read `conformance/README.md` for the full list of covered
+behaviors, the negative-test faults it injects, and current gaps.
+
+## Where to go next
+
+- [TypeScript library reference](/libraries/typescript) for the published SDK and
+  its fluent `agent()` and `client()` APIs.
+- [Protocol v1 overview](/protocol/v1/overview),
+  [initialization](/protocol/v1/initialization),
+  [prompt turn](/protocol/v1/prompt-turn), and
+  [cancellation](/protocol/v1/cancellation) for the normative specification.
