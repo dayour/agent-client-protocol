@@ -19,7 +19,9 @@
     "generate:json-schema:unstable": "cargo run -p schema-generator --features unstable",
     "generate:json-schema:v2": "cargo run -p schema-generator --features unstable_protocol_v2",
     "generate:json-schema:v2-unstable": "cargo run -p schema-generator --features unstable,unstable_protocol_v2",
-    "generate": "npm run generate:json-schema && npm run generate:json-schema:unstable && npm run generate:json-schema:v2 && npm run generate:json-schema:v2-unstable && npm run format",
+    "generate:ts-types": "node ./typescript/generate-types.mjs",
+    "test:types": "tsc --project ./typescript/tsconfig.json",
+    "generate": "npm run generate:json-schema && npm run generate:json-schema:unstable && npm run generate:json-schema:v2 && npm run generate:json-schema:v2-unstable && npm run generate:ts-types && npm run format",
     "format": "prettier --write --log-level warn . && cargo fmt",
     "format:check": "prettier --check . && cargo fmt -- --check",
     "spellcheck": "node ./scripts/spellcheck.mjs",
@@ -32,7 +34,9 @@
     "docs": "cd docs && npx mint dev"
   },
   "devDependencies": {
+    "json-schema-to-typescript": "^15.0.4",
     "mint": "^4.2.715",
-    "prettier": "^3.9.5"
+    "prettier": "^3.9.5",
+    "typescript": "^6.0.3"
   }
 }
