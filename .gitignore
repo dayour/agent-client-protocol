@@ -19,3 +19,6 @@ typescript/docs/
 .kiro
 .claude
 
+
+# Local CI gate logs (scripts/ci-local.ps1)
+.ci-local/

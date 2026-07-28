@@ -27,6 +27,7 @@
     "generate:registry": "node ./scripts/run-python.mjs ./scripts/generate_registry_docs.py",
     "test:conformance": "npm --prefix conformance test",
     "test:conformance:negative": "npm --prefix conformance run test:negative",
+    "ci:local": "pwsh -NoProfile -File ./scripts/ci-local.ps1",
     "check": "cargo clippy && cargo clippy --all-targets --all-features && npm run format:check && npm run spellcheck && cargo test --all-features",
     "docs": "cd docs && npx mint dev"
   },
