@@ -1,0 +1,2599 @@
+{
+  "AgentAuthCapabilities": {
+    "fields": {
+      "_meta": {
+        "type": "type:null|object",
+        "required": false
+      },
+      "logout": {
+        "type": "anyOf:[ref:LogoutCapabilities,type:null]",
+        "required": false
+      }
+    },
+    "additionalProperties": false
+  },
+  "AgentCapabilities": {
+    "fields": {
+      "_meta": {
+        "type": "type:null|object",
+        "required": false
+      },
+      "auth": {
+        "type": "allOf:[ref:AgentAuthCapabilities]",
+        "required": false
+      },
+      "loadSession": {
+        "type": "type:boolean",
+        "required": false
+      },
+      "mcpCapabilities": {
+        "type": "allOf:[ref:McpCapabilities]",
+        "required": false
+      },
+      "promptCapabilities": {
+        "type": "allOf:[ref:PromptCapabilities]",
+        "required": false
+      },
+      "sessionCapabilities": {
+        "type": "allOf:[ref:SessionCapabilities]",
+        "required": false
+      }
+    },
+    "additionalProperties": false
+  },
+  "AgentNotification": {
+    "fields": {
+      "method": {
+        "type": "type:string",
+        "required": true
+      },
+      "params": {
+        "type": "anyOf:[anyOf:[allOf:[ref:CompleteElicitationNotification],allOf:[ref:ExtNotification],allOf:[ref:SessionNotification]],type:null]",
+        "required": false
+      }
+    },
+    "additionalProperties": false
+  },
+  "AgentRequest": {
+    "fields": {
+      "id": {
+        "type": "allOf:[ref:RequestId]",
+        "required": true
+      },
+      "method": {
+        "type": "type:string",
+        "required": true
+      },
+      "params": {
+        "type": "anyOf:[anyOf:[allOf:[ref:CreateElicitationRequest],allOf:[ref:CreateTerminalRequest],allOf:[ref:ExtRequest],allOf:[ref:KillTerminalRequest],allOf:[ref:ReadTextFileRequest],allOf:[ref:ReleaseTerminalRequest],allOf:[ref:RequestPermissionRequest],allOf:[ref:TerminalOutputRequest],allOf:[ref:WaitForTerminalExitRequest],allOf:[ref:WriteTextFileRequest]],type:null]",
+        "required": false
+      }
+    },
+    "additionalProperties": false
+  },
+  "AgentResponse": {
+    "unionKind": "anyOf",
+    "variants": [
+      "obj{error:req:allOf:[ref:Error],id:req:allOf:[ref:RequestId]}",
+      "obj{id:req:allOf:[ref:RequestId],result:req:anyOf:[allOf:[ref:AuthenticateResponse],allOf:[ref:CloseSessionResponse],allOf:[ref:DeleteSessionResponse],allOf:[ref:ExtResponse],allOf:[ref:InitializeResponse],allOf:[ref:ListSessionsResponse],allOf:[ref:LoadSessionResponse],allOf:[ref:LogoutResponse],allOf:[ref:NewSessionResponse],allOf:[ref:PromptResponse],allOf:[ref:ResumeSessionResponse],allOf:[ref:SetSessionConfigOptionResponse],allOf:[ref:SetSessionModeResponse]]}"
+    ]
+  },
+  "Annotations": {
+    "fields": {
+      "_meta": {
+        "type": "type:null|object",
+        "required": false
+      },
+      "audience": {
+        "type": "array<ref:Role>",
+        "required": false
+      },
+      "lastModified": {
+        "type": "type:null|string",
+        "required": false
+      },
+      "priority": {
+        "type": "type:null|number",
+        "required": false
+      }
+    },
+    "additionalProperties": false
+  },
+  "AudioContent": {
+    "fields": {
+      "_meta": {
+        "type": "type:null|object",
+        "required": false
+      },
+      "annotations": {
+        "type": "anyOf:[ref:Annotations,type:null]",
+        "required": false
+      },
+      "data": {
+        "type": "type:string",
+        "required": true
+      },
+      "mimeType": {
+        "type": "type:string",
+        "required": true
+      }
+    },
+    "additionalProperties": false
+  },
+  "AuthMethod": {
+    "unionKind": "anyOf",
+    "variants": ["allOf:[ref:AuthMethodAgent]"]
+  },
+  "AuthMethodAgent": {
+    "fields": {
+      "_meta": {
+        "type": "type:null|object",
+        "required": false
+      },
+      "description": {
+        "type": "type:null|string",
+        "required": false
+      },
+      "id": {
+        "type": "allOf:[ref:AuthMethodId]",
+        "required": true
+      },
+      "name": {
+        "type": "type:string",
+        "required": true
+      }
+    },
+    "additionalProperties": false
+  },
+  "AuthMethodId": {
+    "types": "string"
+  },
+  "AuthenticateRequest": {
+    "method": "authenticate",
+    "side": "agent",
+    "fields": {
+      "_meta": {
+        "type": "type:null|object",
+        "required": false
+      },
+      "methodId": {
+        "type": "allOf:[ref:AuthMethodId]",
+        "required": true
+      }
+    },
+    "additionalProperties": false
+  },
+  "AuthenticateResponse": {
+    "method": "authenticate",
+    "side": "agent",
+    "fields": {
+      "_meta": {
+        "type": "type:null|object",
+        "required": false
+      }
+    },
+    "additionalProperties": false
+  },
+  "AvailableCommand": {
+    "fields": {
+      "_meta": {
+        "type": "type:null|object",
+        "required": false
+      },
+      "description": {
+        "type": "type:string",
+        "required": true
+      },
+      "input": {
+        "type": "anyOf:[ref:AvailableCommandInput,type:null]",
+        "required": false
+      },
+      "name": {
+        "type": "type:string",
+        "required": true
+      }
+    },
+    "additionalProperties": false
+  },
+  "AvailableCommandInput": {
+    "unionKind": "anyOf",
+    "variants": ["allOf:[ref:UnstructuredCommandInput]"]
+  },
+  "AvailableCommandsUpdate": {
+    "fields": {
+      "_meta": {
+        "type": "type:null|object",
+        "required": false
+      },
+      "availableCommands": {
+        "type": "array<ref:AvailableCommand>",
+        "required": true
+      }
+    },
+    "additionalProperties": false
+  },
+  "BlobResourceContents": {
+    "fields": {
+      "_meta": {
+        "type": "type:null|object",
+        "required": false
+      },
+      "blob": {
+        "type": "type:string",
+        "required": true
+      },
+      "mimeType": {
+        "type": "type:null|string",
+        "required": false
+      },
+      "uri": {
+        "type": "type:string",
+        "required": true
+      }
+    },
+    "additionalProperties": false
+  },
+  "BooleanConfigOptionCapabilities": {
+    "fields": {
+      "_meta": {
+        "type": "type:null|object",
+        "required": false
+      }
+    },
+    "additionalProperties": false
+  },
+  "BooleanPropertySchema": {
+    "fields": {
+      "_meta": {
+        "type": "type:null|object",
+        "required": false
+      },
+      "default": {
+        "type": "type:boolean|null",
+        "required": false
+      },
+      "description": {
+        "type": "type:null|string",
+        "required": false
+      },
+      "title": {
+        "type": "type:null|string",
+        "required": false
+      }
+    },
+    "additionalProperties": false
+  },
+  "CancelNotification": {
+    "method": "session/cancel",
+    "side": "agent",
+    "fields": {
+      "_meta": {
+        "type": "type:null|object",
+        "required": false
+      },
+      "sessionId": {
+        "type": "allOf:[ref:SessionId]",
+        "required": true
+      }
+    },
+    "additionalProperties": false
+  },
+  "CancelRequestNotification": {
+    "method": "$/cancel_request",
+    "side": "protocol",
+    "fields": {
+      "_meta": {
+        "type": "type:null|object",
+        "required": false
+      },
+      "requestId": {
+        "type": "allOf:[ref:RequestId]",
+        "required": true
+      }
+    },
+    "additionalProperties": false
+  },
+  "ClientCapabilities": {
+    "fields": {
+      "_meta": {
+        "type": "type:null|object",
+        "required": false
+      },
+      "elicitation": {
+        "type": "anyOf:[ref:ElicitationCapabilities,type:null]",
+        "required": false
+      },
+      "fs": {
+        "type": "allOf:[ref:FileSystemCapabilities]",
+        "required": false
+      },
+      "session": {
+        "type": "anyOf:[ref:ClientSessionCapabilities,type:null]",
+        "required": false
+      },
+      "terminal": {
+        "type": "type:boolean",
+        "required": false
+      }
+    },
+    "additionalProperties": false
+  },
+  "ClientNotification": {
+    "fields": {
+      "method": {
+        "type": "type:string",
+        "required": true
+      },
+      "params": {
+        "type": "anyOf:[anyOf:[allOf:[ref:CancelNotification],allOf:[ref:ExtNotification]],type:null]",
+        "required": false
+      }
+    },
+    "additionalProperties": false
+  },
+  "ClientRequest": {
+    "fields": {
+      "id": {
+        "type": "allOf:[ref:RequestId]",
+        "required": true
+      },
+      "method": {
+        "type": "type:string",
+        "required": true
+      },
+      "params": {
+        "type": "anyOf:[anyOf:[allOf:[ref:AuthenticateRequest],allOf:[ref:CloseSessionRequest],allOf:[ref:DeleteSessionRequest],allOf:[ref:ExtRequest],allOf:[ref:InitializeRequest],allOf:[ref:ListSessionsRequest],allOf:[ref:LoadSessionRequest],allOf:[ref:LogoutRequest],allOf:[ref:NewSessionRequest],allOf:[ref:PromptRequest],allOf:[ref:ResumeSessionRequest],allOf:[ref:SetSessionConfigOptionRequest],allOf:[ref:SetSessionModeRequest]],type:null]",
+        "required": false
+      }
+    },
+    "additionalProperties": false
+  },
+  "ClientResponse": {
+    "unionKind": "anyOf",
+    "variants": [
+      "obj{error:req:allOf:[ref:Error],id:req:allOf:[ref:RequestId]}",
+      "obj{id:req:allOf:[ref:RequestId],result:req:anyOf:[allOf:[ref:CreateElicitationResponse],allOf:[ref:CreateTerminalResponse],allOf:[ref:ExtResponse],allOf:[ref:KillTerminalResponse],allOf:[ref:ReadTextFileResponse],allOf:[ref:ReleaseTerminalResponse],allOf:[ref:RequestPermissionResponse],allOf:[ref:TerminalOutputResponse],allOf:[ref:WaitForTerminalExitResponse],allOf:[ref:WriteTextFileResponse]]}"
+    ]
+  },
+  "ClientSessionCapabilities": {
+    "fields": {
+      "_meta": {
+        "type": "type:null|object",
+        "required": false
+      },
+      "configOptions": {
+        "type": "anyOf:[ref:SessionConfigOptionsCapabilities,type:null]",
+        "required": false
+      }
+    },
+    "additionalProperties": false
+  },
+  "CloseSessionRequest": {
+    "method": "session/close",
+    "side": "agent",
+    "fields": {
+      "_meta": {
+        "type": "type:null|object",
+        "required": false
+      },
+      "sessionId": {
+        "type": "allOf:[ref:SessionId]",
+        "required": true
+      }
+    },
+    "additionalProperties": false
+  },
+  "CloseSessionResponse": {
+    "method": "session/close",
+    "side": "agent",
+    "fields": {
+      "_meta": {
+        "type": "type:null|object",
+        "required": false
+      }
+    },
+    "additionalProperties": false
+  },
+  "CompleteElicitationNotification": {
+    "method": "elicitation/complete",
+    "side": "client",
+    "fields": {
+      "_meta": {
+        "type": "type:null|object",
+        "required": false
+      },
+      "elicitationId": {
+        "type": "allOf:[ref:ElicitationId]",
+        "required": true
+      }
+    },
+    "additionalProperties": false
+  },
+  "ConfigOptionUpdate": {
+    "fields": {
+      "_meta": {
+        "type": "type:null|object",
+        "required": false
+      },
+      "configOptions": {
+        "type": "array<ref:SessionConfigOption>",
+        "required": true
+      }
+    },
+    "additionalProperties": false
+  },
+  "Content": {
+    "fields": {
+      "_meta": {
+        "type": "type:null|object",
+        "required": false
+      },
+      "content": {
+        "type": "allOf:[ref:ContentBlock]",
+        "required": true
+      }
+    },
+    "additionalProperties": false
+  },
+  "ContentBlock": {
+    "unionKind": "oneOf",
+    "variants": [
+      "allOf:[ref:AudioContent]&obj{type:req:const:str:audio}",
+      "allOf:[ref:EmbeddedResource]&obj{type:req:const:str:resource}",
+      "allOf:[ref:ImageContent]&obj{type:req:const:str:image}",
+      "allOf:[ref:ResourceLink]&obj{type:req:const:str:resource_link}",
+      "allOf:[ref:TextContent]&obj{type:req:const:str:text}"
+    ]
+  },
+  "ContentChunk": {
+    "fields": {
+      "_meta": {
+        "type": "type:null|object",
+        "required": false
+      },
+      "content": {
+        "type": "allOf:[ref:ContentBlock]",
+        "required": true
+      },
+      "messageId": {
+        "type": "anyOf:[ref:MessageId,type:null]",
+        "required": false
+      }
+    },
+    "additionalProperties": false
+  },
+  "Cost": {
+    "fields": {
+      "_meta": {
+        "type": "type:null|object",
+        "required": false
+      },
+      "amount": {
+        "type": "type:number",
+        "required": true
+      },
+      "currency": {
+        "type": "type:string",
+        "required": true
+      }
+    },
+    "additionalProperties": false
+  },
+  "CreateElicitationRequest": {
+    "method": "elicitation/create",
+    "side": "client",
+    "fields": {
+      "_meta": {
+        "type": "type:null|object",
+        "required": false
+      },
+      "message": {
+        "type": "type:string",
+        "required": true
+      }
+    },
+    "additionalProperties": false,
+    "unionKind": "anyOf",
+    "variants": [
+      "allOf:[ref:ElicitationFormMode]&obj{mode:req:const:str:form}",
+      "allOf:[ref:ElicitationUrlMode]&obj{mode:req:const:str:url}",
+      "anyOf:[allOf:[ref:ElicitationRequestScope],allOf:[ref:ElicitationSessionScope]]&obj{mode:req:type:string}"
+    ]
+  },
+  "CreateElicitationResponse": {
+    "method": "elicitation/create",
+    "side": "client",
+    "fields": {
+      "_meta": {
+        "type": "type:null|object",
+        "required": false
+      }
+    },
+    "additionalProperties": false,
+    "unionKind": "anyOf",
+    "variants": [
+      "allOf:[ref:ElicitationAcceptAction]&obj{action:req:const:str:accept}",
+      "obj{action:req:const:str:cancel}",
+      "obj{action:req:const:str:decline}",
+      "obj{action:req:type:string}"
+    ]
+  },
+  "CreateTerminalRequest": {
+    "method": "terminal/create",
+    "side": "client",
+    "fields": {
+      "_meta": {
+        "type": "type:null|object",
+        "required": false
+      },
+      "args": {
+        "type": "array<type:string>",
+        "required": false
+      },
+      "command": {
+        "type": "type:string",
+        "required": true
+      },
+      "cwd": {
+        "type": "type:null|string",
+        "required": false
+      },
+      "env": {
+        "type": "array<ref:EnvVariable>",
+        "required": false
+      },
+      "outputByteLimit": {
+        "type": "type:integer|null",
+        "required": false
+      },
+      "sessionId": {
+        "type": "allOf:[ref:SessionId]",
+        "required": true
+      }
+    },
+    "additionalProperties": false
+  },
+  "CreateTerminalResponse": {
+    "method": "terminal/create",
+    "side": "client",
+    "fields": {
+      "_meta": {
+        "type": "type:null|object",
+        "required": false
+      },
+      "terminalId": {
+        "type": "allOf:[ref:TerminalId]",
+        "required": true
+      }
+    },
+    "additionalProperties": false
+  },
+  "CurrentModeUpdate": {
+    "fields": {
+      "_meta": {
+        "type": "type:null|object",
+        "required": false
+      },
+      "currentModeId": {
+        "type": "allOf:[ref:SessionModeId]",
+        "required": true
+      }
+    },
+    "additionalProperties": false
+  },
+  "DeleteSessionRequest": {
+    "method": "session/delete",
+    "side": "agent",
+    "fields": {
+      "_meta": {
+        "type": "type:null|object",
+        "required": false
+      },
+      "sessionId": {
+        "type": "allOf:[ref:SessionId]",
+        "required": true
+      }
+    },
+    "additionalProperties": false
+  },
+  "DeleteSessionResponse": {
+    "method": "session/delete",
+    "side": "agent",
+    "fields": {
+      "_meta": {
+        "type": "type:null|object",
+        "required": false
+      }
+    },
+    "additionalProperties": false
+  },
+  "Diff": {
+    "fields": {
+      "_meta": {
+        "type": "type:null|object",
+        "required": false
+      },
+      "newText": {
+        "type": "type:string",
+        "required": true
+      },
+      "oldText": {
+        "type": "type:null|string",
+        "required": false
+      },
+      "path": {
+        "type": "type:string",
+        "required": true
+      }
+    },
+    "additionalProperties": false
+  },
+  "ElicitationAcceptAction": {
+    "fields": {
+      "content": {
+        "type": "type:null|object",
+        "required": false
+      }
+    },
+    "additionalProperties": false
+  },
+  "ElicitationCapabilities": {
+    "fields": {
+      "_meta": {
+        "type": "type:null|object",
+        "required": false
+      },
+      "form": {
+        "type": "anyOf:[ref:ElicitationFormCapabilities,type:null]",
+        "required": false
+      },
+      "url": {
+        "type": "anyOf:[ref:ElicitationUrlCapabilities,type:null]",
+        "required": false
+      }
+    },
+    "additionalProperties": false
+  },
+  "ElicitationContentValue": {
+    "unionKind": "anyOf",
+    "variants": [
+      "array<type:string>",
+      "type:boolean",
+      "type:integer",
+      "type:number",
+      "type:string"
+    ]
+  },
+  "ElicitationFormCapabilities": {
+    "fields": {
+      "_meta": {
+        "type": "type:null|object",
+        "required": false
+      }
+    },
+    "additionalProperties": false
+  },
+  "ElicitationFormMode": {
+    "fields": {
+      "requestedSchema": {
+        "type": "allOf:[ref:ElicitationSchema]",
+        "required": true
+      }
+    },
+    "additionalProperties": false,
+    "unionKind": "anyOf",
+    "variants": [
+      "allOf:[ref:ElicitationRequestScope]",
+      "allOf:[ref:ElicitationSessionScope]"
+    ]
+  },
+  "ElicitationId": {
+    "types": "string"
+  },
+  "ElicitationPropertySchema": {
+    "unionKind": "anyOf",
+    "variants": [
+      "allOf:[ref:BooleanPropertySchema]&obj{type:req:const:str:boolean}",
+      "allOf:[ref:IntegerPropertySchema]&obj{type:req:const:str:integer}",
+      "allOf:[ref:MultiSelectPropertySchema]&obj{type:req:const:str:array}",
+      "allOf:[ref:NumberPropertySchema]&obj{type:req:const:str:number}",
+      "allOf:[ref:StringPropertySchema]&obj{type:req:const:str:string}",
+      "obj{type:req:type:string}"
+    ]
+  },
+  "ElicitationRequestScope": {
+    "fields": {
+      "requestId": {
+        "type": "allOf:[ref:RequestId]",
+        "required": true
+      }
+    },
+    "additionalProperties": false
+  },
+  "ElicitationSchema": {
+    "fields": {
+      "_meta": {
+        "type": "type:null|object",
+        "required": false
+      },
+      "description": {
+        "type": "type:null|string",
+        "required": false
+      },
+      "properties": {
+        "type": "type:object",
+        "required": false
+      },
+      "required": {
+        "type": "array<type:string>",
+        "required": false
+      },
+      "title": {
+        "type": "type:null|string",
+        "required": false
+      },
+      "type": {
+        "type": "allOf:[ref:ElicitationSchemaType]",
+        "required": false
+      }
+    },
+    "additionalProperties": false
+  },
+  "ElicitationSchemaType": {
+    "unionKind": "oneOf",
+    "variants": ["const:str:object"]
+  },
+  "ElicitationSessionScope": {
+    "fields": {
+      "sessionId": {
+        "type": "allOf:[ref:SessionId]",
+        "required": true
+      },
+      "toolCallId": {
+        "type": "anyOf:[ref:ToolCallId,type:null]",
+        "required": false
+      }
+    },
+    "additionalProperties": false
+  },
+  "ElicitationUrlCapabilities": {
+    "fields": {
+      "_meta": {
+        "type": "type:null|object",
+        "required": false
+      }
+    },
+    "additionalProperties": false
+  },
+  "ElicitationUrlMode": {
+    "fields": {
+      "elicitationId": {
+        "type": "allOf:[ref:ElicitationId]",
+        "required": true
+      },
+      "url": {
+        "type": "type:string",
+        "required": true
+      }
+    },
+    "additionalProperties": false,
+    "unionKind": "anyOf",
+    "variants": [
+      "allOf:[ref:ElicitationRequestScope]",
+      "allOf:[ref:ElicitationSessionScope]"
+    ]
+  },
+  "EmbeddedResource": {
+    "fields": {
+      "_meta": {
+        "type": "type:null|object",
+        "required": false
+      },
+      "annotations": {
+        "type": "anyOf:[ref:Annotations,type:null]",
+        "required": false
+      },
+      "resource": {
+        "type": "allOf:[ref:EmbeddedResourceResource]",
+        "required": true
+      }
+    },
+    "additionalProperties": false
+  },
+  "EmbeddedResourceResource": {
+    "unionKind": "anyOf",
+    "variants": [
+      "allOf:[ref:BlobResourceContents]",
+      "allOf:[ref:TextResourceContents]"
+    ]
+  },
+  "EnumOption": {
+    "fields": {
+      "_meta": {
+        "type": "type:null|object",
+        "required": false
+      },
+      "const": {
+        "type": "type:string",
+        "required": true
+      },
+      "description": {
+        "type": "type:null|string",
+        "required": false
+      },
+      "title": {
+        "type": "type:string",
+        "required": true
+      }
+    },
+    "additionalProperties": false
+  },
+  "EnvVariable": {
+    "fields": {
+      "_meta": {
+        "type": "type:null|object",
+        "required": false
+      },
+      "name": {
+        "type": "type:string",
+        "required": true
+      },
+      "value": {
+        "type": "type:string",
+        "required": true
+      }
+    },
+    "additionalProperties": false
+  },
+  "Error": {
+    "fields": {
+      "code": {
+        "type": "allOf:[ref:ErrorCode]",
+        "required": true
+      },
+      "data": {
+        "type": "any",
+        "required": false
+      },
+      "message": {
+        "type": "type:string",
+        "required": true
+      }
+    },
+    "additionalProperties": false
+  },
+  "ErrorCode": {
+    "unionKind": "anyOf",
+    "variants": [
+      "const:num:-32000",
+      "const:num:-32002",
+      "const:num:-32600",
+      "const:num:-32601",
+      "const:num:-32602",
+      "const:num:-32603",
+      "const:num:-32700",
+      "const:num:-32800",
+      "type:integer"
+    ]
+  },
+  "ExtNotification": {},
+  "ExtRequest": {},
+  "ExtResponse": {},
+  "FileSystemCapabilities": {
+    "fields": {
+      "_meta": {
+        "type": "type:null|object",
+        "required": false
+      },
+      "readTextFile": {
+        "type": "type:boolean",
+        "required": false
+      },
+      "writeTextFile": {
+        "type": "type:boolean",
+        "required": false
+      }
+    },
+    "additionalProperties": false
+  },
+  "HttpHeader": {
+    "fields": {
+      "_meta": {
+        "type": "type:null|object",
+        "required": false
+      },
+      "name": {
+        "type": "type:string",
+        "required": true
+      },
+      "value": {
+        "type": "type:string",
+        "required": true
+      }
+    },
+    "additionalProperties": false
+  },
+  "ImageContent": {
+    "fields": {
+      "_meta": {
+        "type": "type:null|object",
+        "required": false
+      },
+      "annotations": {
+        "type": "anyOf:[ref:Annotations,type:null]",
+        "required": false
+      },
+      "data": {
+        "type": "type:string",
+        "required": true
+      },
+      "mimeType": {
+        "type": "type:string",
+        "required": true
+      },
+      "uri": {
+        "type": "type:null|string",
+        "required": false
+      }
+    },
+    "additionalProperties": false
+  },
+  "Implementation": {
+    "fields": {
+      "_meta": {
+        "type": "type:null|object",
+        "required": false
+      },
+      "name": {
+        "type": "type:string",
+        "required": true
+      },
+      "title": {
+        "type": "type:null|string",
+        "required": false
+      },
+      "version": {
+        "type": "type:string",
+        "required": true
+      }
+    },
+    "additionalProperties": false
+  },
+  "InitializeRequest": {
+    "method": "initialize",
+    "side": "agent",
+    "fields": {
+      "_meta": {
+        "type": "type:null|object",
+        "required": false
+      },
+      "clientCapabilities": {
+        "type": "allOf:[ref:ClientCapabilities]",
+        "required": false
+      },
+      "clientInfo": {
+        "type": "anyOf:[ref:Implementation,type:null]",
+        "required": false
+      },
+      "protocolVersion": {
+        "type": "allOf:[ref:ProtocolVersion]",
+        "required": true
+      }
+    },
+    "additionalProperties": false
+  },
+  "InitializeResponse": {
+    "method": "initialize",
+    "side": "agent",
+    "fields": {
+      "_meta": {
+        "type": "type:null|object",
+        "required": false
+      },
+      "agentCapabilities": {
+        "type": "allOf:[ref:AgentCapabilities]",
+        "required": false
+      },
+      "agentInfo": {
+        "type": "anyOf:[ref:Implementation,type:null]",
+        "required": false
+      },
+      "authMethods": {
+        "type": "array<ref:AuthMethod>",
+        "required": false
+      },
+      "protocolVersion": {
+        "type": "allOf:[ref:ProtocolVersion]",
+        "required": true
+      }
+    },
+    "additionalProperties": false
+  },
+  "IntegerPropertySchema": {
+    "fields": {
+      "_meta": {
+        "type": "type:null|object",
+        "required": false
+      },
+      "default": {
+        "type": "type:integer|null",
+        "required": false
+      },
+      "description": {
+        "type": "type:null|string",
+        "required": false
+      },
+      "maximum": {
+        "type": "type:integer|null",
+        "required": false
+      },
+      "minimum": {
+        "type": "type:integer|null",
+        "required": false
+      },
+      "title": {
+        "type": "type:null|string",
+        "required": false
+      }
+    },
+    "additionalProperties": false
+  },
+  "KillTerminalRequest": {
+    "method": "terminal/kill",
+    "side": "client",
+    "fields": {
+      "_meta": {
+        "type": "type:null|object",
+        "required": false
+      },
+      "sessionId": {
+        "type": "allOf:[ref:SessionId]",
+        "required": true
+      },
+      "terminalId": {
+        "type": "allOf:[ref:TerminalId]",
+        "required": true
+      }
+    },
+    "additionalProperties": false
+  },
+  "KillTerminalResponse": {
+    "method": "terminal/kill",
+    "side": "client",
+    "fields": {
+      "_meta": {
+        "type": "type:null|object",
+        "required": false
+      }
+    },
+    "additionalProperties": false
+  },
+  "ListSessionsRequest": {
+    "method": "session/list",
+    "side": "agent",
+    "fields": {
+      "_meta": {
+        "type": "type:null|object",
+        "required": false
+      },
+      "cursor": {
+        "type": "type:null|string",
+        "required": false
+      },
+      "cwd": {
+        "type": "type:null|string",
+        "required": false
+      }
+    },
+    "additionalProperties": false
+  },
+  "ListSessionsResponse": {
+    "method": "session/list",
+    "side": "agent",
+    "fields": {
+      "_meta": {
+        "type": "type:null|object",
+        "required": false
+      },
+      "nextCursor": {
+        "type": "type:null|string",
+        "required": false
+      },
+      "sessions": {
+        "type": "array<ref:SessionInfo>",
+        "required": true
+      }
+    },
+    "additionalProperties": false
+  },
+  "LoadSessionRequest": {
+    "method": "session/load",
+    "side": "agent",
+    "fields": {
+      "_meta": {
+        "type": "type:null|object",
+        "required": false
+      },
+      "additionalDirectories": {
+        "type": "array<type:string>",
+        "required": false
+      },
+      "cwd": {
+        "type": "type:string",
+        "required": true
+      },
+      "mcpServers": {
+        "type": "array<ref:McpServer>",
+        "required": true
+      },
+      "sessionId": {
+        "type": "allOf:[ref:SessionId]",
+        "required": true
+      }
+    },
+    "additionalProperties": false
+  },
+  "LoadSessionResponse": {
+    "method": "session/load",
+    "side": "agent",
+    "fields": {
+      "_meta": {
+        "type": "type:null|object",
+        "required": false
+      },
+      "configOptions": {
+        "type": "array<ref:SessionConfigOption>",
+        "required": false
+      },
+      "modes": {
+        "type": "anyOf:[ref:SessionModeState,type:null]",
+        "required": false
+      }
+    },
+    "additionalProperties": false
+  },
+  "LogoutCapabilities": {
+    "fields": {
+      "_meta": {
+        "type": "type:null|object",
+        "required": false
+      }
+    },
+    "additionalProperties": false
+  },
+  "LogoutRequest": {
+    "method": "logout",
+    "side": "agent",
+    "fields": {
+      "_meta": {
+        "type": "type:null|object",
+        "required": false
+      }
+    },
+    "additionalProperties": false
+  },
+  "LogoutResponse": {
+    "method": "logout",
+    "side": "agent",
+    "fields": {
+      "_meta": {
+        "type": "type:null|object",
+        "required": false
+      }
+    },
+    "additionalProperties": false
+  },
+  "McpCapabilities": {
+    "fields": {
+      "_meta": {
+        "type": "type:null|object",
+        "required": false
+      },
+      "http": {
+        "type": "type:boolean",
+        "required": false
+      },
+      "sse": {
+        "type": "type:boolean",
+        "required": false
+      }
+    },
+    "additionalProperties": false
+  },
+  "McpServer": {
+    "unionKind": "anyOf",
+    "variants": [
+      "allOf:[ref:McpServerHttp]&obj{type:req:const:str:http}",
+      "allOf:[ref:McpServerSse]&obj{type:req:const:str:sse}",
+      "allOf:[ref:McpServerStdio]"
+    ]
+  },
+  "McpServerHttp": {
+    "fields": {
+      "_meta": {
+        "type": "type:null|object",
+        "required": false
+      },
+      "headers": {
+        "type": "array<ref:HttpHeader>",
+        "required": true
+      },
+      "name": {
+        "type": "type:string",
+        "required": true
+      },
+      "url": {
+        "type": "type:string",
+        "required": true
+      }
+    },
+    "additionalProperties": false
+  },
+  "McpServerSse": {
+    "fields": {
+      "_meta": {
+        "type": "type:null|object",
+        "required": false
+      },
+      "headers": {
+        "type": "array<ref:HttpHeader>",
+        "required": true
+      },
+      "name": {
+        "type": "type:string",
+        "required": true
+      },
+      "url": {
+        "type": "type:string",
+        "required": true
+      }
+    },
+    "additionalProperties": false
+  },
+  "McpServerStdio": {
+    "fields": {
+      "_meta": {
+        "type": "type:null|object",
+        "required": false
+      },
+      "args": {
+        "type": "array<type:string>",
+        "required": true
+      },
+      "command": {
+        "type": "type:string",
+        "required": true
+      },
+      "env": {
+        "type": "array<ref:EnvVariable>",
+        "required": true
+      },
+      "name": {
+        "type": "type:string",
+        "required": true
+      }
+    },
+    "additionalProperties": false
+  },
+  "MessageId": {
+    "types": "string"
+  },
+  "MultiSelectItems": {
+    "unionKind": "anyOf",
+    "variants": [
+      "allOf:[ref:StringMultiSelectItems]&obj{type:req:const:str:string}",
+      "allOf:[ref:TitledMultiSelectItems]",
+      "obj{type:req:type:string}"
+    ]
+  },
+  "MultiSelectPropertySchema": {
+    "fields": {
+      "_meta": {
+        "type": "type:null|object",
+        "required": false
+      },
+      "default": {
+        "type": "array<type:string>",
+        "required": false
+      },
+      "description": {
+        "type": "type:null|string",
+        "required": false
+      },
+      "items": {
+        "type": "allOf:[ref:MultiSelectItems]",
+        "required": true
+      },
+      "maxItems": {
+        "type": "type:integer|null",
+        "required": false
+      },
+      "minItems": {
+        "type": "type:integer|null",
+        "required": false
+      },
+      "title": {
+        "type": "type:null|string",
+        "required": false
+      }
+    },
+    "additionalProperties": false
+  },
+  "NewSessionRequest": {
+    "method": "session/new",
+    "side": "agent",
+    "fields": {
+      "_meta": {
+        "type": "type:null|object",
+        "required": false
+      },
+      "additionalDirectories": {
+        "type": "array<type:string>",
+        "required": false
+      },
+      "cwd": {
+        "type": "type:string",
+        "required": true
+      },
+      "mcpServers": {
+        "type": "array<ref:McpServer>",
+        "required": true
+      }
+    },
+    "additionalProperties": false
+  },
+  "NewSessionResponse": {
+    "method": "session/new",
+    "side": "agent",
+    "fields": {
+      "_meta": {
+        "type": "type:null|object",
+        "required": false
+      },
+      "configOptions": {
+        "type": "array<ref:SessionConfigOption>",
+        "required": false
+      },
+      "modes": {
+        "type": "anyOf:[ref:SessionModeState,type:null]",
+        "required": false
+      },
+      "sessionId": {
+        "type": "allOf:[ref:SessionId]",
+        "required": true
+      }
+    },
+    "additionalProperties": false
+  },
+  "NumberPropertySchema": {
+    "fields": {
+      "_meta": {
+        "type": "type:null|object",
+        "required": false
+      },
+      "default": {
+        "type": "type:null|number",
+        "required": false
+      },
+      "description": {
+        "type": "type:null|string",
+        "required": false
+      },
+      "maximum": {
+        "type": "type:null|number",
+        "required": false
+      },
+      "minimum": {
+        "type": "type:null|number",
+        "required": false
+      },
+      "title": {
+        "type": "type:null|string",
+        "required": false
+      }
+    },
+    "additionalProperties": false
+  },
+  "PermissionOption": {
+    "fields": {
+      "_meta": {
+        "type": "type:null|object",
+        "required": false
+      },
+      "kind": {
+        "type": "allOf:[ref:PermissionOptionKind]",
+        "required": true
+      },
+      "name": {
+        "type": "type:string",
+        "required": true
+      },
+      "optionId": {
+        "type": "allOf:[ref:PermissionOptionId]",
+        "required": true
+      }
+    },
+    "additionalProperties": false
+  },
+  "PermissionOptionId": {
+    "types": "string"
+  },
+  "PermissionOptionKind": {
+    "unionKind": "oneOf",
+    "variants": [
+      "const:str:allow_always",
+      "const:str:allow_once",
+      "const:str:reject_always",
+      "const:str:reject_once"
+    ]
+  },
+  "Plan": {
+    "fields": {
+      "_meta": {
+        "type": "type:null|object",
+        "required": false
+      },
+      "entries": {
+        "type": "array<ref:PlanEntry>",
+        "required": true
+      }
+    },
+    "additionalProperties": false
+  },
+  "PlanEntry": {
+    "fields": {
+      "_meta": {
+        "type": "type:null|object",
+        "required": false
+      },
+      "content": {
+        "type": "type:string",
+        "required": true
+      },
+      "priority": {
+        "type": "allOf:[ref:PlanEntryPriority]",
+        "required": true
+      },
+      "status": {
+        "type": "allOf:[ref:PlanEntryStatus]",
+        "required": true
+      }
+    },
+    "additionalProperties": false
+  },
+  "PlanEntryPriority": {
+    "unionKind": "oneOf",
+    "variants": ["const:str:high", "const:str:low", "const:str:medium"]
+  },
+  "PlanEntryStatus": {
+    "unionKind": "oneOf",
+    "variants": [
+      "const:str:completed",
+      "const:str:in_progress",
+      "const:str:pending"
+    ]
+  },
+  "PromptCapabilities": {
+    "fields": {
+      "_meta": {
+        "type": "type:null|object",
+        "required": false
+      },
+      "audio": {
+        "type": "type:boolean",
+        "required": false
+      },
+      "embeddedContext": {
+        "type": "type:boolean",
+        "required": false
+      },
+      "image": {
+        "type": "type:boolean",
+        "required": false
+      }
+    },
+    "additionalProperties": false
+  },
+  "PromptRequest": {
+    "method": "session/prompt",
+    "side": "agent",
+    "fields": {
+      "_meta": {
+        "type": "type:null|object",
+        "required": false
+      },
+      "prompt": {
+        "type": "array<ref:ContentBlock>",
+        "required": true
+      },
+      "sessionId": {
+        "type": "allOf:[ref:SessionId]",
+        "required": true
+      }
+    },
+    "additionalProperties": false
+  },
+  "PromptResponse": {
+    "method": "session/prompt",
+    "side": "agent",
+    "fields": {
+      "_meta": {
+        "type": "type:null|object",
+        "required": false
+      },
+      "stopReason": {
+        "type": "allOf:[ref:StopReason]",
+        "required": true
+      }
+    },
+    "additionalProperties": false
+  },
+  "ProtocolVersion": {
+    "types": "integer"
+  },
+  "ReadTextFileRequest": {
+    "method": "fs/read_text_file",
+    "side": "client",
+    "fields": {
+      "_meta": {
+        "type": "type:null|object",
+        "required": false
+      },
+      "limit": {
+        "type": "type:integer|null",
+        "required": false
+      },
+      "line": {
+        "type": "type:integer|null",
+        "required": false
+      },
+      "path": {
+        "type": "type:string",
+        "required": true
+      },
+      "sessionId": {
+        "type": "allOf:[ref:SessionId]",
+        "required": true
+      }
+    },
+    "additionalProperties": false
+  },
+  "ReadTextFileResponse": {
+    "method": "fs/read_text_file",
+    "side": "client",
+    "fields": {
+      "_meta": {
+        "type": "type:null|object",
+        "required": false
+      },
+      "content": {
+        "type": "type:string",
+        "required": true
+      }
+    },
+    "additionalProperties": false
+  },
+  "ReleaseTerminalRequest": {
+    "method": "terminal/release",
+    "side": "client",
+    "fields": {
+      "_meta": {
+        "type": "type:null|object",
+        "required": false
+      },
+      "sessionId": {
+        "type": "allOf:[ref:SessionId]",
+        "required": true
+      },
+      "terminalId": {
+        "type": "allOf:[ref:TerminalId]",
+        "required": true
+      }
+    },
+    "additionalProperties": false
+  },
+  "ReleaseTerminalResponse": {
+    "method": "terminal/release",
+    "side": "client",
+    "fields": {
+      "_meta": {
+        "type": "type:null|object",
+        "required": false
+      }
+    },
+    "additionalProperties": false
+  },
+  "RequestId": {
+    "unionKind": "anyOf",
+    "variants": ["type:integer", "type:null", "type:string"]
+  },
+  "RequestPermissionOutcome": {
+    "unionKind": "oneOf",
+    "variants": [
+      "allOf:[ref:SelectedPermissionOutcome]&obj{outcome:req:const:str:selected}",
+      "obj{outcome:req:const:str:cancelled}"
+    ]
+  },
+  "RequestPermissionRequest": {
+    "method": "session/request_permission",
+    "side": "client",
+    "fields": {
+      "_meta": {
+        "type": "type:null|object",
+        "required": false
+      },
+      "options": {
+        "type": "array<ref:PermissionOption>",
+        "required": true
+      },
+      "sessionId": {
+        "type": "allOf:[ref:SessionId]",
+        "required": true
+      },
+      "toolCall": {
+        "type": "allOf:[ref:ToolCallUpdate]",
+        "required": true
+      }
+    },
+    "additionalProperties": false
+  },
+  "RequestPermissionResponse": {
+    "method": "session/request_permission",
+    "side": "client",
+    "fields": {
+      "_meta": {
+        "type": "type:null|object",
+        "required": false
+      },
+      "outcome": {
+        "type": "allOf:[ref:RequestPermissionOutcome]",
+        "required": true
+      }
+    },
+    "additionalProperties": false
+  },
+  "ResourceLink": {
+    "fields": {
+      "_meta": {
+        "type": "type:null|object",
+        "required": false
+      },
+      "annotations": {
+        "type": "anyOf:[ref:Annotations,type:null]",
+        "required": false
+      },
+      "description": {
+        "type": "type:null|string",
+        "required": false
+      },
+      "mimeType": {
+        "type": "type:null|string",
+        "required": false
+      },
+      "name": {
+        "type": "type:string",
+        "required": true
+      },
+      "size": {
+        "type": "type:integer|null",
+        "required": false
+      },
+      "title": {
+        "type": "type:null|string",
+        "required": false
+      },
+      "uri": {
+        "type": "type:string",
+        "required": true
+      }
+    },
+    "additionalProperties": false
+  },
+  "ResumeSessionRequest": {
+    "method": "session/resume",
+    "side": "agent",
+    "fields": {
+      "_meta": {
+        "type": "type:null|object",
+        "required": false
+      },
+      "additionalDirectories": {
+        "type": "array<type:string>",
+        "required": false
+      },
+      "cwd": {
+        "type": "type:string",
+        "required": true
+      },
+      "mcpServers": {
+        "type": "array<ref:McpServer>",
+        "required": false
+      },
+      "sessionId": {
+        "type": "allOf:[ref:SessionId]",
+        "required": true
+      }
+    },
+    "additionalProperties": false
+  },
+  "ResumeSessionResponse": {
+    "method": "session/resume",
+    "side": "agent",
+    "fields": {
+      "_meta": {
+        "type": "type:null|object",
+        "required": false
+      },
+      "configOptions": {
+        "type": "array<ref:SessionConfigOption>",
+        "required": false
+      },
+      "modes": {
+        "type": "anyOf:[ref:SessionModeState,type:null]",
+        "required": false
+      }
+    },
+    "additionalProperties": false
+  },
+  "Role": {
+    "unionKind": "oneOf",
+    "variants": ["const:str:assistant", "const:str:user"]
+  },
+  "SelectedPermissionOutcome": {
+    "fields": {
+      "_meta": {
+        "type": "type:null|object",
+        "required": false
+      },
+      "optionId": {
+        "type": "allOf:[ref:PermissionOptionId]",
+        "required": true
+      }
+    },
+    "additionalProperties": false
+  },
+  "SessionAdditionalDirectoriesCapabilities": {
+    "fields": {
+      "_meta": {
+        "type": "type:null|object",
+        "required": false
+      }
+    },
+    "additionalProperties": false
+  },
+  "SessionCapabilities": {
+    "fields": {
+      "_meta": {
+        "type": "type:null|object",
+        "required": false
+      },
+      "additionalDirectories": {
+        "type": "anyOf:[ref:SessionAdditionalDirectoriesCapabilities,type:null]",
+        "required": false
+      },
+      "close": {
+        "type": "anyOf:[ref:SessionCloseCapabilities,type:null]",
+        "required": false
+      },
+      "delete": {
+        "type": "anyOf:[ref:SessionDeleteCapabilities,type:null]",
+        "required": false
+      },
+      "list": {
+        "type": "anyOf:[ref:SessionListCapabilities,type:null]",
+        "required": false
+      },
+      "resume": {
+        "type": "anyOf:[ref:SessionResumeCapabilities,type:null]",
+        "required": false
+      }
+    },
+    "additionalProperties": false
+  },
+  "SessionCloseCapabilities": {
+    "fields": {
+      "_meta": {
+        "type": "type:null|object",
+        "required": false
+      }
+    },
+    "additionalProperties": false
+  },
+  "SessionConfigBoolean": {
+    "fields": {
+      "currentValue": {
+        "type": "type:boolean",
+        "required": true
+      }
+    },
+    "additionalProperties": false
+  },
+  "SessionConfigGroupId": {
+    "types": "string"
+  },
+  "SessionConfigId": {
+    "types": "string"
+  },
+  "SessionConfigOption": {
+    "fields": {
+      "_meta": {
+        "type": "type:null|object",
+        "required": false
+      },
+      "category": {
+        "type": "anyOf:[ref:SessionConfigOptionCategory,type:null]",
+        "required": false
+      },
+      "description": {
+        "type": "type:null|string",
+        "required": false
+      },
+      "id": {
+        "type": "allOf:[ref:SessionConfigId]",
+        "required": true
+      },
+      "name": {
+        "type": "type:string",
+        "required": true
+      }
+    },
+    "additionalProperties": false,
+    "unionKind": "oneOf",
+    "variants": [
+      "allOf:[ref:SessionConfigBoolean]&obj{type:req:const:str:boolean}",
+      "allOf:[ref:SessionConfigSelect]&obj{type:req:const:str:select}"
+    ]
+  },
+  "SessionConfigOptionCategory": {
+    "unionKind": "anyOf",
+    "variants": [
+      "const:str:mode",
+      "const:str:model",
+      "const:str:model_config",
+      "const:str:thought_level",
+      "type:string"
+    ]
+  },
+  "SessionConfigOptionsCapabilities": {
+    "fields": {
+      "_meta": {
+        "type": "type:null|object",
+        "required": false
+      },
+      "boolean": {
+        "type": "anyOf:[ref:BooleanConfigOptionCapabilities,type:null]",
+        "required": false
+      }
+    },
+    "additionalProperties": false
+  },
+  "SessionConfigSelect": {
+    "fields": {
+      "currentValue": {
+        "type": "allOf:[ref:SessionConfigValueId]",
+        "required": true
+      },
+      "options": {
+        "type": "allOf:[ref:SessionConfigSelectOptions]",
+        "required": true
+      }
+    },
+    "additionalProperties": false
+  },
+  "SessionConfigSelectGroup": {
+    "fields": {
+      "_meta": {
+        "type": "type:null|object",
+        "required": false
+      },
+      "group": {
+        "type": "allOf:[ref:SessionConfigGroupId]",
+        "required": true
+      },
+      "name": {
+        "type": "type:string",
+        "required": true
+      },
+      "options": {
+        "type": "array<ref:SessionConfigSelectOption>",
+        "required": true
+      }
+    },
+    "additionalProperties": false
+  },
+  "SessionConfigSelectOption": {
+    "fields": {
+      "_meta": {
+        "type": "type:null|object",
+        "required": false
+      },
+      "description": {
+        "type": "type:null|string",
+        "required": false
+      },
+      "name": {
+        "type": "type:string",
+        "required": true
+      },
+      "value": {
+        "type": "allOf:[ref:SessionConfigValueId]",
+        "required": true
+      }
+    },
+    "additionalProperties": false
+  },
+  "SessionConfigSelectOptions": {
+    "unionKind": "anyOf",
+    "variants": [
+      "array<ref:SessionConfigSelectGroup>",
+      "array<ref:SessionConfigSelectOption>"
+    ]
+  },
+  "SessionConfigValueId": {
+    "types": "string"
+  },
+  "SessionDeleteCapabilities": {
+    "fields": {
+      "_meta": {
+        "type": "type:null|object",
+        "required": false
+      }
+    },
+    "additionalProperties": false
+  },
+  "SessionId": {
+    "types": "string"
+  },
+  "SessionInfo": {
+    "fields": {
+      "_meta": {
+        "type": "type:null|object",
+        "required": false
+      },
+      "additionalDirectories": {
+        "type": "array<type:string>",
+        "required": false
+      },
+      "cwd": {
+        "type": "type:string",
+        "required": true
+      },
+      "sessionId": {
+        "type": "allOf:[ref:SessionId]",
+        "required": true
+      },
+      "title": {
+        "type": "type:null|string",
+        "required": false
+      },
+      "updatedAt": {
+        "type": "type:null|string",
+        "required": false
+      }
+    },
+    "additionalProperties": false
+  },
+  "SessionInfoUpdate": {
+    "fields": {
+      "_meta": {
+        "type": "type:null|object",
+        "required": false
+      },
+      "title": {
+        "type": "type:null|string",
+        "required": false
+      },
+      "updatedAt": {
+        "type": "type:null|string",
+        "required": false
+      }
+    },
+    "additionalProperties": false
+  },
+  "SessionListCapabilities": {
+    "fields": {
+      "_meta": {
+        "type": "type:null|object",
+        "required": false
+      }
+    },
+    "additionalProperties": false
+  },
+  "SessionMode": {
+    "fields": {
+      "_meta": {
+        "type": "type:null|object",
+        "required": false
+      },
+      "description": {
+        "type": "type:null|string",
+        "required": false
+      },
+      "id": {
+        "type": "allOf:[ref:SessionModeId]",
+        "required": true
+      },
+      "name": {
+        "type": "type:string",
+        "required": true
+      }
+    },
+    "additionalProperties": false
+  },
+  "SessionModeId": {
+    "types": "string"
+  },
+  "SessionModeState": {
+    "fields": {
+      "_meta": {
+        "type": "type:null|object",
+        "required": false
+      },
+      "availableModes": {
+        "type": "array<ref:SessionMode>",
+        "required": true
+      },
+      "currentModeId": {
+        "type": "allOf:[ref:SessionModeId]",
+        "required": true
+      }
+    },
+    "additionalProperties": false
+  },
+  "SessionNotification": {
+    "method": "session/update",
+    "side": "client",
+    "fields": {
+      "_meta": {
+        "type": "type:null|object",
+        "required": false
+      },
+      "sessionId": {
+        "type": "allOf:[ref:SessionId]",
+        "required": true
+      },
+      "update": {
+        "type": "allOf:[ref:SessionUpdate]",
+        "required": true
+      }
+    },
+    "additionalProperties": false
+  },
+  "SessionResumeCapabilities": {
+    "fields": {
+      "_meta": {
+        "type": "type:null|object",
+        "required": false
+      }
+    },
+    "additionalProperties": false
+  },
+  "SessionUpdate": {
+    "unionKind": "oneOf",
+    "variants": [
+      "allOf:[ref:AvailableCommandsUpdate]&obj{sessionUpdate:req:const:str:available_commands_update}",
+      "allOf:[ref:ConfigOptionUpdate]&obj{sessionUpdate:req:const:str:config_option_update}",
+      "allOf:[ref:ContentChunk]&obj{sessionUpdate:req:const:str:agent_message_chunk}",
+      "allOf:[ref:ContentChunk]&obj{sessionUpdate:req:const:str:agent_thought_chunk}",
+      "allOf:[ref:ContentChunk]&obj{sessionUpdate:req:const:str:user_message_chunk}",
+      "allOf:[ref:CurrentModeUpdate]&obj{sessionUpdate:req:const:str:current_mode_update}",
+      "allOf:[ref:Plan]&obj{sessionUpdate:req:const:str:plan}",
+      "allOf:[ref:SessionInfoUpdate]&obj{sessionUpdate:req:const:str:session_info_update}",
+      "allOf:[ref:ToolCallUpdate]&obj{sessionUpdate:req:const:str:tool_call_update}",
+      "allOf:[ref:ToolCall]&obj{sessionUpdate:req:const:str:tool_call}",
+      "allOf:[ref:UsageUpdate]&obj{sessionUpdate:req:const:str:usage_update}"
+    ]
+  },
+  "SetSessionConfigOptionRequest": {
+    "method": "session/set_config_option",
+    "side": "agent",
+    "fields": {
+      "_meta": {
+        "type": "type:null|object",
+        "required": false
+      },
+      "configId": {
+        "type": "allOf:[ref:SessionConfigId]",
+        "required": true
+      },
+      "sessionId": {
+        "type": "allOf:[ref:SessionId]",
+        "required": true
+      }
+    },
+    "additionalProperties": false,
+    "unionKind": "anyOf",
+    "variants": [
+      "obj{type:req:const:str:boolean,value:req:type:boolean}",
+      "obj{value:req:allOf:[ref:SessionConfigValueId]}"
+    ]
+  },
+  "SetSessionConfigOptionResponse": {
+    "method": "session/set_config_option",
+    "side": "agent",
+    "fields": {
+      "_meta": {
+        "type": "type:null|object",
+        "required": false
+      },
+      "configOptions": {
+        "type": "array<ref:SessionConfigOption>",
+        "required": true
+      }
+    },
+    "additionalProperties": false
+  },
+  "SetSessionModeRequest": {
+    "method": "session/set_mode",
+    "side": "agent",
+    "fields": {
+      "_meta": {
+        "type": "type:null|object",
+        "required": false
+      },
+      "modeId": {
+        "type": "allOf:[ref:SessionModeId]",
+        "required": true
+      },
+      "sessionId": {
+        "type": "allOf:[ref:SessionId]",
+        "required": true
+      }
+    },
+    "additionalProperties": false
+  },
+  "SetSessionModeResponse": {
+    "method": "session/set_mode",
+    "side": "agent",
+    "fields": {
+      "_meta": {
+        "type": "type:null|object",
+        "required": false
+      }
+    },
+    "additionalProperties": false
+  },
+  "StopReason": {
+    "unionKind": "oneOf",
+    "variants": [
+      "const:str:cancelled",
+      "const:str:end_turn",
+      "const:str:max_tokens",
+      "const:str:max_turn_requests",
+      "const:str:refusal"
+    ]
+  },
+  "StringFormat": {
+    "unionKind": "oneOf",
+    "variants": [
+      "const:str:date",
+      "const:str:date-time",
+      "const:str:email",
+      "const:str:uri"
+    ]
+  },
+  "StringMultiSelectItems": {
+    "fields": {
+      "_meta": {
+        "type": "type:null|object",
+        "required": false
+      },
+      "enum": {
+        "type": "array<type:string>",
+        "required": true
+      }
+    },
+    "additionalProperties": false
+  },
+  "StringPropertySchema": {
+    "fields": {
+      "_meta": {
+        "type": "type:null|object",
+        "required": false
+      },
+      "default": {
+        "type": "type:null|string",
+        "required": false
+      },
+      "description": {
+        "type": "type:null|string",
+        "required": false
+      },
+      "enum": {
+        "type": "array<type:string>",
+        "required": false
+      },
+      "format": {
+        "type": "anyOf:[ref:StringFormat,type:null]",
+        "required": false
+      },
+      "maxLength": {
+        "type": "type:integer|null",
+        "required": false
+      },
+      "minLength": {
+        "type": "type:integer|null",
+        "required": false
+      },
+      "oneOf": {
+        "type": "array<ref:EnumOption>",
+        "required": false
+      },
+      "pattern": {
+        "type": "type:null|string",
+        "required": false
+      },
+      "title": {
+        "type": "type:null|string",
+        "required": false
+      }
+    },
+    "additionalProperties": false
+  },
+  "Terminal": {
+    "fields": {
+      "_meta": {
+        "type": "type:null|object",
+        "required": false
+      },
+      "terminalId": {
+        "type": "allOf:[ref:TerminalId]",
+        "required": true
+      }
+    },
+    "additionalProperties": false
+  },
+  "TerminalExitStatus": {
+    "fields": {
+      "_meta": {
+        "type": "type:null|object",
+        "required": false
+      },
+      "exitCode": {
+        "type": "type:integer|null",
+        "required": false
+      },
+      "signal": {
+        "type": "type:null|string",
+        "required": false
+      }
+    },
+    "additionalProperties": false
+  },
+  "TerminalId": {
+    "types": "string"
+  },
+  "TerminalOutputRequest": {
+    "method": "terminal/output",
+    "side": "client",
+    "fields": {
+      "_meta": {
+        "type": "type:null|object",
+        "required": false
+      },
+      "sessionId": {
+        "type": "allOf:[ref:SessionId]",
+        "required": true
+      },
+      "terminalId": {
+        "type": "allOf:[ref:TerminalId]",
+        "required": true
+      }
+    },
+    "additionalProperties": false
+  },
+  "TerminalOutputResponse": {
+    "method": "terminal/output",
+    "side": "client",
+    "fields": {
+      "_meta": {
+        "type": "type:null|object",
+        "required": false
+      },
+      "exitStatus": {
+        "type": "anyOf:[ref:TerminalExitStatus,type:null]",
+        "required": false
+      },
+      "output": {
+        "type": "type:string",
+        "required": true
+      },
+      "truncated": {
+        "type": "type:boolean",
+        "required": true
+      }
+    },
+    "additionalProperties": false
+  },
+  "TextContent": {
+    "fields": {
+      "_meta": {
+        "type": "type:null|object",
+        "required": false
+      },
+      "annotations": {
+        "type": "anyOf:[ref:Annotations,type:null]",
+        "required": false
+      },
+      "text": {
+        "type": "type:string",
+        "required": true
+      }
+    },
+    "additionalProperties": false
+  },
+  "TextResourceContents": {
+    "fields": {
+      "_meta": {
+        "type": "type:null|object",
+        "required": false
+      },
+      "mimeType": {
+        "type": "type:null|string",
+        "required": false
+      },
+      "text": {
+        "type": "type:string",
+        "required": true
+      },
+      "uri": {
+        "type": "type:string",
+        "required": true
+      }
+    },
+    "additionalProperties": false
+  },
+  "TitledMultiSelectItems": {
+    "fields": {
+      "_meta": {
+        "type": "type:null|object",
+        "required": false
+      },
+      "anyOf": {
+        "type": "array<ref:EnumOption>",
+        "required": true
+      }
+    },
+    "additionalProperties": false
+  },
+  "ToolCall": {
+    "fields": {
+      "_meta": {
+        "type": "type:null|object",
+        "required": false
+      },
+      "content": {
+        "type": "array<ref:ToolCallContent>",
+        "required": false
+      },
+      "kind": {
+        "type": "allOf:[ref:ToolKind]",
+        "required": false
+      },
+      "locations": {
+        "type": "array<ref:ToolCallLocation>",
+        "required": false
+      },
+      "rawInput": {
+        "type": "any",
+        "required": false
+      },
+      "rawOutput": {
+        "type": "any",
+        "required": false
+      },
+      "status": {
+        "type": "allOf:[ref:ToolCallStatus]",
+        "required": false
+      },
+      "title": {
+        "type": "type:string",
+        "required": true
+      },
+      "toolCallId": {
+        "type": "allOf:[ref:ToolCallId]",
+        "required": true
+      }
+    },
+    "additionalProperties": false
+  },
+  "ToolCallContent": {
+    "unionKind": "oneOf",
+    "variants": [
+      "allOf:[ref:Content]&obj{type:req:const:str:content}",
+      "allOf:[ref:Diff]&obj{type:req:const:str:diff}",
+      "allOf:[ref:Terminal]&obj{type:req:const:str:terminal}"
+    ]
+  },
+  "ToolCallId": {
+    "types": "string"
+  },
+  "ToolCallLocation": {
+    "fields": {
+      "_meta": {
+        "type": "type:null|object",
+        "required": false
+      },
+      "line": {
+        "type": "type:integer|null",
+        "required": false
+      },
+      "path": {
+        "type": "type:string",
+        "required": true
+      }
+    },
+    "additionalProperties": false
+  },
+  "ToolCallStatus": {
+    "unionKind": "oneOf",
+    "variants": [
+      "const:str:completed",
+      "const:str:failed",
+      "const:str:in_progress",
+      "const:str:pending"
+    ]
+  },
+  "ToolCallUpdate": {
+    "fields": {
+      "_meta": {
+        "type": "type:null|object",
+        "required": false
+      },
+      "content": {
+        "type": "array<ref:ToolCallContent>",
+        "required": false
+      },
+      "kind": {
+        "type": "anyOf:[ref:ToolKind,type:null]",
+        "required": false
+      },
+      "locations": {
+        "type": "array<ref:ToolCallLocation>",
+        "required": false
+      },
+      "rawInput": {
+        "type": "any",
+        "required": false
+      },
+      "rawOutput": {
+        "type": "any",
+        "required": false
+      },
+      "status": {
+        "type": "anyOf:[ref:ToolCallStatus,type:null]",
+        "required": false
+      },
+      "title": {
+        "type": "type:null|string",
+        "required": false
+      },
+      "toolCallId": {
+        "type": "allOf:[ref:ToolCallId]",
+        "required": true
+      }
+    },
+    "additionalProperties": false
+  },
+  "ToolKind": {
+    "unionKind": "oneOf",
+    "variants": [
+      "const:str:delete",
+      "const:str:edit",
+      "const:str:execute",
+      "const:str:fetch",
+      "const:str:move",
+      "const:str:other",
+      "const:str:read",
+      "const:str:search",
+      "const:str:switch_mode",
+      "const:str:think"
+    ]
+  },
+  "UnstructuredCommandInput": {
+    "fields": {
+      "_meta": {
+        "type": "type:null|object",
+        "required": false
+      },
+      "hint": {
+        "type": "type:string",
+        "required": true
+      }
+    },
+    "additionalProperties": false
+  },
+  "UsageUpdate": {
+    "fields": {
+      "_meta": {
+        "type": "type:null|object",
+        "required": false
+      },
+      "cost": {
+        "type": "anyOf:[ref:Cost,type:null]",
+        "required": false
+      },
+      "size": {
+        "type": "type:integer",
+        "required": true
+      },
+      "used": {
+        "type": "type:integer",
+        "required": true
+      }
+    },
+    "additionalProperties": false
+  },
+  "WaitForTerminalExitRequest": {
+    "method": "terminal/wait_for_exit",
+    "side": "client",
+    "fields": {
+      "_meta": {
+        "type": "type:null|object",
+        "required": false
+      },
+      "sessionId": {
+        "type": "allOf:[ref:SessionId]",
+        "required": true
+      },
+      "terminalId": {
+        "type": "allOf:[ref:TerminalId]",
+        "required": true
+      }
+    },
+    "additionalProperties": false
+  },
+  "WaitForTerminalExitResponse": {
+    "method": "terminal/wait_for_exit",
+    "side": "client",
+    "fields": {
+      "_meta": {
+        "type": "type:null|object",
+        "required": false
+      },
+      "exitCode": {
+        "type": "type:integer|null",
+        "required": false
+      },
+      "signal": {
+        "type": "type:null|string",
+        "required": false
+      }
+    },
+    "additionalProperties": false
+  },
+  "WriteTextFileRequest": {
+    "method": "fs/write_text_file",
+    "side": "client",
+    "fields": {
+      "_meta": {
+        "type": "type:null|object",
+        "required": false
+      },
+      "content": {
+        "type": "type:string",
+        "required": true
+      },
+      "path": {
+        "type": "type:string",
+        "required": true
+      },
+      "sessionId": {
+        "type": "allOf:[ref:SessionId]",
+        "required": true
+      }
+    },
+    "additionalProperties": false
+  },
+  "WriteTextFileResponse": {
+    "method": "fs/write_text_file",
+    "side": "client",
+    "fields": {
+      "_meta": {
+        "type": "type:null|object",
+        "required": false
+      }
+    },
+    "additionalProperties": false
+  }
+}

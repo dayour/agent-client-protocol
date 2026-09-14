@@ -175,6 +175,13 @@
               "libraries/typescript",
               "libraries/community"
             ]
+          },
+          {
+            "group": "Guides",
+            "pages": [
+              "guides/rust-implementer-guide",
+              "guides/typescript-implementer-guide"
+            ]
           }
         ]
       },
@@ -244,6 +251,7 @@
               "rfds/session-delete",
               "rfds/model-config-category",
               "rfds/rust-sdk-v1",
+              "rfds/rust-runtime-boundary",
               "rfds/request-cancellation",
               "rfds/boolean-config-option",
               "rfds/elicitation"

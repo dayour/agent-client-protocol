@@ -227,11 +227,19 @@ impl std::fmt::Debug for ErrorCode {
 }
 
 fn error_code_transform(schema: &mut Schema) {
-    let name = schema
-        .get("const")
-        .expect("Unexpected schema for ErrorCode")
-        .as_str()
-        .expect("unexpected type for schema");
+    const TRANSFORM_CONTEXT: &str =
+        "agent-client-protocol-schema/src/v2/error.rs::error_code_transform";
+
+    let const_value = schema.get("const").unwrap_or_else(|| {
+        panic!(
+            "{TRANSFORM_CONTEXT} expected schemars to emit a `const` field for ErrorCode, but the schema fragment was {schema:?}. The schemars output shape likely changed."
+        )
+    });
+    let name = const_value.as_str().unwrap_or_else(|| {
+        panic!(
+            "{TRANSFORM_CONTEXT} expected the ErrorCode `const` field to be a string variant name, but found {const_value:?} in schema fragment {schema:?}. The schemars output shape likely changed."
+        )
+    });
     let code = match name {
         "ParseError" => ErrorCode::ParseError,
         "InvalidRequest" => ErrorCode::InvalidRequest,
@@ -241,13 +249,22 @@ fn error_code_transform(schema: &mut Schema) {
         "RequestCancelled" => ErrorCode::RequestCancelled,
         "AuthRequired" => ErrorCode::AuthRequired,
         "ResourceNotFound" => ErrorCode::ResourceNotFound,
-        _ => panic!("Unexpected error code name {name}"),
+        _ => panic!(
+            "{TRANSFORM_CONTEXT} encountered unsupported ErrorCode variant `{name}` while transforming schema fragment {schema:?}. A new ErrorCode variant was added or the schemars output shape changed."
+        ),
     };
-    let mut description = schema
-        .get("description")
-        .expect("Missing description")
+    let description_value = schema.get("description").unwrap_or_else(|| {
+        panic!(
+            "{TRANSFORM_CONTEXT} expected a `description` field while transforming ErrorCode `{name}`, but the schema fragment was {schema:?}. The schemars output shape likely changed."
+        )
+    });
+    let mut description = description_value
         .as_str()
-        .expect("Unexpected type for description")
+        .unwrap_or_else(|| {
+            panic!(
+                "{TRANSFORM_CONTEXT} expected the `description` field for ErrorCode `{name}` to be a string, but found {description_value:?} in schema fragment {schema:?}. The schemars output shape likely changed."
+            )
+        })
         .to_owned();
     schema.insert("title".into(), code.to_string().into());
     description.insert_str(0, &format!("**{code}**: "));

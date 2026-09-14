@@ -9,9 +9,10 @@ use std::{path::PathBuf, sync::Arc};
 use derive_more::{Display, From};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
-use serde_with::{DefaultOnError, VecSkipError, serde_as, skip_serializing_none};
+use serde_with::{VecSkipError, serde_as, skip_serializing_none};
 
-use crate::{IntoOption, SkipListener};
+use crate::serde_util::SkipListener;
+use crate::{DefaultOnError, IntoOption};
 
 use super::{ContentBlock, Error, Meta, TerminalId};
 
@@ -488,6 +489,10 @@ impl IntoOption<ToolCallId> for &str {
 /// Tool kinds help clients choose appropriate icons and optimize how they
 /// display tool execution progress.
 ///
+/// v1 keeps this enum decode-open so newer peers can introduce additional tool
+/// kinds without breaking older implementations. Unknown values deserialize to
+/// `Other`.
+///
 /// See protocol docs: [Creating](https://agentclientprotocol.com/protocol/tool-calls#creating)
 #[derive(Debug, Clone, Copy, Default, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
@@ -527,6 +532,10 @@ impl ToolKind {
 /// Execution status of a tool call.
 ///
 /// Tool calls progress through different statuses during their lifecycle.
+///
+/// v1 intentionally keeps this enum decode-closed. Unknown lifecycle states are
+/// rejected rather than silently coerced because v1 has no lossless
+/// preservation form for unrecognized statuses.
 ///
 /// See protocol docs: [Status](https://agentclientprotocol.com/protocol/tool-calls#status)
 #[derive(Clone, Copy, Debug, Default, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
@@ -862,5 +871,21 @@ mod tests {
 
         let rebuilt = ToolCall::try_from(update).unwrap();
         assert_eq!(rebuilt, tool_call);
+    }
+}
+
+#[cfg(test)]
+mod enum_policy_tests {
+    use super::*;
+
+    #[test]
+    fn tool_kind_accepts_unknown_variant() {
+        let kind: ToolKind = serde_json::from_str("\"review\"").unwrap();
+        assert_eq!(kind, ToolKind::Other);
+    }
+
+    #[test]
+    fn tool_call_status_rejects_unknown_variant() {
+        drop(serde_json::from_str::<ToolCallStatus>("\"deferred\"").unwrap_err());
     }
 }

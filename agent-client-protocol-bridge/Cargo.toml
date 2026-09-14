@@ -1,0 +1,23 @@
+[package]
+name = "agent-client-protocol-bridge"
+version = "0.1.0"
+authors = ["DarbotLM maintainers"]
+edition = "2024"
+rust-version = "1.88.0"
+license = "Apache-2.0"
+description = "Stateful v1 to v2 bridge for the Agent Client Protocol, mediating the protocol shapes that the stateless conversion layer cannot represent."
+repository = "https://github.com/DarbotLM/agent-client-protocol"
+homepage = "https://github.com/DarbotLM/agent-client-protocol"
+documentation = "https://github.com/DarbotLM/agent-client-protocol/tree/main/docs"
+keywords = ["agent", "client", "protocol", "ai", "bridge"]
+categories = ["development-tools", "api-bindings"]
+readme = "README.md"
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+agent-client-protocol-schema = { path = "../agent-client-protocol-schema", version = "1.6.0", features = [
+    "unstable_protocol_v2",
+] }

@@ -8,11 +8,21 @@ The Agent Client Protocol (ACP) standardizes communication between _code editors
 
 Learn more at [agentclientprotocol.com](https://agentclientprotocol.com/).
 
-## Rust Crate and Schema Artifacts
+This repository is a DarbotLM hardening fork of the upstream [Agent Client Protocol project](https://github.com/agentclientprotocol/agent-client-protocol). DarbotLM tracks upstream ACP protocol content here while carrying local tooling and hardening changes. Releases from this fork are non-authoritative and must not be treated as the publisher of the upstream crates.io, npm, or schema release names.
 
-This repository's root Rust crate is [`agent-client-protocol-schema`](https://crates.io/crates/agent-client-protocol-schema). It provides the Rust data model for ACP wire messages, including request, response, notification, JSON-RPC envelope, and protocol-version types. Use this crate when you need direct access to ACP protocol types, schema-oriented tooling, or code generation inputs.
+## Rust: this repository ships types, not the runtime
 
-If you are implementing a Rust ACP agent or client, start with the higher-level [`agent-client-protocol`](https://crates.io/crates/agent-client-protocol) runtime crate instead. That crate provides the client and agent runtime APIs for ACP integrations; this schema crate is the lower-level protocol type surface.
+This repository's Rust crate is [`agent-client-protocol-schema`](https://crates.io/crates/agent-client-protocol-schema). It provides ACP wire types only: request, response, notification, JSON-RPC envelope, and protocol-version data structures.
+
+This repository does not ship a Rust ACP runtime. If you are building a Rust ACP agent, client, or proxy, start with the external [`agent-client-protocol`](https://crates.io/crates/agent-client-protocol) runtime crate from the [`agentclientprotocol/rust-sdk`](https://github.com/agentclientprotocol/rust-sdk) repository:
+
+```bash
+cargo add agent-client-protocol
+```
+
+Use `agent-client-protocol-schema` from this repository when you need direct access to ACP protocol types, schema-oriented tooling, or code generation inputs.
+
+The Rust runtime boundary decision and current version-alignment caveats are recorded in [`docs/rfds/rust-runtime-boundary.mdx`](./docs/rfds/rust-runtime-boundary.mdx).
 
 Generated JSON Schema artifacts live in [`schema/v1`](./schema/v1/) and [`schema/v2`](./schema/v2/). When a schema release is published, the versioned `.json` files are also attached to the corresponding [`schema-v*` GitHub release](https://github.com/agentclientprotocol/agent-client-protocol/releases), which is the recommended download surface for SDK generators and other release automation.
 

@@ -3,22 +3,48 @@ title: "Rust"
 description: "Rust library for the Agent Client Protocol"
 ---
 
-The [agent-client-protocol](https://crates.io/crates/agent-client-protocol) Rust
-crate provides implementations of both sides of the Agent Client Protocol that
-you can use to build your own agent server or client.
+This repository's Rust artifact is the
+[`agent-client-protocol-schema`](https://crates.io/crates/agent-client-protocol-schema)
+crate. It provides ACP wire-format types and JSON-RPC envelope types only. It
+does not provide the Rust runtime pieces such as transports, connection setup,
+or the runtime `Agent` and `Client` traits.
 
-To get started, add the crate as a dependency to your project's `Cargo.toml`:
+If you are implementing a Rust ACP agent, client, or proxy, start with the
+external
+[`agent-client-protocol`](https://crates.io/crates/agent-client-protocol)
+runtime crate from the
+[`agentclientprotocol/rust-sdk`](https://github.com/agentclientprotocol/rust-sdk)
+repository.
+
+This repository publishes `agent-client-protocol-schema` at `1.6.0`, while the
+currently published `agent-client-protocol` runtime crate pins
+`agent-client-protocol-schema = "=1.5.0"`. The two therefore cannot be combined
+in a single dependency graph without resolving two incompatible copies of the
+schema types, so the published runtime crate cannot be consumed in-tree against
+this repository's schema version today. The full rationale is recorded in
+[Rust runtime package boundary](../rfds/rust-runtime-boundary).
+
+To build an agent or client directly on the schema types in this repository,
+without the external runtime, follow the
+[Rust implementer guide](../guides/rust-implementer-guide).
+
+To get started with the runtime crate, add it to your project's `Cargo.toml`:
 
 ```bash
 cargo add agent-client-protocol
 ```
 
-Depending on what kind of tool you're building, you'll need to implement either
-the
+Use `agent-client-protocol-schema` from this repository when you need direct
+wire types, schema-driven tooling, or low-level serde interoperability without a
+runtime.
+
+Depending on what kind of runtime tool you're building, you'll need to
+implement either the
 [Agent](https://docs.rs/agent-client-protocol/latest/agent_client_protocol/trait.Agent.html)
 trait or the
 [Client](https://docs.rs/agent-client-protocol/latest/agent_client_protocol/trait.Client.html)
-trait to define the interaction with the ACP counterpart.
+trait from the external runtime crate to define the interaction with the ACP
+counterpart.
 
 The
 [agent](https://github.com/agentclientprotocol/rust-sdk/blob/main/src/agent-client-protocol/examples/agent.rs)
@@ -29,6 +55,10 @@ as a starting point.
 
 You can read the full documentation for the `agent-client-protocol` crate on
 [docs.rs](https://docs.rs/agent-client-protocol/latest/agent_client_protocol/).
+
+The package-boundary decision for Rust, including why this repository remains
+schema-first, is recorded in
+[Rust runtime package boundary](../rfds/rust-runtime-boundary).
 
 ## Users
 

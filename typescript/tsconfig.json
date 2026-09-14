@@ -1,0 +1,14 @@
+{
+  "compilerOptions": {
+    "strict": true,
+    "noEmit": true,
+    "skipLibCheck": false,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "target": "es2022",
+    "lib": ["es2022"],
+    "types": [],
+    "forceConsistentCasingInFileNames": true
+  },
+  "include": ["v1/**/*.d.ts", "v2/**/*.d.ts", "tests/**/*.ts"]
+}

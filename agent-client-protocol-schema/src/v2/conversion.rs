@@ -459,6 +459,14 @@ impl_try_from_v1_to_v2!(crate::v1::AuthMethod => super::AuthMethod);
 impl_try_from_v2_to_v1!(super::AuthMethodAgent => crate::v1::AuthMethodAgent);
 impl_try_from_v1_to_v2!(crate::v1::AuthMethodAgent => super::AuthMethodAgent);
 #[cfg(feature = "unstable_auth_methods")]
+impl_try_from_v2_to_v1!(super::AuthMethodEnvVar => crate::v1::AuthMethodEnvVar);
+#[cfg(feature = "unstable_auth_methods")]
+impl_try_from_v1_to_v2!(crate::v1::AuthMethodEnvVar => super::AuthMethodEnvVar);
+#[cfg(feature = "unstable_auth_methods")]
+impl_try_from_v2_to_v1!(super::AuthEnvVar => crate::v1::AuthEnvVar);
+#[cfg(feature = "unstable_auth_methods")]
+impl_try_from_v1_to_v2!(crate::v1::AuthEnvVar => super::AuthEnvVar);
+#[cfg(feature = "unstable_auth_methods")]
 impl_try_from_v2_to_v1!(super::AuthMethodTerminal => crate::v1::AuthMethodTerminal);
 #[cfg(feature = "unstable_auth_methods")]
 impl_try_from_v1_to_v2!(crate::v1::AuthMethodTerminal => super::AuthMethodTerminal);
@@ -3601,6 +3609,8 @@ impl TryToV1 for super::AuthMethod {
     fn try_to_v1(self) -> Result<Self::Output> {
         Ok(match self {
             #[cfg(feature = "unstable_auth_methods")]
+            Self::EnvVar(value) => crate::v1::AuthMethod::EnvVar(value.try_to_v1()?),
+            #[cfg(feature = "unstable_auth_methods")]
             Self::Terminal(value) => crate::v1::AuthMethod::Terminal(value.try_to_v1()?),
             Self::Other(value) => {
                 return Err(unknown_v2_enum_variant("AuthMethod", &value.type_));
@@ -3615,6 +3625,8 @@ impl TryToV2 for crate::v1::AuthMethod {
 
     fn try_to_v2(self) -> Result<Self::Output> {
         Ok(match self {
+            #[cfg(feature = "unstable_auth_methods")]
+            Self::EnvVar(value) => super::AuthMethod::EnvVar(value.try_to_v2()?),
             #[cfg(feature = "unstable_auth_methods")]
             Self::Terminal(value) => super::AuthMethod::Terminal(value.try_to_v2()?),
             Self::Agent(value) => super::AuthMethod::Agent(value.try_to_v2()?),
@@ -3655,6 +3667,98 @@ impl TryToV2 for crate::v1::AuthMethodAgent {
             method_id: id.try_to_v2()?,
             name: name.try_to_v2()?,
             description: description.try_to_v2()?,
+            meta: meta.try_to_v2()?,
+        })
+    }
+}
+
+#[cfg(feature = "unstable_auth_methods")]
+impl TryToV1 for super::AuthMethodEnvVar {
+    type Output = crate::v1::AuthMethodEnvVar;
+
+    fn try_to_v1(self) -> Result<Self::Output> {
+        let Self {
+            method_id,
+            name,
+            description,
+            vars,
+            link,
+            meta,
+        } = self;
+        Ok(crate::v1::AuthMethodEnvVar {
+            id: method_id.try_to_v1()?,
+            name: name.try_to_v1()?,
+            description: description.try_to_v1()?,
+            vars: vars.try_to_v1()?,
+            link: link.try_to_v1()?,
+            meta: meta.try_to_v1()?,
+        })
+    }
+}
+
+#[cfg(feature = "unstable_auth_methods")]
+impl TryToV2 for crate::v1::AuthMethodEnvVar {
+    type Output = super::AuthMethodEnvVar;
+
+    fn try_to_v2(self) -> Result<Self::Output> {
+        let Self {
+            id,
+            name,
+            description,
+            vars,
+            link,
+            meta,
+        } = self;
+        Ok(super::AuthMethodEnvVar {
+            method_id: id.try_to_v2()?,
+            name: name.try_to_v2()?,
+            description: description.try_to_v2()?,
+            vars: vars.try_to_v2()?,
+            link: link.try_to_v2()?,
+            meta: meta.try_to_v2()?,
+        })
+    }
+}
+
+#[cfg(feature = "unstable_auth_methods")]
+impl TryToV1 for super::AuthEnvVar {
+    type Output = crate::v1::AuthEnvVar;
+
+    fn try_to_v1(self) -> Result<Self::Output> {
+        let Self {
+            name,
+            label,
+            secret,
+            optional,
+            meta,
+        } = self;
+        Ok(crate::v1::AuthEnvVar {
+            name: name.try_to_v1()?,
+            label: label.try_to_v1()?,
+            secret: secret.try_to_v1()?,
+            optional: optional.try_to_v1()?,
+            meta: meta.try_to_v1()?,
+        })
+    }
+}
+
+#[cfg(feature = "unstable_auth_methods")]
+impl TryToV2 for crate::v1::AuthEnvVar {
+    type Output = super::AuthEnvVar;
+
+    fn try_to_v2(self) -> Result<Self::Output> {
+        let Self {
+            name,
+            label,
+            secret,
+            optional,
+            meta,
+        } = self;
+        Ok(super::AuthEnvVar {
+            name: name.try_to_v2()?,
+            label: label.try_to_v2()?,
+            secret: secret.try_to_v2()?,
+            optional: optional.try_to_v2()?,
             meta: meta.try_to_v2()?,
         })
     }

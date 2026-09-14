@@ -91,3 +91,47 @@ impl ExtNotification {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn raw(json: &str) -> Arc<RawValue> {
+        Arc::from(RawValue::from_string(json.to_string()).unwrap())
+    }
+
+    #[test]
+    fn ext_request_round_trips_raw_params() {
+        let params = raw(r#"{"enabled":true}"#);
+        let request = ExtRequest::new("_future/request", params.clone());
+
+        assert_eq!(serde_json::to_string(&request).unwrap(), params.get());
+
+        let decoded: ExtRequest = serde_json::from_str(params.get()).unwrap();
+        assert!(decoded.method.is_empty());
+        assert_eq!(decoded.params.get(), params.get());
+    }
+
+    #[test]
+    fn ext_response_round_trips_raw_params() {
+        let params = raw(r#"{"result":"ok"}"#);
+        let response = ExtResponse::new(params.clone());
+
+        assert_eq!(serde_json::to_string(&response).unwrap(), params.get());
+
+        let decoded: ExtResponse = serde_json::from_str(params.get()).unwrap();
+        assert_eq!(decoded.0.get(), params.get());
+    }
+
+    #[test]
+    fn ext_notification_round_trips_raw_params() {
+        let params = raw(r#"{"progress":50}"#);
+        let notification = ExtNotification::new("_future/notify", params.clone());
+
+        assert_eq!(serde_json::to_string(&notification).unwrap(), params.get());
+
+        let decoded: ExtNotification = serde_json::from_str(params.get()).unwrap();
+        assert!(decoded.method.is_empty());
+        assert_eq!(decoded.params.get(), params.get());
+    }
+}
