@@ -985,7 +985,11 @@ impl AuthEnvVar {
 ///
 /// Terminal-based authentication method.
 ///
-/// The client runs an interactive terminal for the user to authenticate via a TUI.
+/// The client runs the configured agent program as a separate interactive
+/// process for the user to authenticate via a TUI. Agents MUST advertise this
+/// method only when the client enabled its terminal authentication capability.
+/// A zero exit status signals success; any other termination signals failure.
+/// The client MUST NOT pass this method to `auth/login`.
 #[cfg(feature = "unstable_auth_methods")]
 #[serde_as]
 #[skip_serializing_none]
@@ -1000,10 +1004,12 @@ pub struct AuthMethodTerminal {
     /// Optional description providing more details about this authentication method.
     #[serde(default)]
     pub description: Option<String>,
-    /// Additional arguments to pass when running the agent binary for terminal auth.
+    /// Additional arguments to append to the configured agent invocation for terminal auth.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub args: Vec<String>,
-    /// Additional environment variables to set when running the agent binary for terminal auth.
+    /// Additional environment variables to set on the configured agent invocation for terminal auth.
+    /// Names MUST be unique. These values override same-named variables in the
+    /// base launch configuration.
     #[serde_as(deserialize_as = "DefaultOnError<VecSkipError<_, SkipListener>>")]
     #[schemars(extend("x-deserialize-default-on-error" = true, "x-deserialize-skip-invalid-items" = true))]
     #[serde(default, skip_serializing_if = "Vec::is_empty")]

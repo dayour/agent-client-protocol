@@ -2034,7 +2034,9 @@ pub struct AuthCapabilities {
     /// Whether the client supports `terminal` authentication methods.
     ///
     /// Optional. Omitted or `null` both mean the client does not advertise support.
-    /// Supplying `{}` means the agent may include `terminal` entries in its authentication methods.
+    /// The client should supply `{}` only when it can reproduce the configured
+    /// agent invocation in an interactive terminal. Supplying `{}` means the
+    /// agent may include `terminal` entries in its authentication methods.
     #[serde(default)]
     pub terminal: Option<TerminalAuthCapabilities>,
     /// The _meta property is reserved by ACP to allow clients and agents to attach additional
